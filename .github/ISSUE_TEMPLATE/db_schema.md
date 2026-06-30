@@ -2,7 +2,7 @@
 name: DB/Prisma 작업
 about: ERD, Prisma schema, migration 관련 작업을 등록합니다.
 title: "[DB] "
-labels: ["area: db"]
+labels: ["🗄 DB"]
 assignees: ""
 ---
 

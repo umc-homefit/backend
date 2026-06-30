@@ -2,7 +2,7 @@
 name: 버그 수정
 about: 버그나 예상과 다른 동작을 등록합니다.
 title: "[Fix] "
-labels: ["type: fix"]
+labels: ["🐛 fix"]
 assignees: ""
 ---
 

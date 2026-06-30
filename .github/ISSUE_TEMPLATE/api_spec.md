@@ -2,7 +2,7 @@
 name: API 명세 작업
 about: Swagger 또는 Notion API 명세 작성/수정 작업을 등록합니다.
 title: "[Docs] API 명세 - "
-labels: ["type: docs", "area: api"]
+labels: ["📝 docs", "📡 API"]
 assignees: ""
 ---
 

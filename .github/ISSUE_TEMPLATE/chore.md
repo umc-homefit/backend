@@ -2,7 +2,7 @@
 name: 설정/환경 작업
 about: 프로젝트 설정, 환경변수, 배포, Swagger 등 공통 작업을 등록합니다.
 title: "[Chore] "
-labels: ["type: chore"]
+labels: ["🛠 chore"]
 assignees: ""
 ---
 

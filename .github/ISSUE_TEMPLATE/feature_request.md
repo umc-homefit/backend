@@ -2,7 +2,7 @@
 name: 기능 개발
 about: 새로운 기능 또는 API 개발 작업을 등록합니다.
 title: "[Feat] "
-labels: ["type: feature"]
+labels: ["✨ feature"]
 assignees: ""
 ---
 

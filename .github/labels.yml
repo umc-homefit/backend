@@ -1,82 +1,88 @@
-# GitHub 기본 라벨 후보
-# GitHub에 자동 반영되는 파일은 아니며, label sync 도구 또는 gh 명령으로 적용할 수 있다.
+# HomeFit 백엔드 라벨 정의
+# GitHub에 자동 반영되는 파일은 아니며, label sync 도구 또는 gh 명령으로 적용한다.
+# 이 파일은 GitHub에 실제 적용된 이모지 라벨과 동일하게 유지한다.
 
-- name: "type: feature"
+# --- 작업 유형 ---
+- name: "✨ feature"
   color: "0E8A16"
-  description: "새로운 기능 개발"
+  description: "새 기능 개발"
 
-- name: "type: fix"
+- name: "🐛 fix"
   color: "D73A4A"
   description: "버그 수정"
 
-- name: "type: docs"
+- name: "📝 docs"
   color: "0075CA"
-  description: "문서 작성 또는 수정"
+  description: "문서 작성/수정"
 
-- name: "type: chore"
+- name: "🛠 chore"
   color: "C5DEF5"
-  description: "설정, 환경, 빌드 등 기타 작업"
+  description: "설정/환경/빌드 작업"
 
-- name: "type: refactor"
+- name: "♻️ refactor"
   color: "A2EEEF"
-  description: "기능 변경 없는 코드 구조 개선"
+  description: "기능 변경 없는 구조 개선"
 
-- name: "type: test"
+- name: "✅ test"
   color: "BFDADC"
-  description: "테스트 추가 또는 수정"
+  description: "테스트 추가/수정"
 
-- name: "priority: p0"
+# --- 우선순위 ---
+- name: "🔥 P0"
   color: "B60205"
   description: "반드시 처리해야 하는 핵심 작업"
 
-- name: "priority: p1"
+- name: "⭐ P1"
   color: "D93F0B"
   description: "가능하면 처리할 주요 작업"
 
-- name: "priority: p2"
+- name: "🌱 P2"
   color: "FBCA04"
-  description: "시간이 남으면 처리할 작업"
+  description: "여유 있으면 처리할 작업"
 
-- name: "domain: auth-user"
+# --- 도메인 ---
+- name: "🔐 Auth/User"
   color: "5319E7"
-  description: "Auth/User 도메인"
+  description: "로그인, 사용자, 마이페이지"
 
-- name: "domain: notice"
+- name: "📢 Notice"
   color: "FBCA04"
-  description: "Notice 도메인"
+  description: "공고, 저장 공고, 크롤링"
 
-- name: "domain: eligibility"
+- name: "🧮 Eligibility"
   color: "1D76DB"
-  description: "Eligibility Analysis 도메인"
+  description: "입주 가능성 분석"
 
-- name: "domain: finance-guide"
+- name: "💰 Finance/Guide"
   color: "F9D0C4"
-  description: "Finance/Guide 도메인"
+  description: "금융상품, 가이드, 용어"
 
-- name: "domain: notification"
+- name: "🔔 Notification"
   color: "C2E0C6"
-  description: "Notification 관련 작업"
+  description: "알림 설정/발송"
 
-- name: "domain: common"
+- name: "⚙️ Common"
   color: "D4C5F9"
-  description: "공통 설정, 공통 응답, 예외 처리"
+  description: "공통 응답, 예외 처리, 설정"
 
-- name: "area: api"
+# --- 작업 영역 ---
+- name: "📡 API"
   color: "0052CC"
-  description: "API 명세 또는 API 구현"
+  description: "API 명세/구현"
 
-- name: "area: db"
+- name: "🗄 DB"
   color: "5319E7"
-  description: "DB, Prisma, Migration"
+  description: "ERD, Prisma, Migration"
 
-- name: "area: swagger"
+- name: "📘 Swagger"
   color: "0E8A16"
   description: "Swagger/OpenAPI 문서화"
 
-- name: "status: blocked"
+# --- 상태 ---
+- name: "🚧 blocked"
   color: "000000"
-  description: "외부 결정이나 확인이 필요해 막힌 작업"
+  description: "확인 필요로 막힌 작업"
 
-- name: "status: needs-review"
+- name: "👀 need review"
   color: "FBCA04"
   description: "리뷰가 필요한 작업"
