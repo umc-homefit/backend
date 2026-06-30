@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+
+# env (절대 커밋 금지, .env.example만 관리)
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+build/
+
+# logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# prisma
+# (schema/migrations는 커밋, 로컬 생성물은 제외)
+prisma/*.db
+prisma/*.db-journal
+
+# secrets
+secrets/
+*.pem
+fcm-service-account*.json
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# coverage / cache
+coverage/
+.cache/
+.turbo/
