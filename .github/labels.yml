@@ -1,0 +1,82 @@
+# GitHub 기본 라벨 후보
+# GitHub에 자동 반영되는 파일은 아니며, label sync 도구 또는 gh 명령으로 적용할 수 있다.
+
+- name: "type: feature"
+  color: "0E8A16"
+  description: "새로운 기능 개발"
+
+- name: "type: fix"
+  color: "D73A4A"
+  description: "버그 수정"
+
+- name: "type: docs"
+  color: "0075CA"
+  description: "문서 작성 또는 수정"
+
+- name: "type: chore"
+  color: "C5DEF5"
+  description: "설정, 환경, 빌드 등 기타 작업"
+
+- name: "type: refactor"
+  color: "A2EEEF"
+  description: "기능 변경 없는 코드 구조 개선"
+
+- name: "type: test"
+  color: "BFDADC"
+  description: "테스트 추가 또는 수정"
+
+- name: "priority: p0"
+  color: "B60205"
+  description: "반드시 처리해야 하는 핵심 작업"
+
+- name: "priority: p1"
+  color: "D93F0B"
+  description: "가능하면 처리할 주요 작업"
+
+- name: "priority: p2"
+  color: "FBCA04"
+  description: "시간이 남으면 처리할 작업"
+
+- name: "domain: auth-user"
+  color: "5319E7"
+  description: "Auth/User 도메인"
+
+- name: "domain: notice"
+  color: "FBCA04"
+  description: "Notice 도메인"
+
+- name: "domain: eligibility"
+  color: "1D76DB"
+  description: "Eligibility Analysis 도메인"
+
+- name: "domain: finance-guide"
+  color: "F9D0C4"
+  description: "Finance/Guide 도메인"
+
+- name: "domain: notification"
+  color: "C2E0C6"
+  description: "Notification 관련 작업"
+
+- name: "domain: common"
+  color: "D4C5F9"
+  description: "공통 설정, 공통 응답, 예외 처리"
+
+- name: "area: api"
+  color: "0052CC"
+  description: "API 명세 또는 API 구현"
+
+- name: "area: db"
+  color: "5319E7"
+  description: "DB, Prisma, Migration"
+
+- name: "area: swagger"
+  color: "0E8A16"
+  description: "Swagger/OpenAPI 문서화"
+
+- name: "status: blocked"
+  color: "000000"
+  description: "외부 결정이나 확인이 필요해 막힌 작업"
+
+- name: "status: needs-review"
+  color: "FBCA04"
+  description: "리뷰가 필요한 작업"
