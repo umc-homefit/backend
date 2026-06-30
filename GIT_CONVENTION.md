@@ -17,6 +17,7 @@ main
     ├── feature/*
     ├── fix/*
     ├── chore/*
+    ├── docs/*
     └── refactor/*
 ```
 
@@ -28,7 +29,8 @@ main
 | `dev` | 개발 통합 브랜치 |
 | `feature/*` | 기능 개발 브랜치 |
 | `fix/*` | 버그 수정 브랜치 |
-| `chore/*` | 설정, 환경, 문서 등 기능 외 작업 브랜치 |
+| `chore/*` | 설정, 환경 등 기능 외 작업 브랜치 |
+| `docs/*` | 문서 작업(API 명세, README 등) 브랜치 |
 | `refactor/*` | 기능 변경 없는 코드 구조 개선 브랜치 |
 
 ## 2. 브랜치 이름 규칙
@@ -135,6 +137,8 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 ## 6. Merge 규칙
 
 - PR은 리뷰 후 `dev`에 merge한다.
+- `feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*` → `dev`는 **Squash and merge**로 커밋을 1개로 합쳐 히스토리를 깔끔하게 유지한다.
+- `dev` → `main`은 **Merge commit**으로 올려 통합 시점을 남긴다.
 - `main`에는 데모/배포 기준으로만 merge한다.
 - 충돌이 발생하면 해당 브랜치 담당자가 우선 해결한다.
 - 급한 수정이 아니라면 `main`에 직접 push하지 않는다.
