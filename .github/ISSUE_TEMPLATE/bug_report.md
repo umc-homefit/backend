@@ -28,17 +28,18 @@ assignees: ""
 
 - [ ] Auth/User
 - [ ] Notice
-- [ ] Eligibility Analysis
+- [ ] Eligibility
 - [ ] Finance/Guide
 - [ ] Notification
 - [ ] Common/Infra
 
 ## 확인 필요 사항
 
+- [ ] API 요청값 확인
 - [ ] API 응답 확인
 - [ ] DB 데이터 확인
 - [ ] 환경변수 확인
-- [ ] Android 요청값 확인
+- [ ] Swagger/명세와 실제 구현 비교
 
 ## 참고 자료
 
