@@ -22,17 +22,21 @@
 
 ## 기술 스택
 
-- Runtime: Node.js
+- Framework: NestJS
+- Language/Runtime: TypeScript + Node.js
+- Database: PostgreSQL
 - ORM: Prisma
+- Auth: JWT Access Token + Refresh Token
+- Validation: class-validator / class-transformer
+- API Docs: Swagger + Notion API 명세
 - Queue: BullMQ (Redis)
-- Scheduler: node-cron (매일 06:00 크롤링)
+- Scheduler: node-cron
 - Crawling: Playwright / Cheerio
 - Push: FCM
-- API Docs: Swagger + Notion API 명세
-
-> 웹 프레임워크(Express/NestJS) 등 일부 스택은 팀 확정 후 갱신 예정.
 
 ## 로컬 실행
+
+> 서버 코드/패키지 구성은 1차 과제 세팅 PR에서 추가 예정이다. NestJS 초기 세팅 이후 아래 흐름으로 실행한다.
 
 ```bash
 # 1. 의존성 설치
@@ -46,10 +50,8 @@ npx prisma generate
 npx prisma migrate dev
 
 # 4. 실행
-npm run dev
+npm run start:dev
 ```
-
-> 서버 코드/패키지 구성은 1차 과제 진행하며 추가 예정.
 
 ## 협업 규칙
 
@@ -57,11 +59,20 @@ npm run dev
 - 라벨 가이드: [.github/LABELS_GUIDE.md](./.github/LABELS_GUIDE.md)
 - 이슈/PR 템플릿: `.github/`
 - API 명세는 Notion 문서를 우선 확인 (이슈 템플릿 `config.yml` 링크 참고)
+- `main`, `dev`는 보호 규칙을 적용한다.
+- 작업 브랜치는 PR로만 반영하며, 최소 1명 리뷰 승인 후 Squash merge한다.
 
 ## 브랜치
 
 ```text
 main   최종 배포/데모 기준
 dev    개발 통합 브랜치 (PR 기본 대상)
-feature/* fix/* chore/* refactor/*
+feature/* fix/* chore/* docs/* refactor/*
 ```
+
+## 1차 구현 범위
+
+- Auth/User: `POST /auth/signup`, `POST /auth/login`, `GET/PUT /users/me/condition-profile`
+- Notice: `GET /notices`, `GET /notices/{noticeId}`
+- Finance/Guide: `GET /loan-products`
+- Eligibility: `POST /notices/{noticeId}/units/{unitId}/eligibility-analyses`

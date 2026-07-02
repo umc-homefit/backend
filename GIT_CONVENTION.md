@@ -99,6 +99,7 @@ PR은 기본적으로 `dev` 브랜치로 올린다.
 feature/* → dev
 fix/* → dev
 chore/* → dev
+docs/* → dev
 refactor/* → dev
 ```
 
@@ -129,6 +130,7 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 ### PR 체크 기준
 
 - 최소 1명 이상 리뷰 후 merge한다.
+- `main`, `dev`는 보호 규칙이 적용되어 직접 push하지 않는다.
 - DB schema 변경이 있으면 PR 본문에 반드시 적는다.
 - API Request/Response 변경이 있으면 Swagger와 Notion API 명세를 같이 수정한다.
 - `.env` 파일은 커밋하지 않는다.
@@ -137,11 +139,13 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 ## 6. Merge 규칙
 
 - PR은 리뷰 후 `dev`에 merge한다.
-- `feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*` → `dev`는 **Squash and merge**로 커밋을 1개로 합쳐 히스토리를 깔끔하게 유지한다.
-- `dev` → `main`은 **Merge commit**으로 올려 통합 시점을 남긴다.
+- 모든 PR은 **Squash and merge**로 커밋을 1개로 합쳐 히스토리를 깔끔하게 유지한다.
+- `dev` → `main`도 제출/데모 기준이 정리된 뒤 PR로 올리고 **Squash and merge**한다.
+- GitHub Repository 설정에서 Merge commit, Rebase merge는 비활성화하고 Squash merge만 사용한다.
+- merge된 작업 브랜치는 자동 삭제한다.
 - `main`에는 데모/배포 기준으로만 merge한다.
 - 충돌이 발생하면 해당 브랜치 담당자가 우선 해결한다.
-- 급한 수정이 아니라면 `main`에 직접 push하지 않는다.
+- 본인이 작성한 PR은 최소 1명 승인 전까지 직접 merge하지 않는다.
 
 ## 7. 도메인별 작업 범위
 
@@ -215,10 +219,11 @@ Git에 올릴 수 있는 파일:
 예시:
 
 ```env
-DATABASE_URL=
-JWT_SECRET=
+DATABASE_URL=postgresql://user:password@localhost:5432/homefit?schema=public
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
 PORT=3000
-FCM_SERVER_KEY=
+FCM_PROJECT_ID=
 ```
 
 민감 정보는 GitHub, Notion, 카카오톡 등에 그대로 공유하지 않는다.
@@ -248,13 +253,10 @@ FCM_SERVER_KEY=
 - 공통 예외 처리 구조 정의
 - 일부 도메인 CRUD API 구현
 
-## 13. 확인 필요 사항
+## 13. 향후 확인 필요 사항
 
-- `main` 보호 규칙 설정 여부
-- `dev` 보호 규칙 설정 여부
-- PR 최소 리뷰 인원
-- squash merge 사용 여부
-- GitHub Issue 사용 여부
-- GitHub Project 사용 여부
 - Swagger 배포 주소
 - 개발 서버 배포 방식
+- CI 체크 도입 여부
+- FCM HTTP v1 서비스 계정 관리 방식
+- 크롤링 배치/큐 운영 범위

@@ -18,7 +18,7 @@
 - [ ] Notice
 - [ ] Eligibility
 - [ ] Finance/Guide
-- [ ] Notification
+- [ ] Notification(API 카테고리, 구현은 Auth/User 중심)
 - [ ] Common/Infra
 
 ## 변경 내용
@@ -29,6 +29,7 @@
 
 ## 확인한 내용
 
+- [ ] 대상 브랜치 확인 (`feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*` → `dev`)
 - [ ] 로컬 서버 실행 확인
 - [ ] API 응답 확인
 - [ ] 에러 케이스 확인
