@@ -206,6 +206,15 @@ DB schema 또는 Prisma schema 변경 시 PR에 반드시 명시한다.
 - enum 값 변경은 API 응답과 Android 분기에도 영향을 줄 수 있으므로 반드시 공유한다.
 - 저장 공고, 알림, 분석 결과처럼 다른 도메인과 연결되는 테이블은 담당자와 확인 후 수정한다.
 
+### 로컬 DB 개발 원칙
+
+- 1차 개발은 각자 로컬 PostgreSQL을 사용한다.
+- DB schema 변경은 Prisma schema와 migration으로 관리한다.
+- `.env`의 `DATABASE_URL`은 개인 로컬 DB 주소를 사용한다.
+- DataGrip은 DB 테이블/데이터 확인용으로 사용한다.
+- Postman/Swagger는 API 요청/응답 테스트용으로 사용한다.
+- 공유 dev DB는 Android 연동 또는 데모 준비 단계에서 별도로 구성한다.
+
 ## 10. 환경변수 관리
 
 실제 `.env` 파일은 Git에 올리지 않는다.

@@ -54,6 +54,15 @@ npm run start:dev
 - Health Check: `GET http://localhost:3000/api/health`
 - Swagger: `http://localhost:3000/api/docs`
 
+## 로컬 DB 개발 원칙
+
+- 1차 개발은 각자 로컬 PostgreSQL을 사용한다.
+- DB schema 변경은 Prisma schema와 migration으로 관리한다.
+- `.env`의 `DATABASE_URL`은 개인 로컬 DB 주소를 사용한다.
+- DataGrip은 DB 테이블/데이터 확인용으로 사용한다.
+- Postman/Swagger는 API 요청/응답 테스트용으로 사용한다.
+- 공유 dev DB는 Android 연동 또는 데모 준비 단계에서 별도로 구성한다.
+
 ## 협업 규칙
 
 - 브랜치 전략, 커밋 메시지, PR/DB/API 변경 규칙: [GIT_CONVENTION.md](./GIT_CONVENTION.md)
