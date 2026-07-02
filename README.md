@@ -29,10 +29,10 @@
 - Auth: JWT Access Token + Refresh Token
 - Validation: class-validator / class-transformer
 - API Docs: Swagger + Notion API 명세
-- Queue: BullMQ (Redis)
-- Scheduler: node-cron
-- Crawling: Playwright / Cheerio
-- Push: FCM
+- Queue: BullMQ (Redis) - 추후 적용 예정
+- Scheduler: node-cron - 추후 적용 예정
+- Crawling: Playwright / Cheerio - 추후 적용 예정
+- Push: FCM - 추후 적용 예정
 
 ## 로컬 실행
 
