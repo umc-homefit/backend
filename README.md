@@ -36,8 +36,6 @@
 
 ## 로컬 실행
 
-> 서버 코드/패키지 구성은 1차 과제 세팅 PR에서 추가 예정이다. NestJS 초기 세팅 이후 아래 흐름으로 실행한다.
-
 ```bash
 # 1. 의존성 설치
 npm install
@@ -52,6 +50,9 @@ npx prisma migrate dev
 # 4. 실행
 npm run start:dev
 ```
+
+- Health Check: `GET http://localhost:3000/api/health`
+- Swagger: `http://localhost:3000/api/docs`
 
 ## 협업 규칙
 
