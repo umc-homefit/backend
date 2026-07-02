@@ -1,28 +1,29 @@
 ---
 name: API 명세 작업
 about: Swagger 또는 Notion API 명세 작성/수정 작업을 등록합니다.
-title: "[Docs] API 명세 - "
+title: "[Docs] API - "
 labels: ["📝 docs", "📡 API"]
 assignees: ""
 ---
 
 ## 작성할 API
 
+- 도메인:
 - Method:
 - Endpoint:
-- 도메인:
 - 연결 화면:
+- 우선순위: P0 / P1 / P2
 
-## 작업 내용
+## 작성 내용
 
-- [ ] Request 작성
 - [ ] Path Variable 작성
 - [ ] Query Parameter 작성
-- [ ] Response 작성
-- [ ] Example 작성
-- [ ] Status/Error Response 작성
+- [ ] Request Body
+- [ ] Response Body
+- [ ] Error Response
+- [ ] Example
 - [ ] Swagger 반영
-- [ ] Notion API 명세 반영
+- [ ] Notion 반영
 
 ## 확인 필요 사항
 
