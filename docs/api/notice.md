@@ -1,17 +1,20 @@
 # Notice 도메인 API 명세
 
-> 담당: 김찬혁(찬찬) · 도메인: 📢 Notice
+> 담당: 김찬혁(찬찬) · 도메인: Notice
 > **이 문서는 팀 Notion `api 명세서`(SSOT)를 미러링한 것이다.** 값이 충돌하면 Notion이 우선이며, Notion 수정 시 이 문서와 Swagger도 함께 맞춘다.
 > Notion: https://app.notion.com/p/38e2a03e23d98097aa90e434b9017faa
 
 ## 공통 규칙
 
-- 응답 envelope: `isSuccess` / `code` / `message` / `result`.
-- `code`는 도메인 접두사 + 상태코드 (예: `NOTICE200`, `NOTICE201`).
-- Response 필드는 **camelCase**.
+- 공통 Base Path는 `/api`이다.
+- 아래 Endpoint는 Base Path를 제외한 경로로 작성한다. 예: 문서상 `GET /notices` -> 실제 호출 `GET /api/notices`.
+- 응답 envelope는 `{ isSuccess, code, message, result }` 형식을 사용한다.
+- `code`는 도메인 접두사 + 상태코드 형식을 사용한다. 예: `NOTICE200`, `NOTICE201`.
+- Request/Response 필드는 **camelCase**를 사용한다.
 - 날짜/시간은 **ISO 8601 문자열** (`2026-07-01T10:00:00+09:00`).
-- 금액은 **원 단위 정수**, 면적은 **㎡ 숫자**.
-- enum은 **대문자 문자열**, 화면 표시 문구는 `...DisplayText` / `dDayText` 등으로 별도 제공.
+- 금액은 **원 단위 정수**, 면적은 **m2 숫자**로 응답한다.
+- enum은 **대문자 문자열**을 사용하고, 화면 표시 문구는 `...DisplayText`, `dDayText` 등 별도 필드로 제공한다.
+- 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
 
 ### 공통 응답 형식
 
@@ -20,11 +23,11 @@
   "isSuccess": true,
   "code": "NOTICE200",
   "message": "요청에 성공했습니다.",
-  "result": { }
+  "result": {}
 }
 ```
 
-목록 응답의 `result`는 `{ <목록배열>, "pageInfo": { ... } }` 형태.
+목록 응답의 `result`는 `{ <목록배열>, "pageInfo": { ... } }` 형태를 사용한다.
 
 ```json
 {
@@ -43,10 +46,24 @@
 | enum | 값 | 비고 |
 | --- | --- | --- |
 | `status` (공고 상태) | `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` | `statusDisplayText`로 표시 문구 동반 |
-| `sort` (목록) | `LATEST`(기본) / `DEADLINE` / `POPULAR` | POPULAR = `interestedCount`(저장 수) 기준 |
+| `sort` (목록) | `LATEST`(기본) / `DEADLINE` / `POPULAR` | 1차는 `LATEST`, `DEADLINE` 우선. `POPULAR`은 저장 수 기반 P1 |
 | `fileType` | `PDF` / `IMAGE` / `LINK` / `DOC` / `OTHER` | |
 
-> `isAdditionalRecruitment`는 Boolean 단일값(추가모집 여부). 잔여세대/미계약/긴급 세분류는 현재 명세에 없음 — 필요 시 회의 안건.
+`isAdditionalRecruitment`는 boolean 단일값으로 사용한다.
+
+- `false`: 일반 공고
+- `true`: 추가모집 공고
+
+## 1차 구현 범위
+
+1차 과제 기준 Notice 도메인의 최소 구현 API는 아래 2개이다.
+
+| 우선순위 | Method | Endpoint | 설명 |
+| --- | --- | --- | --- |
+| P0 | `GET` | `/notices` | 공고 목록 조회 |
+| P0 | `GET` | `/notices/{noticeId}` | 공고 상세 조회 |
+
+주택형/첨부파일 단독 조회, 저장 공고 API, 인기순 정렬, 상세 필터는 P1로 분리한다.
 
 ---
 
@@ -61,18 +78,20 @@
 
 ### Query Parameter
 
-| 이름 | 타입 | 필수 | 설명 |
-| --- | --- | --- | --- |
-| `keyword` | string | N | 공고명/지역/단지명 검색어 |
-| `region` | string | N | 시/도 (예: `서울`) |
-| `district` | string | N | 시/군/구 (예: `강동구`) |
-| `status` | enum | N | `RECRUITING`/`SCHEDULED`/`CLOSING_SOON`/`CLOSED` |
-| `isAdditionalRecruitment` | boolean | N | 추가모집 여부 |
-| `minDeposit` / `maxDeposit` | number | N | 보증금 범위(원) |
-| `minArea` / `maxArea` | number | N | 전용면적 범위(㎡) |
-| `sort` | enum | N | `LATEST`(기본)/`DEADLINE`/`POPULAR` |
-| `page` | number | N | 0부터 시작 (기본 0) |
-| `size` | number | N | 페이지 크기 (기본 10) |
+| 이름 | 타입 | 필수 | 1차 기준 | 설명 |
+| --- | --- | --- | --- | --- |
+| `region` | string | N | P0 | 시/도. 예: `서울` |
+| `district` | string | N | P0 | 시/군/구. 예: `강동구` |
+| `status` | enum | N | P0 | `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` |
+| `isAdditionalRecruitment` | boolean | N | P0 | 추가모집 여부 |
+| `sort` | enum | N | P0 | `LATEST` 기본, `DEADLINE` |
+| `page` | number | N | P0 | 0부터 시작. 기본 0 |
+| `size` | number | N | P0 | 페이지 크기. 기본 10 |
+| `keyword` | string | N | P1 | 공고명/지역/단지명 검색어 |
+| `minDeposit` / `maxDeposit` | number | N | P1 | 보증금 범위 |
+| `minArea` / `maxArea` | number | N | P1 | 전용면적 범위 |
+
+`POPULAR` 정렬은 저장 공고 수(`interestedCount`) 기준이며 저장 기능 구현 이후 P1로 처리한다.
 
 ### Response (result)
 
@@ -118,8 +137,6 @@
 | 400 | 잘못된 Query Parameter |
 | 500 | 서버 내부 오류 |
 
-> ❓ 확인 필요: 페이징 방식 — offset(`page`/`size`) vs cursor.
-
 ---
 
 ## 2. 공고 상세 조회
@@ -131,6 +148,8 @@
 | 인증 | 선택 (로그인 시 `isSaved` 포함) |
 | 우선순위 · 화면 | 🔥 P0 · 공고 상세 |
 
+로그인하지 않은 사용자는 `isSaved`를 `false`로 반환한다. 로그인 사용자는 실제 저장 여부를 반환한다.
+
 ### Path Variable
 
 | 이름 | 타입 | 설명 |
@@ -139,7 +158,7 @@
 
 ### Response (result)
 
-`conditions`는 **단일 Object**, `units`/`files`는 **Array**.
+1차 구현에서는 상세 응답에 `units`, `conditions`, `files`를 함께 포함한다. 단독 조회 API는 P1로 분리한다.
 
 ```json
 {
@@ -171,15 +190,18 @@
         "supplyCount": 18
       }
     ],
-    "conditions": {
-      "targetType": "YOUTH",
-      "minAge": 19, "maxAge": 39,
-      "incomeLimitAmount": 5000000, "incomeLimitText": "도시근로자 월평균 소득 100% 이하",
-      "assetLimitAmount": 361000000, "assetLimitText": "총자산 3억 6,100만 원 이하",
-      "requiresHomeless": true,
-      "residenceRequirement": "서울시 거주 또는 직장 소재",
-      "rawConditionText": "공고문 기준 자격 조건 원문"
-    },
+    "conditions": [
+      {
+        "conditionId": 1,
+        "targetType": "YOUTH",
+        "minAge": 19, "maxAge": 39,
+        "incomeLimitAmount": 5000000, "incomeLimitText": "도시근로자 월평균 소득 100% 이하",
+        "assetLimitAmount": 361000000, "assetLimitText": "총자산 3억 6,100만 원 이하",
+        "requiresHomeless": true,
+        "residenceRequirement": "서울시 거주 또는 직장 소재",
+        "rawConditionText": "공고문 기준 자격 조건 원문"
+      }
+    ],
     "files": [
       { "fileId": 1, "fileName": "2025-03호 공고문.pdf", "fileType": "PDF", "fileUrl": "https://example.com/notice.pdf", "registeredAt": "2026-06-29T10:00:00+09:00" }
     ]
@@ -195,9 +217,6 @@
 | 404 | 공고 없음 |
 | 500 | 서버 내부 오류 |
 
-> ❓ 확인 필요: 입주 조건(`conditions`) 필드 포함 범위.
-> ⚠️ ERD `notice_conditions`는 1:N 테이블이나 본 응답은 단일 Object → 공고당 조건셋 1개 가정. 다중 조건이면 API/ERD 정합 필요.
-
 ---
 
 ## 3. 공고 주택형 조회
@@ -206,6 +225,8 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/units` |
 | 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+
+공고 상세 응답에 `units`를 포함하므로 1차 구현에서는 필수 구현 범위에서 제외한다.
 
 ### Response (result.units[])
 
@@ -235,6 +256,8 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/files` |
 | 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+
+공고 상세 응답에 `files`를 포함하므로 1차 구현에서는 필수 구현 범위에서 제외한다.
 
 ### Response (result.files[])
 
@@ -266,9 +289,14 @@
 | Method · Endpoint | `POST /notices/{noticeId}/save` |
 | 설명 | 공고 저장(찜). 저장 수 기준 인기순에 반영 |
 | 인증 | **필수** |
-| 우선순위 · 화면 | 🔥 P0 · 공고 목록·상세 |
+| 우선순위 · 화면 | ⭐ P1 · 공고 목록·상세 |
 
-### Response (result) — 201
+저장 요청은 멱등하게 처리한다.
+
+- 처음 저장한 경우: 201
+- 이미 저장된 공고를 다시 저장한 경우: 200 + `isSaved: true`
+
+### Response (result)
 
 ```json
 {
@@ -281,12 +309,10 @@
 
 | 상태 | 설명 |
 | --- | --- |
+| 200 | 이미 저장된 공고 |
 | 201 | 저장 성공 |
-| 400 | **이미 저장된 공고** (비멱등 — 중복 저장 거부) |
 | 401 | 인증 필요 |
 | 404 | 공고 없음 |
-
-> ❓ 확인 필요: 비로그인 저장 시도 처리.
 
 ---
 
@@ -296,7 +322,9 @@
 | --- | --- |
 | Method · Endpoint | `DELETE /notices/{noticeId}/save` |
 | 인증 | **필수** |
-| 우선순위 · 화면 | 🔥 P0 · 공고 목록·상세·저장 목록 |
+| 우선순위 · 화면 | ⭐ P1 · 공고 목록·상세·저장 목록 |
+
+저장 해제 요청도 멱등하게 처리한다. 이미 저장 해제된 상태여도 공고가 존재하면 `isSaved: false`로 200을 반환한다.
 
 ### Response (result)
 
@@ -309,9 +337,9 @@
 
 | 상태 | 설명 |
 | --- | --- |
-| 200 | 해제 성공 |
+| 200 | 해제 성공 또는 이미 해제된 상태 |
 | 401 | 인증 필요 |
-| 404 | 공고 또는 저장 내역 없음 |
+| 404 | 공고 없음 |
 
 ---
 
@@ -322,7 +350,7 @@
 | Method · Endpoint | `GET /users/me/saved-notices` |
 | 설명 | 마이페이지 저장 공고 목록 |
 | 인증 | **필수** |
-| 우선순위 · 화면 | 🔥 P0 · 저장 공고 관리 |
+| 우선순위 · 화면 | ⭐ P1 · 저장 공고 관리 |
 
 ### Query Parameter
 
@@ -364,11 +392,8 @@
 
 ---
 
-## 미해결 결정 (회의 안건)
+## 추후 논의
 
-Notion 명세 기준 아직 열린 항목:
-
-- [ ] 공고 목록 페이징 방식: offset vs cursor
-- [ ] 공고 상세 `conditions` 포함 범위, 1:1 vs 1:N (ERD `notice_conditions`와 정합)
-- [ ] 비로그인 저장 시도 처리 (401 vs 무시)
-- [ ] `isAdditionalRecruitment` boolean으로 충분한지(잔여세대/미계약/긴급 세분류 필요 시 enum)
+- 추가모집을 boolean보다 세분화해야 하는지 여부
+- `POPULAR` 정렬의 정확한 기준과 집계 방식
+- 저장 공고 API의 1차 구현 포함 여부

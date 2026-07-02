@@ -31,7 +31,7 @@ HomeFit 백엔드는 이모지 기반 라벨 체계를 사용한다.
 📢 Notice
 🧮 Eligibility
 💰 Finance/Guide
-🔔 Notification
+🔔 Notification (API 카테고리, 구현은 Auth/User 중심)
 ⚙️ Common
 ```
 
@@ -82,7 +82,7 @@ gh label create "🔐 Auth/User"     --color "5319E7" --description "로그인, 
 gh label create "📢 Notice"        --color "FBCA04" --description "공고, 저장 공고, 크롤링" --force
 gh label create "🧮 Eligibility"   --color "1D76DB" --description "입주 가능성 분석" --force
 gh label create "💰 Finance/Guide" --color "F9D0C4" --description "금융상품, 가이드, 용어" --force
-gh label create "🔔 Notification"  --color "C2E0C6" --description "알림 설정/발송" --force
+gh label create "🔔 Notification"  --color "C2E0C6" --description "알림 API 카테고리. 구현은 Auth/User 중심" --force
 gh label create "⚙️ Common"        --color "D4C5F9" --description "공통 응답, 예외 처리, 설정" --force
 
 # 작업 영역

@@ -16,7 +16,7 @@ assignees: ""
 - [ ] Notice
 - [ ] Eligibility
 - [ ] Finance/Guide
-- [ ] Notification
+- [ ] Notification(API 카테고리, 구현은 Auth/User 중심)
 - [ ] Common/Infra
 
 ## 작업 내용
