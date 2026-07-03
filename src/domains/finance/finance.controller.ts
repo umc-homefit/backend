@@ -1,4 +1,12 @@
-import { Controller, Get, NotFoundException, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -19,6 +27,7 @@ import {
   MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
   RequiredDocumentItemDto,
+  SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceService } from './finance.service';
 
@@ -72,6 +81,20 @@ export class FinanceController {
     const result = await this.financeService.getLoanProducts(query);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 목록 조회에 성공했습니다.');
+  }
+
+  @Post('loan-products/sync-test')
+  @ApiOperation({
+    summary: '[테스트] 금융상품 외부 API 동기화',
+    description:
+      '한국주택금융공사 전세자금대출 금리 정보 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
+      'officialUrl은 은행별 URL을 아직 확보하지 못해 HF 공식 사이트로 통일한다. 개발/테스트 용도이며 인증 없이 호출 가능하다.',
+  })
+  @ApiSuccessResponse(SyncLoanProductsResultDto, { description: '동기화 성공' })
+  async syncLoanProducts(): Promise<ApiResponse<SyncLoanProductsResultDto>> {
+    const result = await this.financeService.syncLoanProductsFromExternalApi();
+
+    return createSuccessResponse(result, 'FINANCE200', '금융상품 동기화에 성공했습니다.');
   }
 
   @Get('loan-products/:productId')

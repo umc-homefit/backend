@@ -61,11 +61,11 @@ export class MatchedLoanProductDto {
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
-  @ApiProperty({ description: '금리 범위', example: '1.5% ~ 2.7%' })
-  rateRange: string;
+  @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
+  rateRange: string | null;
 
-  @ApiProperty({ description: '최대 한도 (원 단위)', example: 200000000 })
-  maxLimitAmount: number;
+  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
+  maxLimitAmount: number | null;
 
   @ApiProperty({ description: '사용자 조건 대비 자격 충족 여부', example: true })
   isEligible: boolean;
@@ -113,8 +113,8 @@ export class LoanProductListItemDto {
   @ApiProperty({ description: '제공 기관명', example: '하나은행' })
   providerName: string;
 
-  @ApiProperty({ description: '금리 범위', example: '3.2% ~ 4.5%' })
-  rateRange: string;
+  @ApiPropertyOptional({ description: '금리 범위', example: '3.2% ~ 4.5%', nullable: true })
+  rateRange: string | null;
 
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 150000000, nullable: true })
   maxLimitAmount: number | null;
@@ -126,6 +126,20 @@ export class LoanProductListResultDto {
 
   @ApiProperty({ description: '금융상품 목록', type: [LoanProductListItemDto] })
   products: LoanProductListItemDto[];
+}
+
+export class SyncLoanProductsResultDto {
+  @ApiProperty({ description: '외부 API가 응답한 은행 수', example: 18 })
+  fetchedBankCount: number;
+
+  @ApiProperty({ description: 'DB에 저장된 상품 수', example: 12 })
+  syncedCount: number;
+
+  @ApiProperty({
+    description: '금리 정보가 없어(0) 저장에서 제외된 은행명 목록',
+    example: ['산업은행', '제주은행'],
+  })
+  skippedBanks: string[];
 }
 
 export class LoanProductDetailResultDto {
@@ -145,11 +159,11 @@ export class LoanProductDetailResultDto {
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
-  @ApiProperty({ description: '금리 범위', example: '1.5% ~ 2.7%' })
-  rateRange: string;
+  @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
+  rateRange: string | null;
 
-  @ApiProperty({ description: '최대 한도 (원 단위)', example: 200000000 })
-  maxLimitAmount: number;
+  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
+  maxLimitAmount: number | null;
 
   @ApiProperty({
     description: '공식 안내 URL (상세에만 포함)',
