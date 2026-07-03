@@ -69,8 +69,11 @@ export class NotificationsController {
   getAlertSettings(): ApiResponse<AlertSettingsResultDto> {
     const result: AlertSettingsResultDto = {
       userId: 1001,
-      isPushEnabled: true,
-      isMarketingEnabled: false,
+      pushEnabled: true,
+      noticeAlertEnabled: true,
+      scheduleAlertEnabled: true,
+      financeAlertEnabled: true,
+      interestedRegion: '서울',
       createdAt: '2026-06-28T10:00:00Z',
       updatedAt: '2026-07-01T14:30:00Z',
     };
@@ -86,8 +89,12 @@ export class NotificationsController {
   ): ApiResponse<UpdateAlertSettingsResultDto> {
     const result: UpdateAlertSettingsResultDto = {
       userId: 1001,
-      isPushEnabled: body.isPushEnabled,
-      isMarketingEnabled: body.isMarketingEnabled,
+      pushEnabled: body.pushEnabled,
+      noticeAlertEnabled: body.noticeAlertEnabled,
+      scheduleAlertEnabled: body.scheduleAlertEnabled,
+      financeAlertEnabled: body.financeAlertEnabled,
+      interestedRegion: body.interestedRegion ?? null,
+      createdAt: '2026-06-28T10:00:00Z',
       updatedAt: '2026-07-01T14:30:00Z',
     };
 
@@ -104,7 +111,7 @@ export class NotificationsController {
       notifications: [
         {
           notificationId: 101,
-          type: 'NOTICE',
+          type: 'NEW_NOTICE',
           title: '새로운 청약 공고가 등록되었습니다.',
           content: '강남구에 새로운 행복주택 공고가 올라왔어요. 지금 확인해보세요!',
           isRead: false,
@@ -112,9 +119,9 @@ export class NotificationsController {
         },
         {
           notificationId: 100,
-          type: 'EVENT',
-          title: '홈핏 프로필 업데이트 안내',
-          content: '프로필을 업데이트하고 더 정확한 매칭을 받아보세요.',
+          type: 'CLOSING_SOON',
+          title: '청약 마감이 임박했습니다.',
+          content: '저장한 공고의 청약 마감이 가까워졌어요. 기간을 확인해보세요.',
           isRead: true,
           createdAt: '2026-06-30T15:30:00Z',
         },

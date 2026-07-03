@@ -34,11 +34,20 @@ export class AlertSettingsResultDto {
   @ApiProperty({ description: '사용자 고유 식별자', example: 1001 })
   userId: number;
 
-  @ApiProperty({ description: '서비스 푸시 알림 동의 여부', example: true })
-  isPushEnabled: boolean;
+  @ApiProperty({ description: '전체 푸시 알림 여부', example: true })
+  pushEnabled: boolean;
 
-  @ApiProperty({ description: '마케팅 정보 수신 동의 여부', example: false })
-  isMarketingEnabled: boolean;
+  @ApiProperty({ description: '신규 공고 알림 여부', example: true })
+  noticeAlertEnabled: boolean;
+
+  @ApiProperty({ description: '청약 일정 알림 여부', example: true })
+  scheduleAlertEnabled: boolean;
+
+  @ApiProperty({ description: '금융상품 알림 여부', example: true })
+  financeAlertEnabled: boolean;
+
+  @ApiPropertyOptional({ description: '신규 공고 알림 대상 지역', example: '서울', nullable: true })
+  interestedRegion: string | null;
 
   @ApiProperty({ description: '최초 설정 생성 일시', example: '2026-06-28T10:00:00Z' })
   createdAt: string;
@@ -48,24 +57,49 @@ export class AlertSettingsResultDto {
 }
 
 export class UpdateAlertSettingsRequestDto {
-  @ApiProperty({ description: '서비스 푸시 알림 동의 여부', example: true })
+  @ApiProperty({ description: '전체 푸시 알림 여부', example: true })
   @IsBoolean()
-  isPushEnabled: boolean;
+  pushEnabled: boolean;
 
-  @ApiProperty({ description: '마케팅 정보 수신 동의 여부', example: false })
+  @ApiProperty({ description: '신규 공고 알림 여부', example: true })
   @IsBoolean()
-  isMarketingEnabled: boolean;
+  noticeAlertEnabled: boolean;
+
+  @ApiProperty({ description: '청약 일정 알림 여부', example: true })
+  @IsBoolean()
+  scheduleAlertEnabled: boolean;
+
+  @ApiProperty({ description: '금융상품 알림 여부', example: true })
+  @IsBoolean()
+  financeAlertEnabled: boolean;
+
+  @ApiPropertyOptional({ description: '신규 공고 알림 대상 지역', example: '서울', nullable: true })
+  @IsOptional()
+  @IsString()
+  interestedRegion?: string | null;
 }
 
 export class UpdateAlertSettingsResultDto {
   @ApiProperty({ description: '사용자 고유 식별자', example: 1001 })
   userId: number;
 
-  @ApiProperty({ description: '변경된 푸시 알림 상태', example: true })
-  isPushEnabled: boolean;
+  @ApiProperty({ description: '변경된 전체 푸시 알림 상태', example: true })
+  pushEnabled: boolean;
 
-  @ApiProperty({ description: '변경된 마케팅 수신 상태', example: false })
-  isMarketingEnabled: boolean;
+  @ApiProperty({ description: '변경된 신규 공고 알림 상태', example: true })
+  noticeAlertEnabled: boolean;
+
+  @ApiProperty({ description: '변경된 청약 일정 알림 상태', example: true })
+  scheduleAlertEnabled: boolean;
+
+  @ApiProperty({ description: '변경된 금융상품 알림 상태', example: true })
+  financeAlertEnabled: boolean;
+
+  @ApiPropertyOptional({ description: '변경된 신규 공고 알림 대상 지역', example: '서울', nullable: true })
+  interestedRegion: string | null;
+
+  @ApiProperty({ description: '최초 설정 생성 일시', example: '2026-06-28T10:00:00Z' })
+  createdAt: string;
 
   @ApiProperty({ description: '최종 수정 일시', example: '2026-07-01T14:30:00Z' })
   updatedAt: string;
@@ -91,7 +125,7 @@ export class NotificationItemDto {
   @ApiProperty({ description: '알림 고유 ID', example: 101 })
   notificationId: number;
 
-  @ApiProperty({ description: '알림 타입', example: 'NOTICE' })
+  @ApiProperty({ description: '알림 타입 (NEW_NOTICE, CLOSING_SOON 등)', example: 'NEW_NOTICE' })
   type: string;
 
   @ApiProperty({ description: '알림 제목', example: '새로운 청약 공고가 등록되었습니다.' })
