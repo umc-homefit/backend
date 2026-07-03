@@ -158,9 +158,6 @@ export class GetFinanceTermsQueryDto {
 export class FinanceTermItemDto {
   @ApiProperty({ description: '용어명', example: 'DSR' })
   term: string;
-
-  @ApiProperty({ description: '한 줄 설명', example: '월 소득 대비 대출 원리금 상환 비율입니다.' })
-  shortDescription: string;
 }
 
 export class RequiredDocumentItemDto {

@@ -126,9 +126,7 @@ export class FinanceController {
   @ApiOperation({ summary: '금융 용어 목록 조회', description: '금융 용어 사전을 검색어 기준으로 조회한다.' })
   @ApiSuccessResponse(FinanceTermItemDto, { isArray: true, description: '금융 용어 목록 조회 성공 (0건 포함)' })
   getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto[]> {
-    const result: FinanceTermItemDto[] = [
-      { term: 'DSR', shortDescription: '월 소득 대비 대출 원리금 상환 비율입니다.' },
-    ];
+    const result: FinanceTermItemDto[] = [{ term: 'DSR' }];
 
     return createSuccessResponse(result, 'FINANCE200', '금융 용어 목록 조회에 성공했습니다.');
   }
