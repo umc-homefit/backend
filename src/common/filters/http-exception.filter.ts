@@ -43,7 +43,6 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     this.logException(exception, request, statusCode);
 
-   
     if (response.headersSent) {
       return;
     }
@@ -53,24 +52,24 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const body = this.parseExceptionBody(exceptionResponse);
 
     const message =
-    statusCode >= 500 ? this.getDefaultMessage(statusCode) : body.message ?? this.getDefaultMessage(statusCode);
+      statusCode >= 500
+        ? this.getDefaultMessage(statusCode)
+        : (body.message ?? this.getDefaultMessage(statusCode));
 
     const apiResponse = createErrorResponse(
-    null,
-    body.code ?? getCommonErrorCode(statusCode),
-    message,
+      null,
+      body.code ?? getCommonErrorCode(statusCode),
+      message,
     );
 
     response.status(statusCode).json(apiResponse);
   }
 
   private logException(exception: unknown, request: Request, statusCode: number) {
-    
     const path = request.originalUrl?.split('?')[0] ?? request.url;
     const logMessage = `${request.method} ${path} - ${statusCode}`;
 
     if (statusCode >= 500) {
-      
       const stack = exception instanceof Error ? exception.stack : String(exception);
       this.logger.error(logMessage, stack);
     } else {
