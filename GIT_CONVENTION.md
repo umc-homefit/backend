@@ -165,7 +165,11 @@ Notification은 별도 도메인으로 분리하기보다 Auth/User와 Notice가
 
 ## 8. API 명세 관리 규칙
 
-API는 Swagger와 Notion API 명세서를 함께 관리한다.
+API는 Swagger와 Notion API 명세서, GitHub 미러 문서(`docs/api`)를 함께 관리한다.
+
+- SSOT: Notion API 명세서
+- 구현 확인: Swagger controller/DTO
+- GitHub 문서: [`docs/api/README.md`](./docs/api/README.md)
 
 API 변경 시 아래 항목을 확인한다.
 
@@ -176,6 +180,7 @@ API 변경 시 아래 항목을 확인한다.
 - Response Field 변경 여부
 - Error Response 변경 여부
 - Android 화면 영향 여부
+- `docs/api/*.md` 반영 여부
 
 API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
@@ -184,6 +189,7 @@ API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
 - 변경 API:
 - 변경 내용:
+- 문서 반영: Notion / Swagger / docs/api
 - Android 확인 필요 여부:
 ```
 
