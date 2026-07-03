@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
+import { PageInfoDto } from '../../../common/dto/page-info.dto';
+
 export enum LoanProviderType {
   POLICY = 'POLICY',
   BANK = 'BANK',
@@ -32,7 +34,11 @@ export class MatchLoanProductsQueryDto {
   @IsInt()
   noticeId?: number;
 
-  @ApiPropertyOptional({ description: '상품 제공 유형', enum: LoanProviderType, example: LoanProviderType.POLICY })
+  @ApiPropertyOptional({
+    description: '상품 제공 유형',
+    enum: LoanProviderType,
+    example: LoanProviderType.POLICY,
+  })
   @IsOptional()
   @IsEnum(LoanProviderType)
   providerType?: LoanProviderType;
@@ -45,7 +51,11 @@ export class MatchedLoanProductDto {
   @ApiProperty({ description: '상품명', example: '청년 버팀목 전세자금대출' })
   productName: string;
 
-  @ApiProperty({ description: '제공 유형', enum: LoanProviderType, example: LoanProviderType.POLICY })
+  @ApiProperty({
+    description: '제공 유형',
+    enum: LoanProviderType,
+    example: LoanProviderType.POLICY,
+  })
   providerType: LoanProviderType;
 
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
@@ -106,13 +116,13 @@ export class LoanProductListItemDto {
   @ApiProperty({ description: '금리 범위', example: '3.2% ~ 4.5%' })
   rateRange: string;
 
-  @ApiProperty({ description: '최대 한도 (원 단위)', example: 150000000 })
-  maxLimitAmount: number;
+  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 150000000, nullable: true })
+  maxLimitAmount: number | null;
 }
 
 export class LoanProductListResultDto {
-  @ApiProperty({ description: '전체 상품 수', example: 5 })
-  totalCount: number;
+  @ApiProperty({ description: '페이지 정보', type: PageInfoDto })
+  pageInfo: PageInfoDto;
 
   @ApiProperty({ description: '금융상품 목록', type: [LoanProductListItemDto] })
   products: LoanProductListItemDto[];
@@ -125,7 +135,11 @@ export class LoanProductDetailResultDto {
   @ApiProperty({ description: '상품명', example: '청년 버팀목 전세자금대출' })
   productName: string;
 
-  @ApiProperty({ description: '제공 유형', enum: LoanProviderType, example: LoanProviderType.POLICY })
+  @ApiProperty({
+    description: '제공 유형',
+    enum: LoanProviderType,
+    example: LoanProviderType.POLICY,
+  })
   providerType: LoanProviderType;
 
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
@@ -137,7 +151,10 @@ export class LoanProductDetailResultDto {
   @ApiProperty({ description: '최대 한도 (원 단위)', example: 200000000 })
   maxLimitAmount: number;
 
-  @ApiProperty({ description: '공식 안내 URL (상세에만 포함)', example: 'https://nhuf.molit.go.kr' })
+  @ApiProperty({
+    description: '공식 안내 URL (상세에만 포함)',
+    example: 'https://nhuf.molit.go.kr',
+  })
   officialUrl: string;
 
   @ApiPropertyOptional({
@@ -170,7 +187,11 @@ export class RequiredDocumentItemDto {
   @ApiPropertyOptional({ description: '발급 기관', example: '국세청', nullable: true })
   issuer: string | null;
 
-  @ApiProperty({ description: '발급 방법', enum: DocumentIssueMethod, example: DocumentIssueMethod.ONLINE })
+  @ApiProperty({
+    description: '발급 방법',
+    enum: DocumentIssueMethod,
+    example: DocumentIssueMethod.ONLINE,
+  })
   issueMethod: DocumentIssueMethod;
 
   @ApiProperty({ description: '필수 서류 여부', example: true })
@@ -229,7 +250,11 @@ export class GuideListItemDto {
   @ApiProperty({ description: '가이드 제목', example: '추가모집 신청 절차 안내' })
   title: string;
 
-  @ApiProperty({ description: '콘텐츠 타입', enum: GuideContentType, example: GuideContentType.TEXT })
+  @ApiProperty({
+    description: '콘텐츠 타입',
+    enum: GuideContentType,
+    example: GuideContentType.TEXT,
+  })
   contentType: GuideContentType;
 
   @ApiProperty({ description: '표시 순서', example: 1 })
@@ -251,7 +276,11 @@ export class GuideDetailResultDto {
   @ApiProperty({ description: '가이드 제목', example: '추가모집 신청 절차 안내' })
   title: string;
 
-  @ApiProperty({ description: '콘텐츠 타입', enum: GuideContentType, example: GuideContentType.TEXT })
+  @ApiProperty({
+    description: '콘텐츠 타입',
+    enum: GuideContentType,
+    example: GuideContentType.TEXT,
+  })
   contentType: GuideContentType;
 
   @ApiProperty({

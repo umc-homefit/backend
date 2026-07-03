@@ -20,16 +20,22 @@ import {
   MatchLoanProductsResultDto,
   RequiredDocumentItemDto,
 } from './dto/finance.dto';
+import { FinanceService } from './finance.service';
 
 /**
- * Service/DB 연동 전 단계: Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
- * 실제 조회/매칭 로직은 FinanceService 연동 시 대체된다.
+ * 금융상품 목록 조회(getLoanProducts)는 FinanceService를 통해 DB에서 조회한다.
+ * 그 외 엔드포인트는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
  */
 @ApiTags('Finance/Guide')
 @Controller()
 export class FinanceController {
+  constructor(private readonly financeService: FinanceService) {}
+
   @Get('loan-products/match')
-  @ApiOperation({ summary: '금융상품 매칭 조회', description: '사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다.' })
+  @ApiOperation({
+    summary: '금융상품 매칭 조회',
+    description: '사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다.',
+  })
   @ApiSuccessResponse(MatchLoanProductsResultDto, { description: '금융상품 매칭 조회 성공' })
   matchLoanProducts(
     @Query() _query: MatchLoanProductsQueryDto,
@@ -53,22 +59,17 @@ export class FinanceController {
   }
 
   @Get('loan-products')
-  @ApiOperation({ summary: '금융상품 목록 조회', description: '조건에 맞는 금융상품 목록을 페이징하여 조회한다.' })
-  @ApiSuccessResponse(LoanProductListResultDto, { description: '금융상품 목록 조회 성공 (0건 포함)' })
-  getLoanProducts(@Query() _query: GetLoanProductsQueryDto): ApiResponse<LoanProductListResultDto> {
-    const result: LoanProductListResultDto = {
-      totalCount: 5,
-      products: [
-        {
-          productId: 103,
-          productName: '하나은행 청년 전세자금대출',
-          providerType: LoanProviderType.BANK,
-          providerName: '하나은행',
-          rateRange: '3.2% ~ 4.5%',
-          maxLimitAmount: 150000000,
-        },
-      ],
-    };
+  @ApiOperation({
+    summary: '금융상품 목록 조회',
+    description: '조건에 맞는 금융상품 목록을 페이징하여 조회한다.',
+  })
+  @ApiSuccessResponse(LoanProductListResultDto, {
+    description: '금융상품 목록 조회 성공 (0건 포함)',
+  })
+  async getLoanProducts(
+    @Query() query: GetLoanProductsQueryDto,
+  ): Promise<ApiResponse<LoanProductListResultDto>> {
+    const result = await this.financeService.getLoanProducts(query);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 목록 조회에 성공했습니다.');
   }
@@ -99,9 +100,15 @@ export class FinanceController {
   }
 
   @Get('loan-products/:productId/documents')
-  @ApiOperation({ summary: '필요서류 조회 (상품용)', description: '금융상품 신청에 필요한 서류 목록을 조회한다.' })
+  @ApiOperation({
+    summary: '필요서류 조회 (상품용)',
+    description: '금융상품 신청에 필요한 서류 목록을 조회한다.',
+  })
   @ApiParam({ name: 'productId', type: Number, description: '조회할 상품 ID', example: 101 })
-  @ApiSuccessResponse(RequiredDocumentItemDto, { isArray: true, description: '필요 서류 조회 성공' })
+  @ApiSuccessResponse(RequiredDocumentItemDto, {
+    isArray: true,
+    description: '필요 서류 조회 성공',
+  })
   getLoanProductDocuments(
     @Param('productId', ParseIntPipe) productId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
@@ -123,8 +130,14 @@ export class FinanceController {
   }
 
   @Get('finance-terms')
-  @ApiOperation({ summary: '금융 용어 목록 조회', description: '금융 용어 사전을 검색어 기준으로 조회한다.' })
-  @ApiSuccessResponse(FinanceTermItemDto, { isArray: true, description: '금융 용어 목록 조회 성공 (0건 포함)' })
+  @ApiOperation({
+    summary: '금융 용어 목록 조회',
+    description: '금융 용어 사전을 검색어 기준으로 조회한다.',
+  })
+  @ApiSuccessResponse(FinanceTermItemDto, {
+    isArray: true,
+    description: '금융 용어 목록 조회 성공 (0건 포함)',
+  })
   getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto[]> {
     const result: FinanceTermItemDto[] = [{ term: 'DSR' }];
 
@@ -132,9 +145,15 @@ export class FinanceController {
   }
 
   @Get('notices/:noticeId/documents')
-  @ApiOperation({ summary: '필요서류 조회 (공고용)', description: '공고 지원에 필요한 서류 목록을 조회한다.' })
+  @ApiOperation({
+    summary: '필요서류 조회 (공고용)',
+    description: '공고 지원에 필요한 서류 목록을 조회한다.',
+  })
   @ApiParam({ name: 'noticeId', type: Number, description: '조회할 공고 ID', example: 1 })
-  @ApiSuccessResponse(RequiredDocumentItemDto, { isArray: true, description: '필요 서류 조회 성공' })
+  @ApiSuccessResponse(RequiredDocumentItemDto, {
+    isArray: true,
+    description: '필요 서류 조회 성공',
+  })
   getNoticeDocuments(
     @Param('noticeId', ParseIntPipe) noticeId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
@@ -156,8 +175,14 @@ export class FinanceController {
   }
 
   @Get('guide-categories')
-  @ApiOperation({ summary: '가이드 카테고리 목록 조회', description: '청약 가이드 카테고리 목록을 표시 순서대로 조회한다.' })
-  @ApiSuccessResponse(GuideCategoryItemDto, { isArray: true, description: '가이드 카테고리 목록 조회 성공 (0건 포함)' })
+  @ApiOperation({
+    summary: '가이드 카테고리 목록 조회',
+    description: '청약 가이드 카테고리 목록을 표시 순서대로 조회한다.',
+  })
+  @ApiSuccessResponse(GuideCategoryItemDto, {
+    isArray: true,
+    description: '가이드 카테고리 목록 조회 성공 (0건 포함)',
+  })
   getGuideCategories(): ApiResponse<GuideCategoryItemDto[]> {
     const result: GuideCategoryItemDto[] = [
       { categoryId: 1, categoryName: '신청절차', displayOrder: 1 },
@@ -168,7 +193,10 @@ export class FinanceController {
   }
 
   @Get('guides')
-  @ApiOperation({ summary: '청약 가이드 목록 조회', description: '카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다.' })
+  @ApiOperation({
+    summary: '청약 가이드 목록 조회',
+    description: '카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다.',
+  })
   @ApiSuccessResponse(GuideListResultDto, { description: '청약 가이드 목록 조회 성공 (0건 포함)' })
   getGuides(@Query() _query: GetGuidesQueryDto): ApiResponse<GuideListResultDto> {
     const result: GuideListResultDto = {
@@ -188,10 +216,15 @@ export class FinanceController {
   }
 
   @Get('guides/:guideId')
-  @ApiOperation({ summary: '청약 가이드 상세 조회', description: '청약 가이드 상세 콘텐츠를 조회한다.' })
+  @ApiOperation({
+    summary: '청약 가이드 상세 조회',
+    description: '청약 가이드 상세 콘텐츠를 조회한다.',
+  })
   @ApiParam({ name: 'guideId', type: Number, description: '조회할 가이드 ID', example: 10 })
   @ApiSuccessResponse(GuideDetailResultDto, { description: '청약 가이드 상세 조회 성공' })
-  getGuideDetail(@Param('guideId', ParseIntPipe) guideId: number): ApiResponse<GuideDetailResultDto> {
+  getGuideDetail(
+    @Param('guideId', ParseIntPipe) guideId: number,
+  ): ApiResponse<GuideDetailResultDto> {
     if (guideId !== 10) {
       throw new NotFoundException('존재하지 않는 가이드입니다.');
     }
