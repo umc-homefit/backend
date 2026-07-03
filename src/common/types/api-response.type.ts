@@ -13,7 +13,7 @@ export type PageInfo = {
   hasNext: boolean;
 };
 
-export type PaginatedResult<TItems extends object> = TItems & {
+export type PaginatedResult<TItems extends Record<string, unknown>> = TItems & {
   pageInfo: PageInfo;
 };
 
