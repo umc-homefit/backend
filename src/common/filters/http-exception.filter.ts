@@ -2,7 +2,7 @@ import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from
 import { Response } from 'express';
 
 import { getCommonErrorCode } from '../constants/error-code';
-import { ApiResponse } from '../types/api-response.type';
+import { createErrorResponse } from '../types/api-response.type';
 
 type HttpExceptionBody = {
   code?: string;
@@ -26,12 +26,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException ? exception.getResponse() : undefined;
     const body = this.parseExceptionBody(exceptionResponse);
 
-    const apiResponse: ApiResponse<null> = {
-      isSuccess: false,
-      code: body.code ?? getCommonErrorCode(statusCode),
-      message: body.message ?? this.getDefaultMessage(statusCode),
-      result: null,
-    };
+    const apiResponse = createErrorResponse(
+      null,
+      body.code ?? getCommonErrorCode(statusCode),
+      body.message ?? this.getDefaultMessage(statusCode),
+    );
 
     response.status(statusCode).json(apiResponse);
   }
