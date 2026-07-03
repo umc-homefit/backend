@@ -67,6 +67,7 @@ export class AuthController {
   @ApiOperation({ summary: '로그아웃', description: '현재 Access Token을 무효화한다.' })
   @ApiSuccessResponse(EmptyResultDto, {
     description: '로그아웃 완료',
+    nullable: true,
     example: { isSuccess: true, code: 'AUTH200', message: '로그아웃 되었습니다.', result: null },
   })
   logout(): ApiResponse<null> {

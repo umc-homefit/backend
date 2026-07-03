@@ -16,7 +16,7 @@ export enum EligibilityConditionCode {
   CASH = 'CASH',
   HOMELESS = 'HOMELESS',
   RENT_BURDEN = 'RENT_BURDEN',
-  DEPT = 'DEPT',
+  DEBT = 'DEBT',
   REGION = 'REGION',
 }
 

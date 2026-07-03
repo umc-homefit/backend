@@ -7,6 +7,8 @@ interface ApiSuccessResponseOptions {
   status?: number;
   description?: string;
   isArray?: boolean;
+  /** result가 null일 수도 있는 응답(예: 로그아웃)을 문서화할 때 사용 */
+  nullable?: boolean;
   /** Swagger 문서에 노출할 전체 응답 예시 ({ isSuccess, code, message, result }) */
   example?: Record<string, unknown>;
 }
@@ -18,7 +20,7 @@ interface ApiSuccessResponseOptions {
  */
 export const ApiSuccessResponse = <TModel extends Type<unknown>>(
   model: TModel,
-  { status = 200, description, isArray = false, example }: ApiSuccessResponseOptions = {},
+  { status = 200, description, isArray = false, nullable = false, example }: ApiSuccessResponseOptions = {},
 ) =>
   applyDecorators(
     ApiExtraModels(ApiResponseDto, model),
@@ -32,7 +34,9 @@ export const ApiSuccessResponse = <TModel extends Type<unknown>>(
             properties: {
               result: isArray
                 ? { type: 'array', items: { $ref: getSchemaPath(model) } }
-                : { $ref: getSchemaPath(model) },
+                : nullable
+                  ? { nullable: true, allOf: [{ $ref: getSchemaPath(model) }] }
+                  : { $ref: getSchemaPath(model) },
             },
           },
         ],
