@@ -1,4 +1,16 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -7,6 +19,7 @@ import {
   AlertSettingsResultDto,
   DeleteDeviceTokenResultDto,
   GetNotificationsQueryDto,
+  MarkNotificationReadResultDto,
   NotificationListResultDto,
   RegisterDeviceTokenRequestDto,
   RegisterDeviceTokenResultDto,
@@ -112,5 +125,24 @@ export class NotificationsController {
     };
 
     return createSuccessResponse(result, 'NOTI200', '알림 목록 조회 성공');
+  }
+
+  @Patch('notifications/:notificationId/read')
+  @ApiOperation({ summary: '알림 읽음 처리', description: '수신된 알림을 읽음 상태로 변경한다.' })
+  @ApiParam({ name: 'notificationId', type: Number, description: '읽음 처리할 알림 ID', example: 101 })
+  @ApiSuccessResponse(MarkNotificationReadResultDto, { description: '알림 읽음 처리 완료' })
+  markNotificationRead(
+    @Param('notificationId', ParseIntPipe) notificationId: number,
+  ): ApiResponse<MarkNotificationReadResultDto> {
+    if (notificationId !== 101) {
+      throw new NotFoundException('존재하지 않는 알림입니다.');
+    }
+
+    const result: MarkNotificationReadResultDto = {
+      notificationId,
+      isRead: true,
+    };
+
+    return createSuccessResponse(result, 'NOTI200', '알림 읽음 처리 성공');
   }
 }

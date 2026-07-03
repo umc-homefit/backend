@@ -163,6 +163,39 @@ export class EligibilityAnalysisHistoryItemDto {
   analyzedAt: string;
 }
 
+export class FinancialSummaryResultDto {
+  @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
+  expectedDepositAmount: number;
+
+  @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
+  expectedMonthlyRentAmount: number;
+
+  @ApiPropertyOptional({ description: '예상 관리비 (원 단위)', example: 50000, nullable: true })
+  maintenanceFeeAmount: number | null;
+
+  @ApiProperty({ description: '사용자 보유 현금 (원 단위)', example: 8000000 })
+  userCashAmount: number;
+
+  @ApiProperty({ description: '부족 자금 (원 단위)', example: 2000000 })
+  shortageAmount: number;
+
+  @ApiProperty({ description: '사용자 월소득 (원 단위)', example: 1400000 })
+  monthlyIncomeAmount: number;
+
+  @ApiProperty({ description: '월 주거비 (원 단위)', example: 400000 })
+  monthlyHousingCost: number;
+
+  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
+  rentBurdenRate: number;
+
+  @ApiPropertyOptional({
+    description: '재정 분석 문구',
+    example: '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
+    nullable: true,
+  })
+  financialMessage: string | null;
+}
+
 export class MyEligibilityAnalysesResultDto {
   @ApiProperty({ description: '분석 이력 목록', type: [EligibilityAnalysisHistoryItemDto] })
   analyses: EligibilityAnalysisHistoryItemDto[];

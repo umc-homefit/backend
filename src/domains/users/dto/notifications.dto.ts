@@ -105,6 +105,14 @@ export class NotificationItemDto {
   createdAt: string;
 }
 
+export class MarkNotificationReadResultDto {
+  @ApiProperty({ description: '읽음 처리된 알림 ID', example: 101 })
+  notificationId: number;
+
+  @ApiProperty({ description: '읽음 여부', example: true })
+  isRead: boolean;
+}
+
 export class NotificationListResultDto {
   @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
   notifications: NotificationItemDto[];

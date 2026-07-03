@@ -9,6 +9,7 @@ import {
   EligibilityConditionResultStatus,
   EligibilityConditionsResultDto,
   EligibilityResultLevel,
+  FinancialSummaryResultDto,
   GetMyEligibilityAnalysesQueryDto,
   MyEligibilityAnalysesResultDto,
   RequestEligibilityAnalysisResultDto,
@@ -153,6 +154,36 @@ export class EligibilityController {
     };
 
     return createSuccessResponse(result, 'ELIGIBILITY200', '조건별 비교 결과 조회에 성공했습니다.');
+  }
+
+  @Get('eligibility-analyses/:analysisId/financial-summary')
+  @ApiOperation({
+    summary: '재정 계산 결과 조회',
+    description: '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다.',
+  })
+  @ApiParam({ name: 'analysisId', type: Number, description: '조회할 입주 가능성 분석 ID', example: 1 })
+  @ApiSuccessResponse(FinancialSummaryResultDto, { description: '재정 계산 결과 조회 성공' })
+  getFinancialSummary(
+    @Param('analysisId', ParseIntPipe) analysisId: number,
+  ): ApiResponse<FinancialSummaryResultDto> {
+    if (analysisId !== 1) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    const result: FinancialSummaryResultDto = {
+      expectedDepositAmount: 10000000,
+      expectedMonthlyRentAmount: 350000,
+      maintenanceFeeAmount: 50000,
+      userCashAmount: 8000000,
+      shortageAmount: 2000000,
+      monthlyIncomeAmount: 1400000,
+      monthlyHousingCost: 400000,
+      rentBurdenRate: 28.57,
+      financialMessage:
+        '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
+    };
+
+    return createSuccessResponse(result, 'ELIGIBILITY200', '재정 계산 결과 조회에 성공했습니다.');
   }
 
   @Get('users/me/eligibility-analyses')
