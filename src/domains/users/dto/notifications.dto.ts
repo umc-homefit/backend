@@ -53,6 +53,7 @@ export class UpdateAlertSettingsRequestDto {
   isPushEnabled: boolean;
 
   @ApiProperty({ description: '마케팅 정보 수신 동의 여부', example: false })
+  @IsBoolean()
   isMarketingEnabled: boolean;
 }
 
