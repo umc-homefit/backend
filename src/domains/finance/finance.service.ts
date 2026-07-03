@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { LoanProduct, Prisma } from '@prisma/client';
 
-import { PrismaService } from '../../prisma/prisma.service';
 import {
   GetLoanProductsQueryDto,
   LoanProductListItemDto,
   LoanProductListResultDto,
   LoanProviderType,
 } from './dto/finance.dto';
+import { FinanceRepository } from './finance.repository';
 
 const RATE_UNKNOWN_TEXT = '금리 정보 없음';
 
 @Injectable()
 export class FinanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly financeRepository: FinanceRepository) {}
 
   async getLoanProducts(query: GetLoanProductsQueryDto): Promise<LoanProductListResultDto> {
     const page = query.page ?? 0;
@@ -23,13 +23,8 @@ export class FinanceService {
       : {};
 
     const [products, totalElements] = await Promise.all([
-      this.prisma.loanProduct.findMany({
-        where,
-        skip: page * size,
-        take: size,
-        orderBy: { productId: 'asc' },
-      }),
-      this.prisma.loanProduct.count({ where }),
+      this.financeRepository.findLoanProducts({ where, skip: page * size, take: size }),
+      this.financeRepository.countLoanProducts(where),
     ]);
 
     const totalPages = Math.ceil(totalElements / size);
