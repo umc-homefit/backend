@@ -6,7 +6,7 @@ export const setupSwagger = (app: INestApplication) => {
     .setTitle('HomeFit Backend API')
     .setDescription('HomeFit backend API specification')
     .setVersion('0.1.0')
-    .addBearerAuth()
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
