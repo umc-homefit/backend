@@ -180,15 +180,22 @@ export class LoanProductDetailResultDto {
 }
 
 export class GetFinanceTermsQueryDto {
-  @ApiPropertyOptional({ description: '부분 검색 키워드', example: 'DSR' })
-  @IsOptional()
+  @ApiProperty({ description: '조회할 용어명 (정확히 일치)', example: 'DSR' })
   @IsString()
-  term?: string;
+  term: string;
 }
 
 export class FinanceTermItemDto {
   @ApiProperty({ description: '용어명', example: 'DSR' })
   term: string;
+
+  @ApiPropertyOptional({
+    description: '상세 설명',
+    example:
+      'DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다.',
+    nullable: true,
+  })
+  detailDescription: string | null;
 }
 
 export class RequiredDocumentItemDto {

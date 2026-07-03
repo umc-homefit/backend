@@ -154,17 +154,22 @@ export class FinanceController {
 
   @Get('finance-terms')
   @ApiOperation({
-    summary: '금융 용어 목록 조회',
-    description: '금융 용어 사전을 검색어 기준으로 조회한다.',
+    summary: '금융 용어 상세 조회',
+    description: '용어명으로 금융 용어 사전 항목을 단건 조회한다.',
   })
-  @ApiSuccessResponse(FinanceTermItemDto, {
-    isArray: true,
-    description: '금융 용어 목록 조회 성공 (0건 포함)',
-  })
-  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto[]> {
-    const result: FinanceTermItemDto[] = [{ term: 'DSR' }];
+  @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 조회 성공' })
+  getFinanceTerm(@Query() query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto> {
+    if (query.term !== 'DSR') {
+      throw new NotFoundException('존재하지 않는 용어입니다.');
+    }
 
-    return createSuccessResponse(result, 'FINANCE200', '금융 용어 목록 조회에 성공했습니다.');
+    const result: FinanceTermItemDto = {
+      term: 'DSR',
+      detailDescription:
+        'DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다.',
+    };
+
+    return createSuccessResponse(result, 'FINANCE200', '금융 용어 조회에 성공했습니다.');
   }
 
   @Get('notices/:noticeId/documents')
