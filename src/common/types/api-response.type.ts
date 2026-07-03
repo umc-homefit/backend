@@ -22,7 +22,7 @@ export const DEFAULT_SUCCESS_MESSAGE = '요청에 성공했습니다.';
 
 export const createSuccessResponse = <T>(
   result: T,
-  code: string,
+  code = DEFAULT_SUCCESS_CODE,
   message = DEFAULT_SUCCESS_MESSAGE,
 ): ApiResponse<T> => ({
   isSuccess: true,
