@@ -36,6 +36,7 @@ type NoticeDetailRecord = Prisma.NoticeGetPayload<{
 @Injectable()
 export class NoticesService {
   private readonly maxPageSize = 50;
+  private readonly kstOffsetMs = 9 * 60 * 60 * 1000;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -344,7 +345,8 @@ export class NoticesService {
 
     const dayMs = 24 * 60 * 60 * 1000;
     const diffDays =
-      (this.toKstDayStart(applicationEndAt).getTime() - this.toKstDayStart(new Date()).getTime()) /
+      (this.toKoreanWallDateStart(applicationEndAt).getTime() -
+        this.toCurrentKstDateStart().getTime()) /
       dayMs;
 
     if (diffDays < 0) {
@@ -358,17 +360,32 @@ export class NoticesService {
     return `D-${diffDays}`;
   }
 
-  private toKstDayStart(date: Date): Date {
-    const kstOffsetMs = 9 * 60 * 60 * 1000;
-    const shifted = new Date(date.getTime() + kstOffsetMs);
+  private toKoreanWallDateStart(date: Date): Date {
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  }
+
+  private toIsoString(date: Date | null): string | null {
+    if (!date) {
+      return null;
+    }
+
+    return `${date.getUTCFullYear()}-${this.pad(date.getUTCMonth() + 1)}-${this.pad(
+      date.getUTCDate(),
+    )}T${this.pad(date.getUTCHours())}:${this.pad(date.getUTCMinutes())}:${this.pad(
+      date.getUTCSeconds(),
+    )}+09:00`;
+  }
+
+  private toCurrentKstDateStart(): Date {
+    const shifted = new Date(Date.now() + this.kstOffsetMs);
 
     return new Date(
       Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()),
     );
   }
 
-  private toIsoString(date: Date | null): string | null {
-    return date?.toISOString() ?? null;
+  private pad(value: number): string {
+    return value.toString().padStart(2, '0');
   }
 
   private toNumber(value: number | bigint): number {
