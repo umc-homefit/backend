@@ -16,7 +16,7 @@
 
 | enum | 값 | 비고 |
 | --- | --- | --- |
-| `provider` | `LOCAL` / `KAKAO` / `GOOGLE` / `APPLE` | `POST /auth/social` 요청은 `KAKAO`, `GOOGLE`, `APPLE` |
+| `provider` | `LOCAL` / `KAKAO` / `GOOGLE` | `POST /auth/social` 요청은 `KAKAO`, `GOOGLE` |
 | `status` | `ACTIVE` / `INACTIVE` / `DELETED` | 계정 상태. 회원가입/로그인 여부는 `isNewUser`로 판단 |
 | `housingOwnershipStatus` | `HOMELESS` / `FAMILY_OWNED` / `UNKNOWN` | ERD 기준. MVP에서는 `HOMELESS` 우선 사용 |
 
@@ -104,7 +104,7 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `provider` | enum | Y | `KAKAO` / `GOOGLE` / `APPLE` |
+| `provider` | enum | Y | `KAKAO` / `GOOGLE` |
 | `oauthToken` | string | N | 운영 환경의 소셜 인증 토큰 |
 | `providerId` | string | N | 로컬 테스트용 소셜 식별자 |
 
