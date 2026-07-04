@@ -20,6 +20,11 @@
 > Notification(알림 설정/FCM/발송)은 별도 도메인으로 분리하지 않고 Auth/User 중심으로 처리한다.
 > 신규 공고 감지까지가 Notice 책임.
 
+## MVP 데이터 범위
+
+- 주택 데이터: 청년안심주택 추가모집 수요가 높은 6개 단지를 우선 대상으로 한다.
+- 금융 데이터: 정책금융 및 1금융권 주거 금융 상품을 우선 제공한다.
+
 ## 기술 스택
 
 - Framework: NestJS
@@ -29,10 +34,10 @@
 - Auth: JWT Access Token + Refresh Token
 - Validation: class-validator / class-transformer
 - API Docs: Swagger + Notion API 명세 + `docs/api` 미러 문서
-- Queue: BullMQ (Redis) - 추후 적용 예정
-- Scheduler: node-cron - 추후 적용 예정
-- Crawling: Playwright / Cheerio - 추후 적용 예정
-- Push: FCM - 추후 적용 예정
+- Queue: BullMQ (Redis) - MVP 크롤링/알림 작업 큐 적용 예정
+- Scheduler: node-cron - 매일 06:00 크롤링 트리거 예정
+- Crawling: Playwright / Cheerio - 대상 단지 공고 수집 (매일 06:00 크롤링)
+- Push: FCM - 신규 공고 알림 적용 예정
 
 ## 로컬 실행
 
