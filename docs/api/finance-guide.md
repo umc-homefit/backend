@@ -64,8 +64,7 @@
       "productName": "하나은행 청년 전세자금대출",
       "providerType": "BANK",
       "providerName": "하나은행",
-      "rateRange": "3.2% ~ 4.5%",
-      "maxLimitAmount": 150000000
+      "rateRange": "3.2% ~ 4.5%"
     }
   ]
 }

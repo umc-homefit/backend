@@ -62,7 +62,6 @@ export class FinanceService {
       providerType: product.providerType as LoanProviderType,
       providerName: product.providerName,
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
-      maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
     };
   }
 

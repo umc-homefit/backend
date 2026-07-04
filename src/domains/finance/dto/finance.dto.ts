@@ -115,9 +115,6 @@ export class LoanProductListItemDto {
 
   @ApiPropertyOptional({ description: '금리 범위', example: '3.2% ~ 4.5%', nullable: true })
   rateRange: string | null;
-
-  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 150000000, nullable: true })
-  maxLimitAmount: number | null;
 }
 
 export class LoanProductListResultDto {
