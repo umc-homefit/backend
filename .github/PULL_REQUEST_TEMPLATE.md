@@ -35,8 +35,10 @@
 - [ ] 에러 케이스 확인
 - [ ] Swagger 반영
 - [ ] Notion API 명세 반영
+- [ ] docs/api 문서 반영
 - [ ] Prisma schema/migration 영향 확인
 - [ ] Android 연동 영향 확인
+- [ ] 관련 이슈 연결 및 라벨 확인
 
 ## API 변경 사항
 
