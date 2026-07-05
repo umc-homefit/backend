@@ -2,6 +2,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
   ParseIntPipe,
@@ -89,6 +90,7 @@ export class FinanceController {
   }
 
   @Post('loan-products/sync-test')
+  @HttpCode(200)
   @ApiOperation({
     summary: '[테스트] 금융상품 외부 API 동기화',
     description:
