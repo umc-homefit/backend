@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Put, Query } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'; // ApiBearerAuth 추가
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
@@ -21,7 +21,8 @@ import {
   UpdateProfileResultDto,
 } from './dto/users.dto';
 
-@ApiTags('User')
+@ApiTags('Auth/User')
+@ApiBearerAuth('access-token') // 2번 피드백 반영: Swagger 인증 명세 추가
 @Controller('users/me')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -35,16 +36,16 @@ export class UsersController {
   @ApiOperation({ summary: '내 기본 정보 조회', description: '로그인한 사용자의 계정 기본 정보를 조회한다.' })
   @ApiSuccessResponse(BasicInfoResultDto, { description: '내 기본 정보 조회 완료' })
   async getBasicInfo(): Promise<ApiResponse<BasicInfoResultDto>> {
+    // TODO: Auth 연동 완료 후 실제 토큰에서 userId 추출할 것
     const result = await this.usersService.getBasicInfo(this.getMockUserId());
     return createSuccessResponse(result, 'USER200', '기본 정보 조회 성공');
   }
-
-  
 
   @Get('profile')
   @ApiOperation({ summary: '내 프로필 조회', description: '닉네임, 생년월일, 연락처 등 프로필 정보를 조회한다.' })
   @ApiSuccessResponse(ProfileResultDto, { description: '내 프로필 정보 조회 성공' })
   async getProfile(): Promise<ApiResponse<ProfileResultDto>> {
+    // TODO: Auth 연동 완료 후 실제 토큰에서 userId 추출할 것
     const result = await this.usersService.getProfile(this.getMockUserId());
     return createSuccessResponse(result, 'USER200', '프로필 조회 성공');
   }
@@ -53,6 +54,7 @@ export class UsersController {
   @ApiOperation({ summary: '내 프로필 수정', description: '닉네임, 생년월일, 연락처, 프로필 이미지를 수정한다.' })
   @ApiSuccessResponse(UpdateProfileResultDto, { description: '프로필 수정 완료' })
   async updateProfile(@Body() body: UpdateProfileRequestDto): Promise<ApiResponse<UpdateProfileResultDto>> {
+    // TODO: Auth 연동 완료 후 실제 토큰에서 userId 추출할 것
     const result = await this.usersService.updateProfile(this.getMockUserId(), body);
     return createSuccessResponse(result, 'USER200', '프로필 수정이 완료되었습니다.');
   }
@@ -61,6 +63,7 @@ export class UsersController {
   @ApiOperation({ summary: '사용자 조건 프로필 조회', description: '소득·자산·무주택 등 입주 조건 프로필을 조회한다.' })
   @ApiSuccessResponse(ConditionProfileResultDto, { description: '금융 조건 프로필 조회 완료' })
   async getConditionProfile(): Promise<ApiResponse<ConditionProfileResultDto>> {
+    // TODO: Auth 연동 완료 후 실제 토큰에서 userId 추출할 것
     const result = await this.usersService.getConditionProfile(this.getMockUserId());
     return createSuccessResponse(result, 'USER200', '조회 성공');
   }
@@ -69,6 +72,7 @@ export class UsersController {
   @ApiOperation({ summary: '사용자 조건 프로필 수정', description: '소득/자산/부채/무주택 여부 등 조건 프로필을 생성/수정한다.' })
   @ApiSuccessResponse(UpdateConditionProfileResultDto, { description: '조건 프로필 수정 완료' })
   async updateConditionProfile(@Body() body: UpdateConditionProfileRequestDto): Promise<ApiResponse<UpdateConditionProfileResultDto>> {
+    // TODO: Auth 연동 완료 후 실제 토큰에서 userId 추출할 것
     const result = await this.usersService.updateConditionProfile(this.getMockUserId(), body);
     return createSuccessResponse(result, 'USER200', '조건 프로필 수정 성공');
   }
