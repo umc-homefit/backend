@@ -75,6 +75,12 @@ type: 작업 내용
 
 ## 4. 작업 흐름
 
+작업은 기본적으로 GitHub Issue를 먼저 생성한 뒤 진행한다.
+
+- Issue에는 작업 유형, 도메인, 우선순위, 필요 시 작업 영역 라벨을 지정한다.
+- PR 본문에는 관련 Issue를 `close #이슈번호` 또는 `Closes #이슈번호` 형식으로 연결한다.
+- 급한 문서/설정 수정처럼 Issue 없이 진행한 경우에도 PR 생성 후 관련 Issue를 생성하거나 연결해 추적 가능하게 만든다.
+
 기능 개발은 항상 `dev`에서 새 브랜치를 생성해서 진행한다.
 
 ```bash
@@ -120,7 +126,8 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 
 - [ ] 로컬 실행 확인
 - [ ] API 응답 확인
-- [ ] Swagger/Notion API 명세 반영
+- [ ] Swagger/Notion API 명세/docs/api 반영
+- [ ] 관련 Issue 연결 및 라벨 확인
 
 ## 공유 사항
 
@@ -131,8 +138,9 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 
 - 최소 1명 이상 리뷰 후 merge한다.
 - `main`, `dev`는 보호 규칙이 적용되어 직접 push하지 않는다.
+- PR에는 관련 Issue를 연결하고, 작업 성격에 맞는 라벨을 지정한다.
 - DB schema 변경이 있으면 PR 본문에 반드시 적는다.
-- API Request/Response 변경이 있으면 Swagger와 Notion API 명세를 같이 수정한다.
+- API Request/Response 변경이 있으면 Swagger, Notion API 명세, `docs/api` 문서를 같이 수정한다.
 - `.env` 파일은 커밋하지 않는다.
 - 환경변수 예시는 `.env.example`로 관리한다.
 
@@ -165,7 +173,11 @@ Notification은 별도 도메인으로 분리하기보다 Auth/User와 Notice가
 
 ## 8. API 명세 관리 규칙
 
-API는 Swagger와 Notion API 명세서를 함께 관리한다.
+API는 Swagger와 Notion API 명세서, GitHub 미러 문서(`docs/api`)를 함께 관리한다.
+
+- SSOT: Notion API 명세서
+- 구현 확인: Swagger controller/DTO
+- GitHub 문서: [`docs/api/README.md`](./docs/api/README.md)
 
 API 변경 시 아래 항목을 확인한다.
 
@@ -176,6 +188,7 @@ API 변경 시 아래 항목을 확인한다.
 - Response Field 변경 여부
 - Error Response 변경 여부
 - Android 화면 영향 여부
+- `docs/api/*.md` 반영 여부
 
 API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
@@ -184,6 +197,7 @@ API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
 - 변경 API:
 - 변경 내용:
+- 문서 반영: Notion / Swagger / docs/api
 - Android 확인 필요 여부:
 ```
 

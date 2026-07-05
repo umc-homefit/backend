@@ -24,6 +24,7 @@ assignees: ""
 - [ ] Example
 - [ ] Swagger 반영
 - [ ] Notion 반영
+- [ ] docs/api 반영
 
 ## 확인 필요 사항
 
