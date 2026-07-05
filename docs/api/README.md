@@ -25,6 +25,7 @@
 - 금액은 **원 단위 정수**, 면적은 **m2 숫자**로 응답한다.
 - enum은 **대문자 문자열**을 사용한다.
 - 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
+- 목록 응답의 `result`는 `{ "<목록배열>": [...], "pageInfo": { "page", "size", "totalElements", "totalPages", "hasNext" } }` 형태를 사용한다.
 
 ## 공통 응답 형식
 

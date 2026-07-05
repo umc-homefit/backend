@@ -190,5 +190,12 @@
   "page": 0,
   "size": 10,
   "totalElements": 2
+  "pageInfo": {
+    "page": 0,
+    "size": 10,
+    "totalElements": 2,
+    "totalPages": 1,
+    "hasNext": false
+  }
 }
 ```
