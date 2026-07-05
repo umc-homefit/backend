@@ -184,7 +184,7 @@ export class EligibilityService {
       conditionId: null,
       conditionCode: EligibilityConditionCode.RENT_BURDEN,
       conditionName: '월세 부담률',
-      requiredValue: '월소득 대비 월 주거비 40% 이하 권장',
+      requiredValue: `월소득 대비 월 주거비 ${this.recommendedRentBurdenRate}% 이하 권장`,
       userValue: needsCheck ? null : `${rentBurdenRate}%`,
       resultStatus: needsCheck
         ? EligibilityConditionResultStatus.NEED_CHECK
