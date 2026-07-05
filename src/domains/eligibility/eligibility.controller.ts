@@ -1,4 +1,12 @@
-import { Controller, Get, NotFoundException, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -14,6 +22,7 @@ import {
   MyEligibilityAnalysesResultDto,
   RequestEligibilityAnalysisResultDto,
 } from './dto/eligibility.dto';
+import { EligibilityService } from './eligibility.service';
 
 const MOCK_CONDITION_RESULTS = [
   {
@@ -43,13 +52,15 @@ const MOCK_CONDITION_RESULTS = [
 ];
 
 /**
- * Service/DB 연동 전 단계: Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
- * 실제 분석 로직은 EligibilityService 연동 시 대체된다.
+ * POST 분석 생성은 EligibilityService/DB와 연동되어 있고,
+ * 조회 계열 API는 추후 서비스 연동 전까지 명세 예시 응답을 반환한다.
  */
 @ApiTags('Eligibility Analysis')
 @ApiBearerAuth('access-token')
 @Controller()
 export class EligibilityController {
+  constructor(private readonly eligibilityService: EligibilityService) {}
+
   @Post('notices/:noticeId/units/:unitId/eligibility-analyses')
   @ApiOperation({
     summary: '입주 가능성 분석 요청',
@@ -62,34 +73,26 @@ export class EligibilityController {
     status: 201,
     description: '입주 가능성 분석 생성 성공',
   })
-  requestEligibilityAnalysis(
+  async requestEligibilityAnalysis(
     @Param('noticeId', ParseIntPipe) noticeId: number,
     @Param('unitId', ParseIntPipe) unitId: number,
-  ): ApiResponse<RequestEligibilityAnalysisResultDto> {
-    if (noticeId !== 12 || unitId !== 3) {
-      throw new NotFoundException('존재하지 않는 공고 또는 주택 정보입니다.');
-    }
-
-    const result: RequestEligibilityAnalysisResultDto = {
-      analysisId: 1,
-      resultLevel: EligibilityResultLevel.HIGH,
-      eligibilityScore: 82,
-      shortageAmount: 2000000,
-      rentBurdenRate: 28.57,
-      summaryMessage: '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
-      conditionResults: MOCK_CONDITION_RESULTS,
-      analyzedAt: '2026-07-01T00:10:00',
-    };
-
+  ): Promise<ApiResponse<RequestEligibilityAnalysisResultDto>> {
+    const result = await this.eligibilityService.requestEligibilityAnalysis(noticeId, unitId);
     return createSuccessResponse(result, 'ELIGIBILITY201', '입주 가능성 분석이 완료되었습니다.');
   }
 
   @Get('eligibility-analyses/:analysisId')
   @ApiOperation({
     summary: '분석 결과 조회',
-    description: '분석 결과 ID 기준으로 입주 가능성 점수, 등급, 부족 자금, 월세 부담률, 조건별 비교 결과를 상세 조회한다.',
+    description:
+      '분석 결과 ID 기준으로 입주 가능성 점수, 등급, 부족 자금, 월세 부담률, 조건별 비교 결과를 상세 조회한다.',
   })
-  @ApiParam({ name: 'analysisId', type: Number, description: '조회할 입주 가능성 분석 ID', example: 1 })
+  @ApiParam({
+    name: 'analysisId',
+    type: Number,
+    description: '조회할 입주 가능성 분석 ID',
+    example: 1,
+  })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
   getEligibilityAnalysis(
     @Param('analysisId', ParseIntPipe) analysisId: number,
@@ -109,7 +112,8 @@ export class EligibilityController {
       maintenanceFeeAmount: 50000,
       shortageAmount: 2000000,
       rentBurdenRate: 28.57,
-      summaryMessage: '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
+      summaryMessage:
+        '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
       conditionResults: MOCK_CONDITION_RESULTS,
       analyzedAt: '2026-07-01T00:10:00',
     };
@@ -120,9 +124,15 @@ export class EligibilityController {
   @Get('eligibility-analyses/:analysisId/conditions')
   @ApiOperation({
     summary: '조건별 비교 결과 조회',
-    description: '소득, 자산, 무주택 여부, 보유 현금 등 사용자 조건과 공고 조건의 항목별 충족 여부를 조회한다.',
+    description:
+      '소득, 자산, 무주택 여부, 보유 현금 등 사용자 조건과 공고 조건의 항목별 충족 여부를 조회한다.',
   })
-  @ApiParam({ name: 'analysisId', type: Number, description: '조회할 입주 가능성 분석 ID', example: 1 })
+  @ApiParam({
+    name: 'analysisId',
+    type: Number,
+    description: '조회할 입주 가능성 분석 ID',
+    example: 1,
+  })
   @ApiSuccessResponse(EligibilityConditionsResultDto, { description: '조건별 비교 결과 조회 성공' })
   getEligibilityConditions(
     @Param('analysisId', ParseIntPipe) analysisId: number,
@@ -161,7 +171,12 @@ export class EligibilityController {
     summary: '재정 계산 결과 조회',
     description: '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다.',
   })
-  @ApiParam({ name: 'analysisId', type: Number, description: '조회할 입주 가능성 분석 ID', example: 1 })
+  @ApiParam({
+    name: 'analysisId',
+    type: Number,
+    description: '조회할 입주 가능성 분석 ID',
+    example: 1,
+  })
   @ApiSuccessResponse(FinancialSummaryResultDto, { description: '재정 계산 결과 조회 성공' })
   getFinancialSummary(
     @Param('analysisId', ParseIntPipe) analysisId: number,
