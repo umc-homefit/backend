@@ -57,15 +57,20 @@
 
 ```json
 {
-  "totalCount": 5,
+  "pageInfo": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 5,
+    "totalPages": 1,
+    "hasNext": false
+  },
   "products": [
     {
       "productId": 103,
       "productName": "하나은행 청년 전세자금대출",
       "providerType": "BANK",
       "providerName": "하나은행",
-      "rateRange": "3.2% ~ 4.5%",
-      "maxLimitAmount": 150000000
+      "rateRange": "3.2% ~ 4.5%"
     }
   ]
 }
@@ -215,14 +220,20 @@
 
 ```json
 {
-  "totalCount": 9,
+  "pageInfo": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 9,
+    "totalPages": 1,
+    "hasNext": false
+  },
   "guides": [
     {
       "guideId": 10,
-      "categoryId": 1,
       "title": "추가모집 신청 절차 안내",
       "contentType": "TEXT",
-      "displayOrder": 1
+      "contentBody": "1. 공고 확인\n2. 서류 준비\n3. 온라인 신청\n4. 결과 확인",
+      "updatedAt": "2026-06-01T00:00:00Z"
     }
   ]
 }
