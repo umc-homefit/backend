@@ -291,12 +291,7 @@ export class EligibilityService {
     const hasPolicyFail = params.policyConditions.some(
       (conditionResult) => conditionResult.resultStatus === EligibilityConditionResultStatus.FAIL,
     );
-    const policyScore =
-      params.policyConditions.length > 0 && !hasPolicyFail
-        ? 20
-        : params.policyConditions.length === 0
-          ? 0
-          : 0;
+    const policyScore = params.policyConditions.length > 0 && !hasPolicyFail ? 20 : 0;
     const needsCheck =
       params.expectedDepositAmount <= 0 ||
       params.monthlyIncomeAmount <= 0 ||
