@@ -1,0 +1,382 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId     BigInt   @id(map: "PK_USERS") @default(autoincrement()) @map("user_id")
+  email      String?  @unique(map: "UK_USERS_EMAIL") @db.VarChar(255)
+  password   String?  @db.VarChar(255)
+  provider   String   @db.VarChar(50)
+  providerId String?  @map("provider_id") @db.VarChar(255)
+  status     String   @default("ACTIVE") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  alertSetting     AlertSetting?
+  conditionProfile UserConditionProfile?
+  devices          UserDevice[]
+  notificationLogs NotificationLog[]
+  profile          UserProfile?
+  savedNotices     SavedNotice[]
+
+  @@unique([provider, providerId], map: "UK_USERS_PROVIDER_PROVIDER_ID")
+  @@map("users")
+}
+
+model UserProfile {
+  profileId       BigInt    @id(map: "PK_USER_PROFILES") @default(autoincrement()) @map("profile_id")
+  userId          BigInt    @unique(map: "UK_USER_PROFILES_USER_ID") @map("user_id")
+  nickname        String?   @db.VarChar(50)
+  birthDate       DateTime? @map("birth_date") @db.Date
+  phoneNumber     String?   @map("phone_number") @db.VarChar(20)
+  profileImageUrl String?   @map("profile_image_url") @db.VarChar(255)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [userId], map: "FK_users_TO_user_profiles_1")
+
+  @@map("user_profiles")
+}
+
+model UserConditionProfile {
+  userConditionProfileId   BigInt   @id(map: "PK_USER_CONDITION_PROFILES") @default(autoincrement()) @map("user_condition_profile_id")
+  userId                   BigInt   @unique(map: "UK_USER_CONDITION_PROFILES_USER_ID") @map("user_id")
+  monthlyIncomeAmount      BigInt   @default(0) @map("monthly_income_amount")
+  totalAssetAmount         BigInt   @default(0) @map("total_asset_amount")
+  totalDebtAmount          BigInt   @default(0) @map("total_debt_amount")
+  monthlyDebtPaymentAmount BigInt   @default(0) @map("monthly_debt_payment_amount")
+  cashSavings              BigInt   @default(0) @map("cash_savings")
+  housingOwnershipStatus   String   @default("UNKNOWN") @map("housing_ownership_status") @db.VarChar(50)
+  isHomeless               Boolean  @default(false) @map("is_homeless")
+  residenceRegionCode      String?  @map("residence_region_code") @db.VarChar(100)
+  workplaceRegionCode      String?  @map("workplace_region_code") @db.VarChar(100)
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  eligibilityAnalyses EligibilityAnalysis[]
+  user                User                  @relation(fields: [userId], references: [userId], map: "FK_users_TO_user_condition_profiles_1")
+
+  @@map("user_condition_profiles")
+}
+
+model AlertSetting {
+  alertSettingId       BigInt   @id(map: "PK_ALERT_SETTINGS") @default(autoincrement()) @map("alert_setting_id")
+  userId               BigInt   @unique(map: "UK_ALERT_SETTINGS_USER_ID") @map("user_id")
+  pushEnabled          Boolean  @default(true) @map("push_enabled")
+  noticeAlertEnabled   Boolean  @default(true) @map("notice_alert_enabled")
+  scheduleAlertEnabled Boolean  @default(true) @map("schedule_alert_enabled")
+  financeAlertEnabled  Boolean  @default(true) @map("finance_alert_enabled")
+  interestedRegion     String?  @map("interested_region") @db.VarChar(100)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [userId], map: "FK_users_TO_alert_settings_1")
+
+  @@map("alert_settings")
+}
+
+model UserDevice {
+  deviceId   BigInt   @id(map: "PK_USER_DEVICE") @default(autoincrement()) @map("device_id")
+  userId     BigInt   @map("user_id")
+  fcmToken   String   @map("fcm_token") @db.VarChar(255)
+  deviceType String?  @map("device_type") @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user User @relation(fields: [userId], references: [userId], map: "FK_users_TO_user_device_1")
+
+  @@map("user_device")
+}
+
+model HousingComplex {
+  complexId    BigInt   @id(map: "PK_HOUSING_COMPLEXES") @default(autoincrement()) @map("complex_id")
+  name         String   @db.VarChar(255)
+  region       String   @db.VarChar(100)
+  district     String?  @db.VarChar(100)
+  address      String?  @db.VarChar(255)
+  sourceUrl    String?  @map("source_url") @db.Text
+  isActive     Boolean  @default(true) @map("is_active")
+  crawlEnabled Boolean  @default(true) @map("crawl_enabled")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  crawlLogs CrawlLog[]
+  notices   Notice[]
+
+  @@map("housing_complexes")
+}
+
+model Notice {
+  noticeId                BigInt    @id(map: "PK_NOTICES") @default(autoincrement()) @map("notice_id")
+  complexId               BigInt    @map("complex_id")
+  announcementNo          String?   @map("announcement_no") @db.VarChar(100)
+  title                   String    @db.VarChar(255)
+  sourceUrl               String    @map("source_url") @db.Text
+  dedupHash               String    @unique(map: "UK_NOTICES_DEDUP_HASH") @map("dedup_hash") @db.VarChar(255)
+  contentHash             String?   @map("content_hash") @db.VarChar(255)
+  status                  String    @db.VarChar(30)
+  isAdditionalRecruitment Boolean   @default(false) @map("is_additional_recruitment")
+  applicationStartAt      DateTime? @map("application_start_at") @db.Timestamp(0)
+  applicationEndAt        DateTime? @map("application_end_at") @db.Timestamp(0)
+  rawContent              String?   @map("raw_content") @db.Text
+  parsedJson              String?   @map("parsed_json") @db.Text
+  lastCrawledAt           DateTime? @map("last_crawled_at") @db.Timestamp(0)
+  views                   Int       @default(0)
+  interestedCount         Int       @default(0) @map("interested_count")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  complex             HousingComplex        @relation(fields: [complexId], references: [complexId], map: "FK_housing_complexes_TO_notices_1")
+  conditions          NoticeCondition[]
+  documentMappings    DocumentMapping[]
+  eligibilityAnalyses EligibilityAnalysis[]
+  files               NoticeFile[]
+  notificationLogs    NotificationLog[]
+  savedNotices        SavedNotice[]
+  units               NoticeUnit[]
+
+  @@map("notices")
+}
+
+model NoticeUnit {
+  unitId          BigInt   @id(map: "PK_NOTICE_UNITS") @default(autoincrement()) @map("unit_id")
+  noticeId        BigInt   @map("notice_id")
+  unitName        String?  @map("unit_name") @db.VarChar(100)
+  exclusiveAreaM2 Decimal? @map("exclusive_area_m2") @db.Decimal(6, 2)
+  supplyAreaM2    Decimal? @map("supply_area_m2") @db.Decimal(6, 2)
+  depositMin      BigInt?  @map("deposit_min")
+  depositMax      BigInt?  @map("deposit_max")
+  monthlyRentMin  BigInt?  @map("monthly_rent_min")
+  monthlyRentMax  BigInt?  @map("monthly_rent_max")
+  supplyCount     Int?     @map("supply_count")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  eligibilityAnalyses EligibilityAnalysis[]
+  notice              Notice                @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notice_units_1")
+
+  @@map("notice_units")
+}
+
+model NoticeCondition {
+  conditionId                 BigInt   @id(map: "PK_NOTICE_CONDITIONS") @default(autoincrement()) @map("condition_id")
+  noticeId                    BigInt   @map("notice_id")
+  targetType                  String?  @map("target_type") @db.VarChar(100)
+  minAge                      Int?     @map("min_age")
+  maxAge                      Int?     @map("max_age")
+  incomeLimitAmount           BigInt?  @map("income_limit_amount")
+  incomeLimitText             String?  @map("income_limit_text") @db.Text
+  assetLimitAmount            BigInt?  @map("asset_limit_amount")
+  assetLimitText              String?  @map("asset_limit_text") @db.Text
+  requiresHomeless            Boolean? @map("requires_homeless")
+  housingOwnershipRequirement String?  @map("housing_ownership_requirement") @db.Text
+  residenceRequirement        String?  @map("residence_requirement") @db.Text
+  householdRequirement        String?  @map("household_requirement") @db.Text
+  subscriptionRequirement     String?  @map("subscription_requirement") @db.Text
+  rawConditionText            String?  @map("raw_condition_text") @db.Text
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  eligibilityConditionResults EligibilityConditionResult[]
+  notice                      Notice                       @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notice_conditions_1")
+
+  @@map("notice_conditions")
+}
+
+model NoticeFile {
+  fileId       BigInt    @id(map: "PK_NOTICE_FILES") @default(autoincrement()) @map("file_id")
+  noticeId     BigInt    @map("notice_id")
+  fileName     String    @map("file_name") @db.VarChar(255)
+  fileType     String    @map("file_type") @db.VarChar(30)
+  fileUrl      String    @map("file_url") @db.Text
+  registeredAt DateTime? @map("registered_at") @db.Timestamp(0)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+
+  notice Notice @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notice_files_1")
+
+  @@map("notice_files")
+}
+
+model SavedNotice {
+  savedNoticeId BigInt   @id(map: "PK_SAVED_NOTICES") @default(autoincrement()) @map("saved_notice_id")
+  userId        BigInt   @map("user_id")
+  noticeId      BigInt   @map("notice_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  notice Notice @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_saved_notices_1")
+  user   User   @relation(fields: [userId], references: [userId], map: "FK_users_TO_saved_notices_1")
+
+  @@unique([userId, noticeId], map: "UK_SAVED_NOTICES_USER_NOTICE")
+  @@map("saved_notices")
+}
+
+model NotificationLog {
+  notificationLogId BigInt    @id(map: "PK_NOTIFICATION_LOGS") @default(autoincrement()) @map("notification_log_id")
+  userId            BigInt    @map("user_id")
+  noticeId          BigInt?   @map("notice_id")
+  notificationType  String    @map("notification_type") @db.VarChar(30)
+  isRead            Boolean   @default(false) @map("is_read")
+  title             String    @db.VarChar(255)
+  body              String?   @db.Text
+  status            String    @db.VarChar(30)
+  sentAt            DateTime? @map("sent_at") @db.Timestamp(0)
+  failureReason     String?   @map("failure_reason") @db.Text
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+
+  notice Notice? @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notification_logs_1")
+  user   User    @relation(fields: [userId], references: [userId], map: "FK_users_TO_notification_logs_1")
+
+  @@map("notification_logs")
+}
+
+model CrawlLog {
+  crawlLogId         BigInt    @id(map: "PK_CRAWL_LOGS") @default(autoincrement()) @map("crawl_log_id")
+  complexId          BigInt?   @map("complex_id")
+  status             String    @db.VarChar(30)
+  crawlerType        String?   @map("crawler_type") @db.VarChar(30)
+  errorType          String?   @map("error_type") @db.VarChar(50)
+  startedAt          DateTime  @map("started_at") @db.Timestamp(0)
+  finishedAt         DateTime? @map("finished_at") @db.Timestamp(0)
+  attemptCount       Int       @default(0) @map("attempt_count")
+  errorMessage       String?   @map("error_message") @db.Text
+  createdNoticeCount Int       @default(0) @map("created_notice_count")
+  updatedNoticeCount Int       @default(0) @map("updated_notice_count")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+
+  complex HousingComplex? @relation(fields: [complexId], references: [complexId], map: "FK_housing_complexes_TO_crawl_logs_1")
+
+  @@map("crawl_logs")
+}
+
+model EligibilityAnalysis {
+  eligibilityAnalysisId     BigInt   @id(map: "PK_ELIGIBILITY_ANALYSES") @default(autoincrement()) @map("eligibility_analysis_id")
+  userConditionProfileId    BigInt   @map("user_condition_profile_id")
+  noticeId                  BigInt   @map("notice_id")
+  unitId                    BigInt   @map("unit_id")
+  resultLevel               String   @map("result_level") @db.VarChar(30)
+  eligibilityScore          Decimal  @map("eligibility_score") @db.Decimal(5, 2)
+  expectedDepositAmount     BigInt   @map("expected_deposit_amount")
+  expectedMonthlyRentAmount BigInt   @map("expected_monthly_rent_amount")
+  maintenanceFeeAmount      BigInt   @default(0) @map("maintenance_fee_amount")
+  shortageAmount            BigInt   @map("shortage_amount")
+  rentBurdenRate            Decimal  @map("rent_burden_rate") @db.Decimal(5, 2)
+  summaryMessage            String?  @map("summary_message") @db.VarChar(500)
+  analyzedAt                DateTime @default(now()) @map("analyzed_at") @db.Timestamp(0)
+
+  conditionResults     EligibilityConditionResult[]
+  notice               Notice                       @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_eligibility_analyses_1")
+  unit                 NoticeUnit                   @relation(fields: [unitId], references: [unitId], map: "FK_notice_units_TO_eligibility_analyses_1")
+  userConditionProfile UserConditionProfile         @relation(fields: [userConditionProfileId], references: [userConditionProfileId], map: "FK_user_condition_profiles_TO_eligibility_analyses_1")
+
+  @@map("eligibility_analyses")
+}
+
+model EligibilityConditionResult {
+  eligibilityConditionResultId BigInt  @id(map: "PK_ELIGIBILITY_CONDITION_RESULTS") @default(autoincrement()) @map("eligibility_condition_result_id")
+  eligibilityAnalysisId        BigInt  @map("eligibility_analysis_id")
+  conditionId                  BigInt? @map("condition_id")
+  conditionCode                String  @map("condition_code") @db.VarChar(50)
+  conditionName                String  @map("condition_name") @db.VarChar(100)
+  requiredValue                String? @map("required_value") @db.VarChar(255)
+  userValue                    String? @map("user_value") @db.VarChar(255)
+  resultStatus                 String  @map("result_status") @db.VarChar(30)
+  failReason                   String? @map("fail_reason") @db.VarChar(500)
+
+  condition           NoticeCondition?    @relation(fields: [conditionId], references: [conditionId], map: "FK_notice_conditions_TO_eligibility_condition_results_1")
+  eligibilityAnalysis EligibilityAnalysis @relation(fields: [eligibilityAnalysisId], references: [eligibilityAnalysisId], map: "FK_eligibility_analyses_TO_eligibility_condition_results_1")
+
+  @@map("eligibility_condition_results")
+}
+
+model LoanProduct {
+  productId      BigInt   @id(map: "PK_LOAN_PRODUCTS") @default(autoincrement()) @map("product_id")
+  productName    String   @map("product_name") @db.VarChar(255)
+  providerType   String   @map("provider_type") @db.VarChar(30)
+  providerName   String   @map("provider_name") @db.VarChar(100)
+  minRate        Decimal? @map("min_rate") @db.Decimal(5, 2)
+  maxRate        Decimal? @map("max_rate") @db.Decimal(5, 2)
+  maxLimitAmount BigInt?  @map("max_limit_amount")
+  minAge         Int?     @map("min_age")
+  maxAge         Int?     @map("max_age")
+  maxIncome      BigInt?  @map("max_income")
+  maxAsset       BigInt?  @map("max_asset")
+  requireNoHouse Boolean  @default(true) @map("require_no_house")
+  officialUrl    String   @map("official_url") @db.VarChar(500)
+  description    String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  documentMappings DocumentMapping[]
+
+  @@map("loan_products")
+}
+
+model FinanceTerm {
+  termId            BigInt   @id(map: "PK_FINANCE_TERMS") @default(autoincrement()) @map("term_id")
+  term              String   @unique(map: "UK_FINANCE_TERMS_TERM") @db.VarChar(50)
+  detailDescription String?  @map("detail_description") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("finance_terms")
+}
+
+model GuideCategory {
+  categoryId   BigInt @id(map: "PK_GUIDE_CATEGORIES") @default(autoincrement()) @map("category_id")
+  categoryName String @map("category_name") @db.VarChar(100)
+  displayOrder Int    @map("display_order")
+
+  guides Guide[]
+
+  @@map("guide_categories")
+}
+
+model Guide {
+  guideId          BigInt   @id(map: "PK_GUIDES") @default(autoincrement()) @map("guide_id")
+  categoryId       BigInt   @map("category_id")
+  title            String   @db.VarChar(255)
+  contentType      String   @map("content_type") @db.VarChar(20)
+  contentBody      String   @map("content_body") @db.Text
+  announcementType String   @map("announcement_type") @db.VarChar(50)
+  displayOrder     Int      @map("display_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  category GuideCategory @relation(fields: [categoryId], references: [categoryId], map: "FK_guide_categories_TO_guides_1")
+
+  @@map("guides")
+}
+
+model RequiredDocument {
+  documentId         BigInt   @id(map: "PK_REQUIRED_DOCUMENTS") @default(autoincrement()) @map("document_id")
+  documentName       String   @map("document_name") @db.VarChar(255)
+  issuer             String?  @db.VarChar(100)
+  issueMethod        String   @map("issue_method") @db.VarChar(30)
+  validityPeriodDays Int?     @map("validity_period_days")
+  documentType       String   @map("document_type") @db.VarChar(30)
+  description        String?  @db.Text
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  documentMappings DocumentMapping[]
+
+  @@map("required_documents")
+}
+
+model DocumentMapping {
+  mappingId  BigInt  @id(map: "PK_DOCUMENT_MAPPINGS") @default(autoincrement()) @map("mapping_id")
+  noticeId   BigInt? @map("notice_id")
+  productId  BigInt? @map("product_id")
+  documentId BigInt  @map("document_id")
+  targetType String  @map("target_type") @db.VarChar(50)
+  isRequired Boolean @default(true) @map("is_required")
+
+  document RequiredDocument @relation(fields: [documentId], references: [documentId], map: "FK_required_documents_TO_document_mappings_1")
+  notice   Notice?          @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_document_mappings_1")
+  product  LoanProduct?     @relation(fields: [productId], references: [productId], map: "FK_loan_products_TO_document_mappings_1")
+
+  @@map("document_mappings")
+}

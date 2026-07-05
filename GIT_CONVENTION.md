@@ -17,6 +17,7 @@ main
     ├── feature/*
     ├── fix/*
     ├── chore/*
+    ├── docs/*
     └── refactor/*
 ```
 
@@ -28,7 +29,8 @@ main
 | `dev` | 개발 통합 브랜치 |
 | `feature/*` | 기능 개발 브랜치 |
 | `fix/*` | 버그 수정 브랜치 |
-| `chore/*` | 설정, 환경, 문서 등 기능 외 작업 브랜치 |
+| `chore/*` | 설정, 환경 등 기능 외 작업 브랜치 |
+| `docs/*` | 문서 작업(API 명세, README 등) 브랜치 |
 | `refactor/*` | 기능 변경 없는 코드 구조 개선 브랜치 |
 
 ## 2. 브랜치 이름 규칙
@@ -73,6 +75,12 @@ type: 작업 내용
 
 ## 4. 작업 흐름
 
+작업은 기본적으로 GitHub Issue를 먼저 생성한 뒤 진행한다.
+
+- Issue에는 작업 유형, 도메인, 우선순위, 필요 시 작업 영역 라벨을 지정한다.
+- PR 본문에는 관련 Issue를 `close #이슈번호` 또는 `Closes #이슈번호` 형식으로 연결한다.
+- 급한 문서/설정 수정처럼 Issue 없이 진행한 경우에도 PR 생성 후 관련 Issue를 생성하거나 연결해 추적 가능하게 만든다.
+
 기능 개발은 항상 `dev`에서 새 브랜치를 생성해서 진행한다.
 
 ```bash
@@ -97,6 +105,7 @@ PR은 기본적으로 `dev` 브랜치로 올린다.
 feature/* → dev
 fix/* → dev
 chore/* → dev
+docs/* → dev
 refactor/* → dev
 ```
 
@@ -117,7 +126,8 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 
 - [ ] 로컬 실행 확인
 - [ ] API 응답 확인
-- [ ] Swagger/Notion API 명세 반영
+- [ ] Swagger/Notion API 명세/docs/api 반영
+- [ ] 관련 Issue 연결 및 라벨 확인
 
 ## 공유 사항
 
@@ -127,17 +137,23 @@ PR 본문에는 아래 내용을 가능한 범위에서 작성한다.
 ### PR 체크 기준
 
 - 최소 1명 이상 리뷰 후 merge한다.
+- `main`, `dev`는 보호 규칙이 적용되어 직접 push하지 않는다.
+- PR에는 관련 Issue를 연결하고, 작업 성격에 맞는 라벨을 지정한다.
 - DB schema 변경이 있으면 PR 본문에 반드시 적는다.
-- API Request/Response 변경이 있으면 Swagger와 Notion API 명세를 같이 수정한다.
+- API Request/Response 변경이 있으면 Swagger, Notion API 명세, `docs/api` 문서를 같이 수정한다.
 - `.env` 파일은 커밋하지 않는다.
 - 환경변수 예시는 `.env.example`로 관리한다.
 
 ## 6. Merge 규칙
 
 - PR은 리뷰 후 `dev`에 merge한다.
+- 모든 PR은 **Squash and merge**로 커밋을 1개로 합쳐 히스토리를 깔끔하게 유지한다.
+- `dev` → `main`도 제출/데모 기준이 정리된 뒤 PR로 올리고 **Squash and merge**한다.
+- GitHub Repository 설정에서 Merge commit, Rebase merge는 비활성화하고 Squash merge만 사용한다.
+- merge된 작업 브랜치는 자동 삭제한다.
 - `main`에는 데모/배포 기준으로만 merge한다.
 - 충돌이 발생하면 해당 브랜치 담당자가 우선 해결한다.
-- 급한 수정이 아니라면 `main`에 직접 push하지 않는다.
+- 초중반에는 PR 작성자 본인이 직접 merge하지 않고, 리뷰 승인 후 팀장 또는 지정 리뷰어가 merge한다.
 
 ## 7. 도메인별 작업 범위
 
@@ -157,7 +173,11 @@ Notification은 별도 도메인으로 분리하기보다 Auth/User와 Notice가
 
 ## 8. API 명세 관리 규칙
 
-API는 Swagger와 Notion API 명세서를 함께 관리한다.
+API는 Swagger와 Notion API 명세서, GitHub 미러 문서(`docs/api`)를 함께 관리한다.
+
+- SSOT: Notion API 명세서
+- 구현 확인: Swagger controller/DTO
+- GitHub 문서: [`docs/api/README.md`](./docs/api/README.md)
 
 API 변경 시 아래 항목을 확인한다.
 
@@ -168,6 +188,7 @@ API 변경 시 아래 항목을 확인한다.
 - Response Field 변경 여부
 - Error Response 변경 여부
 - Android 화면 영향 여부
+- `docs/api/*.md` 반영 여부
 
 API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
@@ -176,6 +197,7 @@ API 명세 변경이 있는 PR은 PR 본문에 아래처럼 적는다.
 
 - 변경 API:
 - 변경 내용:
+- 문서 반영: Notion / Swagger / docs/api
 - Android 확인 필요 여부:
 ```
 
@@ -198,6 +220,15 @@ DB schema 또는 Prisma schema 변경 시 PR에 반드시 명시한다.
 - enum 값 변경은 API 응답과 Android 분기에도 영향을 줄 수 있으므로 반드시 공유한다.
 - 저장 공고, 알림, 분석 결과처럼 다른 도메인과 연결되는 테이블은 담당자와 확인 후 수정한다.
 
+### 로컬 DB 개발 원칙
+
+- 1차 개발은 각자 로컬 PostgreSQL을 사용한다.
+- DB schema 변경은 Prisma schema와 migration으로 관리한다.
+- `.env`의 `DATABASE_URL`은 개인 로컬 DB 주소를 사용한다.
+- DataGrip은 DB 테이블/데이터 확인용으로 사용한다.
+- Postman/Swagger는 API 요청/응답 테스트용으로 사용한다.
+- 공유 dev DB는 Android 연동 또는 데모 준비 단계에서 별도로 구성한다.
+
 ## 10. 환경변수 관리
 
 실제 `.env` 파일은 Git에 올리지 않는다.
@@ -211,10 +242,11 @@ Git에 올릴 수 있는 파일:
 예시:
 
 ```env
-DATABASE_URL=
-JWT_SECRET=
+DATABASE_URL=postgresql://user:password@localhost:5432/homefit?schema=public
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
 PORT=3000
-FCM_SERVER_KEY=
+FCM_PROJECT_ID=
 ```
 
 민감 정보는 GitHub, Notion, 카카오톡 등에 그대로 공유하지 않는다.
@@ -244,13 +276,10 @@ FCM_SERVER_KEY=
 - 공통 예외 처리 구조 정의
 - 일부 도메인 CRUD API 구현
 
-## 13. 확인 필요 사항
+## 13. 향후 확인 필요 사항
 
-- `main` 보호 규칙 설정 여부
-- `dev` 보호 규칙 설정 여부
-- PR 최소 리뷰 인원
-- squash merge 사용 여부
-- GitHub Issue 사용 여부
-- GitHub Project 사용 여부
 - Swagger 배포 주소
 - 개발 서버 배포 방식
+- CI 체크 도입 여부
+- FCM HTTP v1 서비스 계정 관리 방식
+- 크롤링 배치/큐 운영 범위

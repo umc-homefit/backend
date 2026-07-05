@@ -18,7 +18,7 @@
 - [ ] Notice
 - [ ] Eligibility
 - [ ] Finance/Guide
-- [ ] Notification
+- [ ] Notification(API 카테고리, 구현은 Auth/User 중심)
 - [ ] Common/Infra
 
 ## 변경 내용
@@ -29,13 +29,16 @@
 
 ## 확인한 내용
 
+- [ ] 대상 브랜치 확인 (`feature/*`, `fix/*`, `chore/*`, `docs/*`, `refactor/*` → `dev`, 제출/데모 PR은 `dev` → `main`)
 - [ ] 로컬 서버 실행 확인
 - [ ] API 응답 확인
 - [ ] 에러 케이스 확인
 - [ ] Swagger 반영
 - [ ] Notion API 명세 반영
+- [ ] docs/api 문서 반영
 - [ ] Prisma schema/migration 영향 확인
 - [ ] Android 연동 영향 확인
+- [ ] 관련 이슈 연결 및 라벨 확인
 
 ## API 변경 사항
 
