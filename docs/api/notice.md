@@ -2,7 +2,7 @@
 
 > 담당: 김찬혁(찬찬) · 도메인: Notice
 > **이 문서는 팀 Notion `api 명세서`(SSOT)를 미러링한 것이다.** 값이 충돌하면 Notion이 우선이며, Notion 수정 시 이 문서와 Swagger도 함께 맞춘다.
-> Notion: https://app.notion.com/p/38e2a03e23d98097aa90e434b9017faa
+> Notion: https://app.notion.com/p/api-38e2a03e23d98097aa90e434b9017faa
 
 ## 공통 규칙
 
@@ -121,7 +121,8 @@
         "applicationEndAt": "2026-07-10T18:00:00+09:00",
         "dDayText": "D-3",
         "views": 120,
-        "interestedCount": 32
+        "interestedCount": 32,
+        "isSaved": false
       }
     ],
     "pageInfo": { "page": 0, "size": 10, "totalElements": 36, "totalPages": 4, "hasNext": true }
