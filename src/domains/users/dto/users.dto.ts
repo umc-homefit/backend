@@ -108,7 +108,7 @@ export class BasicInfoResultDto {
   userId: number;
 
   @ApiProperty({ description: '계정 이메일', example: 'user@email.com' })
-  email: string | null;
+  email: string|null;
 
   @ApiProperty({ description: '인증 방식', example: 'KAKAO' })
   provider: string;
