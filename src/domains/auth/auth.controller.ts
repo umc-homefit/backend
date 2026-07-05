@@ -38,6 +38,7 @@ export class AuthController {
   }
 
   @Post('social')
+  @HttpCode(200)
   @ApiOperation({ summary: '소셜 회원가입 및 로그인', description: '소셜 인증 후 회원가입 또는 로그인하고 JWT를 발급한다.' })
   @ApiSuccessResponse(AuthResultDto, { description: '기존 소셜 로그인' })
   socialAuth(@Body() _body: SocialAuthRequestDto): ApiResponse<AuthResultDto> {
