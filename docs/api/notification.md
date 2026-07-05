@@ -156,6 +156,13 @@
 
 ```json
 {
+  "pageInfo": {
+    "page": 0,
+    "size": 20,
+    "totalElements": 95,
+    "totalPages": 5,
+    "hasNext": true
+  },
   "notifications": [
     {
       "notificationId": 101,
@@ -165,10 +172,7 @@
       "isRead": false,
       "createdAt": "2026-07-01T10:00:00Z"
     }
-  ],
-  "currentPage": 0,
-  "totalPages": 5,
-  "totalElements": 95
+  ]
 }
 ```
 
