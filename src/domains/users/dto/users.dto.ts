@@ -1,12 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import {
-  IsBoolean,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsInt,
-  Min,
-  IsDateString
+import { 
+  IsBoolean, 
+  IsNumber, 
+  IsOptional, 
+  IsString, 
+  IsInt, 
+  Min, 
+  IsDateString 
 } from 'class-validator';
 
 // 1. 프로필 수정 요청 DTO
