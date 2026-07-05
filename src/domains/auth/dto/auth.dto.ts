@@ -6,7 +6,10 @@ export class SignupRequestDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합, 최소 8자)', example: 'fitpass123!' })
+  @ApiProperty({
+    description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합, 최소 8자)',
+    example: 'fitpass123!',
+  })
   @IsString()
   @MinLength(8)
   password: string;

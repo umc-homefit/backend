@@ -20,9 +20,12 @@ import {
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
- 
+
   @Post('signup')
-  @ApiOperation({ summary: '이메일(로컬) 회원가입', description: '이메일/비밀번호로 회원가입한다.' })
+  @ApiOperation({
+    summary: '이메일(로컬) 회원가입',
+    description: '이메일/비밀번호로 회원가입한다.',
+  })
   @ApiSuccessResponse(AuthResultDto, { status: 201, description: '이메일 회원가입 성공' })
   async signup(@Body() body: SignupRequestDto): Promise<ApiResponse<AuthResultDto>> {
     const result = await this.authService.signup(body);
@@ -30,7 +33,10 @@ export class AuthController {
   }
   @Post('login')
   @HttpCode(200)
-  @ApiOperation({ summary: '이메일(로컬) 로그인', description: '이메일/비밀번호로 로그인하고 Access Token을 발급한다.' })
+  @ApiOperation({
+    summary: '이메일(로컬) 로그인',
+    description: '이메일/비밀번호로 로그인하고 Access Token을 발급한다.',
+  })
   @ApiSuccessResponse(AuthResultDto, { description: '로그인 완료' })
   async login(@Body() body: LoginRequestDto): Promise<ApiResponse<AuthResultDto>> {
     const result = await this.authService.login(body);
@@ -39,7 +45,10 @@ export class AuthController {
 
   @Post('social')
   @HttpCode(200)
-  @ApiOperation({ summary: '소셜 회원가입 및 로그인', description: '소셜 인증 후 회원가입 또는 로그인하고 JWT를 발급한다.' })
+  @ApiOperation({
+    summary: '소셜 회원가입 및 로그인',
+    description: '소셜 인증 후 회원가입 또는 로그인하고 JWT를 발급한다.',
+  })
   @ApiSuccessResponse(AuthResultDto, { description: '기존 소셜 로그인' })
   socialAuth(@Body() _body: SocialAuthRequestDto): ApiResponse<AuthResultDto> {
     const result: AuthResultDto = {
