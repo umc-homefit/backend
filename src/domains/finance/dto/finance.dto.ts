@@ -177,9 +177,10 @@ export class LoanProductDetailResultDto {
 }
 
 export class GetFinanceTermsQueryDto {
-  @ApiProperty({ description: '조회할 용어명 (정확히 일치)', example: 'DSR' })
+  @ApiPropertyOptional({ description: '부분 검색 키워드', example: 'DSR' })
+  @IsOptional()
   @IsString()
-  term: string;
+  term?: string;
 }
 
 export class FinanceTermItemDto {
