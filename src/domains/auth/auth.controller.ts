@@ -1,4 +1,4 @@
-import { Body, ConflictException, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -13,8 +13,8 @@ import {
 } from './dto/auth.dto';
 
 /**
- * Service/DB 연동 전 단계: Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
- * 실제 인증/토큰 발급 로직은 AuthService + JWT 연동 시 대체된다.
+ * signup/login은 AuthService를 통해 실제 DB 조회, 비밀번호 해싱/검증, JWT 발급까지 연동되어 있다.
+ * logout과 social은 아직 mock 구현이다 (Access Token 무효화/블랙리스트 로직 미도입).
  */
 @ApiTags('Auth/User')
 @Controller('auth')
@@ -28,7 +28,8 @@ export class AuthController {
     const result = await this.authService.signup(body);
     return createSuccessResponse(result, 'AUTH201', '이메일 회원가입 성공');
   }
- @Post('login')
+  @Post('login')
+  @HttpCode(200)
   @ApiOperation({ summary: '이메일(로컬) 로그인', description: '이메일/비밀번호로 로그인하고 Access Token을 발급한다.' })
   @ApiSuccessResponse(AuthResultDto, { description: '로그인 완료' })
   async login(@Body() body: LoginRequestDto): Promise<ApiResponse<AuthResultDto>> {
