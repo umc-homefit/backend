@@ -91,15 +91,13 @@ export class FinanceService {
       let matched = false;
 
       if (tier1Rate > 0) {
-        await this.financeRepository.upsertLoanProductRate(
-          this.buildSyncRow(item, tier1Rate, '90%'),
-        );
+        await this.financeRepository.upsertLoanProductRate(this.buildSyncRow(item, tier1Rate, 90));
         matched = true;
         syncedCount += 1;
       }
       if (tier2Rate > 0) {
         await this.financeRepository.upsertLoanProductRate(
-          this.buildSyncRow(item, tier2Rate, '100%'),
+          this.buildSyncRow(item, tier2Rate, 100),
         );
         matched = true;
         syncedCount += 1;
@@ -120,12 +118,13 @@ export class FinanceService {
   private buildSyncRow(
     item: RentLoanRateApiItem,
     rate: number,
-    tierLabel: string,
+    guaranteeRatio: number,
   ): LoanProductRateUpsertInput {
     return {
-      productName: `${item.organId} 전세자금대출 (보증비율 ${tierLabel})`,
+      productName: `${item.organId} 전세자금대출 (보증비율 ${guaranteeRatio}%)`,
       providerType: LoanProviderType.BANK,
       providerName: item.organId,
+      guaranteeRatio,
       minRate: rate,
       maxRate: rate,
       officialUrl: SYNC_OFFICIAL_URL,

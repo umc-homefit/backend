@@ -7,6 +7,7 @@ export interface LoanProductRateUpsertInput {
   productName: string;
   providerType: string;
   providerName: string;
+  guaranteeRatio: number;
   minRate: number;
   maxRate: number;
   officialUrl: string;
@@ -34,32 +35,28 @@ export class FinanceRepository {
   }
 
   /**
-   * productName으로 기존 상품을 찾아 금리/제공기관 정보만 갱신하고, 없으면 새로 만든다.
+   * (providerName, guaranteeRatio) 조합 기준으로 금리/제공기관 정보를 갱신하고, 없으면 새로 만든다.
    * description(상세 설명)은 이 메서드가 건드리지 않으므로, 별도로 채워둔 값이 있어도 보존된다.
-   * (스키마에 productName 유니크 제약이 없어 Prisma의 upsert() 대신 find-then-update/create로 구현)
    */
-  async upsertLoanProductRate(row: LoanProductRateUpsertInput): Promise<LoanProduct> {
-    const existing = await this.prisma.loanProduct.findFirst({
-      where: { productName: row.productName },
-    });
-
-    if (existing) {
-      return this.prisma.loanProduct.update({
-        where: { productId: existing.productId },
-        data: {
-          providerType: row.providerType,
+  upsertLoanProductRate(row: LoanProductRateUpsertInput): Promise<LoanProduct> {
+    return this.prisma.loanProduct.upsert({
+      where: {
+        providerName_guaranteeRatio: {
           providerName: row.providerName,
-          minRate: row.minRate,
-          maxRate: row.maxRate,
+          guaranteeRatio: row.guaranteeRatio,
         },
-      });
-    }
-
-    return this.prisma.loanProduct.create({
-      data: {
+      },
+      update: {
+        productName: row.productName,
+        providerType: row.providerType,
+        minRate: row.minRate,
+        maxRate: row.maxRate,
+      },
+      create: {
         productName: row.productName,
         providerType: row.providerType,
         providerName: row.providerName,
+        guaranteeRatio: row.guaranteeRatio,
         minRate: row.minRate,
         maxRate: row.maxRate,
         officialUrl: row.officialUrl,

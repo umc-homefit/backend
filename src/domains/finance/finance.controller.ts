@@ -1,5 +1,6 @@
 import {
   Controller,
+  ForbiddenException,
   Get,
   NotFoundException,
   Param,
@@ -7,6 +8,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -38,7 +40,10 @@ import { FinanceService } from './finance.service';
 @ApiTags('Finance/Guide')
 @Controller()
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(
+    private readonly financeService: FinanceService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('loan-products/match')
   @ApiOperation({
@@ -88,10 +93,15 @@ export class FinanceController {
     summary: '[테스트] 금융상품 외부 API 동기화',
     description:
       '한국주택금융공사 전세자금대출 금리 정보 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
-      'officialUrl은 은행별 URL을 아직 확보하지 못해 HF 공식 사이트로 통일한다. 개발/테스트 용도이며 인증 없이 호출 가능하다.',
+      'officialUrl은 은행별 URL을 아직 확보하지 못해 HF 공식 사이트로 통일한다. ' +
+      '개발/테스트 용도이며, 운영 환경(NODE_ENV=production)에서는 호출할 수 없다.',
   })
   @ApiSuccessResponse(SyncLoanProductsResultDto, { description: '동기화 성공' })
   async syncLoanProducts(): Promise<ApiResponse<SyncLoanProductsResultDto>> {
+    if (this.configService.get<string>('NODE_ENV') === 'production') {
+      throw new ForbiddenException('테스트용 엔드포인트는 운영 환경에서 사용할 수 없습니다.');
+    }
+
     const result = await this.financeService.syncLoanProductsFromExternalApi();
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 동기화에 성공했습니다.');
