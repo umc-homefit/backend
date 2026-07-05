@@ -314,7 +314,7 @@ model LoanProduct {
 
   documentMappings DocumentMapping[]
 
-  @@unique([providerName, guaranteeRatio], map: "UK_LOAN_PRODUCTS_PROVIDER_GUARANTEE")
+  @@unique([providerName, productName, guaranteeRatio], map: "UK_LOAN_PRODUCTS_PROVIDER_PRODUCT_GUARANTEE")
   @@map("loan_products")
 }
 
