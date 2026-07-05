@@ -4,6 +4,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { EmptyResultDto } from '../../common/dto/api-response.dto';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { AuthService } from './auth.service';
 import {
   AuthResultDto,
   LoginRequestDto,
@@ -18,33 +19,20 @@ import {
 @ApiTags('Auth/User')
 @Controller('auth')
 export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+ 
   @Post('signup')
   @ApiOperation({ summary: '이메일(로컬) 회원가입', description: '이메일/비밀번호로 회원가입한다.' })
   @ApiSuccessResponse(AuthResultDto, { status: 201, description: '이메일 회원가입 성공' })
-  signup(@Body() body: SignupRequestDto): ApiResponse<AuthResultDto> {
-    if (body.email === 'duplicate@email.com') {
-      throw new ConflictException('이미 존재하는 이메일 주소입니다.');
-    }
-
-    const result: AuthResultDto = {
-      accessToken: 'eyJhbGci...',
-      isNewUser: true,
-      userId: 1001,
-    };
-
+  async signup(@Body() body: SignupRequestDto): Promise<ApiResponse<AuthResultDto>> {
+    const result = await this.authService.signup(body);
     return createSuccessResponse(result, 'AUTH201', '이메일 회원가입 성공');
   }
-
-  @Post('login')
+ @Post('login')
   @ApiOperation({ summary: '이메일(로컬) 로그인', description: '이메일/비밀번호로 로그인하고 Access Token을 발급한다.' })
   @ApiSuccessResponse(AuthResultDto, { description: '로그인 완료' })
-  login(@Body() _body: LoginRequestDto): ApiResponse<AuthResultDto> {
-    const result: AuthResultDto = {
-      accessToken: 'eyJhbGci...',
-      isNewUser: false,
-      userId: 1001,
-    };
-
+  async login(@Body() body: LoginRequestDto): Promise<ApiResponse<AuthResultDto>> {
+    const result = await this.authService.login(body);
     return createSuccessResponse(result, 'AUTH200', '로그인 성공');
   }
 
@@ -71,6 +59,7 @@ export class AuthController {
     example: { isSuccess: true, code: 'AUTH200', message: '로그아웃 되었습니다.', result: null },
   })
   logout(): ApiResponse<null> {
+    // TODO: 토큰 블랙리스트/세션 무효화가 필요해지면 AuthService에 위임해서 처리
     return createSuccessResponse(null, 'AUTH200', '로그아웃 되었습니다.');
   }
 }
