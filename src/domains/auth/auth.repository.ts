@@ -15,7 +15,7 @@ export class AuthRepository {
       data: {
         email,
         password: hashedPassword,
-        provider: 'EMAIL',
+        provider: 'LOCAL',
         status: 'ACTIVE',
       },
     });

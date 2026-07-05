@@ -1,19 +1,20 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class SignupRequestDto {
   @ApiProperty({ description: '가입할 이메일 주소', example: 'user@email.com' })
-  @IsString()
+  @IsEmail()
   email: string;
 
-  @ApiProperty({ description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합)', example: 'fitpass123!' })
+  @ApiProperty({ description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합, 최소 8자)', example: 'fitpass123!' })
   @IsString()
+  @MinLength(8)
   password: string;
 }
 
 export class LoginRequestDto {
   @ApiProperty({ description: '로그인 이메일', example: 'user@email.com' })
-  @IsString()
+  @IsEmail()
   email: string;
 
   @ApiProperty({ description: '비밀번호 (local 전용)', example: 'fitpass123!' })
@@ -35,7 +36,6 @@ export class AuthResultDto {
 export enum SocialProvider {
   KAKAO = 'KAKAO',
   GOOGLE = 'GOOGLE',
-  APPLE = 'APPLE',
 }
 
 export class SocialAuthRequestDto {
