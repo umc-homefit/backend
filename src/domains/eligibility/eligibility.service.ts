@@ -27,6 +27,7 @@ type ScoreResult = {
 
 @Injectable()
 export class EligibilityService {
+  // TODO: Auth 연동 시 JWT에서 추출한 실제 userId로 교체한다.
   private readonly temporaryUserId = BigInt(1001);
   private readonly recommendedRentBurdenRate = 40;
 

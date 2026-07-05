@@ -210,6 +210,11 @@ export class EligibilityController {
   getMyEligibilityAnalyses(
     @Query() query: GetMyEligibilityAnalysesQueryDto,
   ): ApiResponse<MyEligibilityAnalysesResultDto> {
+    const page = query.page ?? 0;
+    const size = query.size ?? 10;
+    const totalElements = 2;
+    const totalPages = Math.ceil(totalElements / size);
+
     const result: MyEligibilityAnalysesResultDto = {
       analyses: [
         {
@@ -235,9 +240,13 @@ export class EligibilityController {
           analyzedAt: '2026-06-30T18:10:00',
         },
       ],
-      page: query.page ?? 0,
-      size: query.size ?? 10,
-      totalElements: 2,
+      pageInfo: {
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: page + 1 < totalPages,
+      },
     };
 
     return createSuccessResponse(result, 'ELIGIBILITY200', '내 분석 이력 조회에 성공했습니다.');
