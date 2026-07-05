@@ -21,7 +21,7 @@ import {
   UpdateProfileResultDto,
 } from './dto/users.dto';
 
-@ApiTags('User')
+@ApiTags('Auth/User')
 @ApiBearerAuth('access-token') // 2번 피드백 반영: Swagger 인증 명세 추가
 @Controller('users/me')
 export class UsersController {
