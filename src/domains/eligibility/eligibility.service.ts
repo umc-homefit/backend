@@ -337,7 +337,7 @@ export class EligibilityService {
     rentBurdenRate: number,
   ): string {
     if (scoreResult.resultLevel === EligibilityResultLevel.NOT_ELIGIBLE) {
-      return '필수 정책 조건을 충족하지 못해 입주 대상 여부 확인이 필요합니다.';
+      return '필수 정책 조건을 충족하지 못했습니다.';
     }
 
     if (scoreResult.resultLevel === EligibilityResultLevel.NEED_CHECK) {
