@@ -1,15 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
+import { 
+  IsBoolean, 
+  IsNumber, 
+  IsOptional, 
+  IsString, 
+  IsInt, 
+  Min, 
+  IsDateString 
+} from 'class-validator';
 
+// 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
   @ApiPropertyOptional({ description: '수정할 닉네임', example: '홈핏유저', nullable: true })
   @IsOptional()
   @IsString()
   nickname?: string;
 
-  @ApiPropertyOptional({ description: '수정할 생년월일', example: '1998-05-20', nullable: true })
+  @ApiPropertyOptional({ description: '수정할 생년월일 (YYYY-MM-DD)', example: '1998-05-20', nullable: true })
   @IsOptional()
-  @IsString()
+  @IsDateString() // 피드백 반영: 날짜 형식 검증 추가
   birthDate?: string;
 
   @ApiPropertyOptional({ description: '수정할 연락처', example: '010-1234-5678', nullable: true })
@@ -27,6 +36,7 @@ export class UpdateProfileRequestDto {
   profileImageUrl?: string;
 }
 
+// 2. 프로필 수정 결과 DTO
 export class UpdateProfileResultDto {
   @ApiProperty({ description: '수정된 사용자 ID', example: 1001 })
   userId: number;
@@ -35,25 +45,31 @@ export class UpdateProfileResultDto {
   updatedAt: string;
 }
 
+// 3. 조건 프로필 수정 요청 DTO
 export class UpdateConditionProfileRequestDto {
   @ApiProperty({ description: '월 총소득', example: 3000000 })
-  @IsNumber()
+  @IsInt() 
+  @Min(0)  
   monthlyIncomeAmount: number;
 
   @ApiProperty({ description: '총 보유 자산', example: 50000000 })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   totalAssetAmount: number;
 
   @ApiProperty({ description: '총 부채 금액', example: 8000000 })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   totalDebtAmount: number;
 
   @ApiProperty({ description: '월 상환액', example: 400000 })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   monthlyDebtPaymentAmount: number;
 
   @ApiProperty({ description: '보유 현금', example: 20000000 })
-  @IsNumber()
+  @IsInt()
+  @Min(0)
   cashSavings: number;
 
   @ApiProperty({ description: '무주택 여부', example: true })
@@ -75,6 +91,7 @@ export class UpdateConditionProfileRequestDto {
   housingOwnershipStatus: string;
 }
 
+// 4. 조건 프로필 수정 결과 DTO
 export class UpdateConditionProfileResultDto {
   @ApiProperty({ description: '조건 프로필 ID', example: 501 })
   userConditionProfileId: number;
@@ -83,6 +100,7 @@ export class UpdateConditionProfileResultDto {
   updatedAt: string;
 }
 
+// 5. 프로필 조회 결과 DTO
 export class ProfileResultDto {
   @ApiPropertyOptional({ description: '별명', example: '홈핏러', nullable: true })
   nickname: string | null;
@@ -103,12 +121,13 @@ export class ProfileResultDto {
   updatedAt: string;
 }
 
+// 6. 기본 정보 조회 결과 DTO
 export class BasicInfoResultDto {
   @ApiProperty({ description: '사용자 고유 식별자', example: 1001 })
   userId: number;
 
   @ApiProperty({ description: '계정 이메일', example: 'user@email.com' })
-  email: string;
+  email: string | null;
 
   @ApiProperty({ description: '인증 방식', example: 'KAKAO' })
   provider: string;
@@ -123,6 +142,7 @@ export class BasicInfoResultDto {
   updatedAt: string;
 }
 
+// 7. 조건 프로필 조회 결과 DTO
 export class ConditionProfileResultDto {
   @ApiProperty({ description: '월 총소득', example: 3000000 })
   monthlyIncomeAmount: number;
