@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -81,8 +81,12 @@ export class UsersController {
   @Get('saved-notices')
   @ApiOperation({ summary: '저장 공고 목록 조회', description: '마이페이지에서 사용자가 저장한 공고 목록을 조회한다.' })
   @ApiSuccessResponse(SavedNoticeListResultDto, { description: '저장 공고 목록 조회 성공' })
-  async getSavedNotices(@Query() query: GetSavedNoticesQueryDto): Promise<ApiResponse<SavedNoticeListResultDto>> {
+  async getSavedNotices(
+    @CurrentUser() _user: CurrentUserPayload,
+    @Query() query: GetSavedNoticesQueryDto,
+  ): Promise<ApiResponse<SavedNoticeListResultDto>> {
     // 💡 공고 스크랩 파트는 차후 연동을 위해 Mock 유지 (Notices 도메인 담당자 작업 예정)
+    // CurrentUser는 실제 연동 시 _user.userId로 필터링하는 용도로 사용 예정 (구조만 미리 정리)
     const result: SavedNoticeListResultDto = {
       savedNotices: [
         {
