@@ -9,7 +9,7 @@ import {
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  async getBasicInfo(userId: number) {
+  async getBasicInfo(userId: bigint) {
     const user = await this.usersRepository.findUserById(BigInt(userId));
     if (!user) throw new NotFoundException('사용자 정보를 찾을 수 없습니다.');
 
@@ -23,7 +23,7 @@ export class UsersService {
     };
   }
 
-  async withdrawUser(userId: number) {
+  async withdrawUser(userId: bigint) {
     const user = await this.usersRepository.findUserById(BigInt(userId));
     if (!user) throw new NotFoundException('사용자 정보를 찾을 수 없습니다.');
     
@@ -31,7 +31,7 @@ export class UsersService {
     return { success: true };
   }
 
-  async getProfile(userId: number) {
+  async getProfile(userId: bigint) {
     const profile = await this.usersRepository.findProfileByUserId(BigInt(userId));
     if (!profile) throw new NotFoundException('프로필 정보를 찾을 수 없습니다.');
 
@@ -45,7 +45,7 @@ export class UsersService {
     };
   }
 
-  async updateProfile(userId: number, dto: UpdateProfileRequestDto) {
+  async updateProfile(userId: bigint, dto: UpdateProfileRequestDto) {
     const updated = await this.usersRepository.upsertProfile(BigInt(userId), dto);
     return {
       userId: Number(updated.userId),
@@ -53,7 +53,7 @@ export class UsersService {
     };
   }
 
-  async getConditionProfile(userId: number) {
+  async getConditionProfile(userId: bigint) {
     const condition = await this.usersRepository.findConditionProfileByUserId(BigInt(userId));
     if (!condition) throw new NotFoundException('조건 프로필 정보를 찾을 수 없습니다.');
 
@@ -72,7 +72,7 @@ export class UsersService {
     };
   }
 
-  async updateConditionProfile(userId: number, dto: UpdateConditionProfileRequestDto) {
+  async updateConditionProfile(userId: bigint, dto: UpdateConditionProfileRequestDto) {
     const updated = await this.usersRepository.upsertConditionProfile(BigInt(userId), dto);
     return {
       userConditionProfileId: Number(updated.userConditionProfileId),
