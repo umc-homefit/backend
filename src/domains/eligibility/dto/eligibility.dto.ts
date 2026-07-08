@@ -2,6 +2,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Min } from 'class-validator';
 
+import { PageInfoDto } from '../../../common/dto/page-info.dto';
+
 export enum EligibilityResultLevel {
   HIGH = 'HIGH',
   MEDIUM = 'MEDIUM',
@@ -37,7 +39,11 @@ export class EligibilityConditionResultDto {
   @ApiProperty({ description: '조건명', example: '소득 조건' })
   conditionName: string;
 
-  @ApiPropertyOptional({ description: '공고 기준값', example: '월소득 350만원 이하', nullable: true })
+  @ApiPropertyOptional({
+    description: '공고 기준값',
+    example: '월소득 350만원 이하',
+    nullable: true,
+  })
   requiredValue: string | null;
 
   @ApiPropertyOptional({ description: '사용자 입력값', example: '월소득 280만원', nullable: true })
@@ -190,7 +196,8 @@ export class FinancialSummaryResultDto {
 
   @ApiPropertyOptional({
     description: '재정 분석 문구',
-    example: '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
+    example:
+      '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
     nullable: true,
   })
   financialMessage: string | null;
@@ -200,12 +207,6 @@ export class MyEligibilityAnalysesResultDto {
   @ApiProperty({ description: '분석 이력 목록', type: [EligibilityAnalysisHistoryItemDto] })
   analyses: EligibilityAnalysisHistoryItemDto[];
 
-  @ApiProperty({ description: '현재 페이지', example: 0 })
-  page: number;
-
-  @ApiProperty({ description: '페이지 크기', example: 10 })
-  size: number;
-
-  @ApiProperty({ description: '전체 분석 이력 개수', example: 2 })
-  totalElements: number;
+  @ApiProperty({ description: '페이지 정보', type: PageInfoDto })
+  pageInfo: PageInfoDto;
 }
