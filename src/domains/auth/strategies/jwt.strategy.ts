@@ -25,6 +25,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   // 여기서 반환하는 값이 req.user에 그대로 들어간다.
   async validate(payload: JwtPayload): Promise<JwtValidatedUser> {
-    return { userId: BigInt(payload.sub), email: payload.email };
+    return { userId: BigInt(payload.sub), email: payload.email ?? null };
   }
 }

@@ -6,11 +6,13 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   EligibilityAnalysisResultDto,
   EligibilityConditionCode,
@@ -62,6 +64,7 @@ export class EligibilityController {
   constructor(private readonly eligibilityService: EligibilityService) {}
 
   @Post('notices/:noticeId/units/:unitId/eligibility-analyses')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '입주 가능성 분석 요청',
     description:
@@ -202,6 +205,7 @@ export class EligibilityController {
   }
 
   @Get('users/me/eligibility-analyses')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '내 분석 이력 조회',
     description: '로그인한 사용자가 이전에 실행한 입주 가능성 분석 이력 목록을 조회한다.',
