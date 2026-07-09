@@ -11,6 +11,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -77,14 +78,21 @@ export class EligibilityController {
     description: '입주 가능성 분석 생성 성공',
   })
   async requestEligibilityAnalysis(
+    @CurrentUser() user: CurrentUserPayload,
     @Param('noticeId', ParseIntPipe) noticeId: number,
     @Param('unitId', ParseIntPipe) unitId: number,
   ): Promise<ApiResponse<RequestEligibilityAnalysisResultDto>> {
-    const result = await this.eligibilityService.requestEligibilityAnalysis(noticeId, unitId);
+    // TODO: eligibility.service.ts의 temporaryUserId = 1001 하드코딩을 user.userId로 교체 필요
+    const result = await this.eligibilityService.requestEligibilityAnalysis(
+      noticeId,
+      unitId,
+      user.userId,
+    );
     return createSuccessResponse(result, 'ELIGIBILITY201', '입주 가능성 분석이 완료되었습니다.');
   }
 
   @Get('eligibility-analyses/:analysisId')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '분석 결과 조회',
     description:
@@ -125,6 +133,7 @@ export class EligibilityController {
   }
 
   @Get('eligibility-analyses/:analysisId/conditions')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '조건별 비교 결과 조회',
     description:
@@ -170,6 +179,7 @@ export class EligibilityController {
   }
 
   @Get('eligibility-analyses/:analysisId/financial-summary')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '재정 계산 결과 조회',
     description: '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다.',
