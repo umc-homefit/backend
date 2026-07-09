@@ -10,8 +10,11 @@ import {
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
 
-/** officialUrl을 아직 은행별로 확보하지 못해 임시로 통일한 값 (한국주택금융공사 공식 사이트). */
-const SYNC_OFFICIAL_URL = 'https://hf.go.kr/ko/index.do';
+/**
+ * 은행별 전세자금대출(rent-loan-rate-info)의 90%/100% 두 tier가 모두 해당하는 단일 보증상품(일반전세자금보증)의 보증구분코드.
+ * officialUrl/maxLimitAmount는 은행별이 아니라 이 보증상품 기준으로 동일하게 적용된다.
+ */
+const SYNC_GUARANTEE_DVCD = '2D';
 
 interface RentLoanRateApiItem {
   organId: string;
@@ -23,6 +26,16 @@ interface RentLoanRateApiItem {
 interface RentLoanRateApiResponse {
   header: { resultCode: string; resultMsg: string };
   body: { items: RentLoanRateApiItem[] };
+}
+
+interface LoanGuaranteeDetailInfoApiItem {
+  guidUrl: string;
+  maxLoanLmtAmt: string;
+}
+
+interface LoanGuaranteeDetailInfoApiResponse {
+  header: { resultCode: string; resultMsg: string };
+  body: { item: LoanGuaranteeDetailInfoApiItem };
 }
 
 @Injectable()
@@ -76,12 +89,16 @@ export class FinanceService {
   }
 
   /**
-   * [테스트용] 한국주택금융공사 전세자금대출 금리 정보 공공API를 호출해 LoanProduct 테이블에 반영한다.
-   * productName 기준으로 있으면 금리만 갱신(update)하고, 없으면 새로 만든다(create) — description은 건드리지 않는다.
-   * officialUrl은 은행별 URL을 아직 확보하지 못해 SYNC_OFFICIAL_URL로 통일한다.
+   * [테스트용] 전세자금대출 금리 정보 API와 전세자금보증상품 상세정보 API를 함께 호출해 LoanProduct 테이블에 반영한다.
+   * (providerName, productName, guaranteeRatio) 기준으로 있으면 갱신(update)하고, 없으면 새로 만든다(create) — description은 건드리지 않는다.
    */
   async syncLoanProductsFromExternalApi(): Promise<SyncLoanProductsResultDto> {
-    const items = await this.fetchLoanRateItems();
+    const [items, detailInfo] = await Promise.all([
+      this.fetchLoanRateItems(),
+      this.fetchLoanGuaranteeDetailInfo(SYNC_GUARANTEE_DVCD),
+    ]);
+    const officialUrl = detailInfo.guidUrl;
+    const maxLimitAmount = Number(detailInfo.maxLoanLmtAmt);
     const skippedBanks: string[] = [];
     let syncedCount = 0;
 
@@ -91,13 +108,15 @@ export class FinanceService {
       let matched = false;
 
       if (tier1Rate > 0) {
-        await this.financeRepository.upsertLoanProductRate(this.buildSyncRow(item, tier1Rate, 90));
+        await this.financeRepository.upsertLoanProductRate(
+          this.buildSyncRow(item, tier1Rate, 90, officialUrl, maxLimitAmount),
+        );
         matched = true;
         syncedCount += 1;
       }
       if (tier2Rate > 0) {
         await this.financeRepository.upsertLoanProductRate(
-          this.buildSyncRow(item, tier2Rate, 100),
+          this.buildSyncRow(item, tier2Rate, 100, officialUrl, maxLimitAmount),
         );
         matched = true;
         syncedCount += 1;
@@ -119,6 +138,8 @@ export class FinanceService {
     item: RentLoanRateApiItem,
     rate: number,
     guaranteeRatio: number,
+    officialUrl: string,
+    maxLimitAmount: number,
   ): LoanProductRateUpsertInput {
     return {
       productName: `${item.organId} 전세자금대출 (보증비율 ${guaranteeRatio}%)`,
@@ -127,7 +148,8 @@ export class FinanceService {
       guaranteeRatio,
       minRate: rate,
       maxRate: rate,
-      officialUrl: SYNC_OFFICIAL_URL,
+      officialUrl,
+      maxLimitAmount,
     };
   }
 
@@ -162,5 +184,39 @@ export class FinanceService {
     }
 
     return data.body.items;
+  }
+
+  private async fetchLoanGuaranteeDetailInfo(
+    grntDvcd: string,
+  ): Promise<LoanGuaranteeDetailInfoApiItem> {
+    const baseUrl = process.env.LOAN_GUARANTEE_INFO_API_BASE_URL;
+    const serviceKey = process.env.LOAN_RATE_API_SERVICE_KEY;
+
+    if (!baseUrl || !serviceKey) {
+      throw new InternalServerErrorException(
+        'LOAN_GUARANTEE_INFO_API_BASE_URL/LOAN_RATE_API_SERVICE_KEY 환경변수가 설정되지 않았습니다.',
+      );
+    }
+
+    const url = new URL(baseUrl);
+    url.searchParams.set('serviceKey', serviceKey);
+    url.searchParams.set('dataType', 'json');
+    url.searchParams.set('grntDvcd', grntDvcd);
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new InternalServerErrorException(
+        `전세자금보증상품 상세정보 API 호출에 실패했습니다. (status: ${response.status})`,
+      );
+    }
+
+    const data = (await response.json()) as LoanGuaranteeDetailInfoApiResponse;
+    if (data.header.resultCode !== '00') {
+      throw new InternalServerErrorException(
+        `전세자금보증상품 상세정보 API 오류: ${data.header.resultMsg}`,
+      );
+    }
+
+    return data.body.item;
   }
 }

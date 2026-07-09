@@ -11,6 +11,7 @@ export interface LoanProductRateUpsertInput {
   minRate: number;
   maxRate: number;
   officialUrl: string;
+  maxLimitAmount: number;
 }
 
 @Injectable()
@@ -52,6 +53,8 @@ export class FinanceRepository {
         providerType: row.providerType,
         minRate: row.minRate,
         maxRate: row.maxRate,
+        officialUrl: row.officialUrl,
+        maxLimitAmount: row.maxLimitAmount,
       },
       create: {
         productName: row.productName,
@@ -61,6 +64,7 @@ export class FinanceRepository {
         minRate: row.minRate,
         maxRate: row.maxRate,
         officialUrl: row.officialUrl,
+        maxLimitAmount: row.maxLimitAmount,
       },
     });
   }

@@ -94,8 +94,8 @@ export class FinanceController {
   @ApiOperation({
     summary: '[테스트] 금융상품 외부 API 동기화',
     description:
-      '한국주택금융공사 전세자금대출 금리 정보 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
-      'officialUrl은 은행별 URL을 아직 확보하지 못해 HF 공식 사이트로 통일한다. ' +
+      '한국주택금융공사 전세자금대출 금리 정보 공공API와 전세자금보증상품 상세정보 조회 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
+      'officialUrl/maxLimitAmount는 은행별 값이 아니라, 두 tier(90%/100%)가 공통으로 속한 일반전세자금보증(grntDvcd=2D) 상세정보 기준으로 동일하게 채워진다. ' +
       '개발/테스트 용도이며, 운영 환경(NODE_ENV=production)에서는 호출할 수 없다.',
   })
   @ApiSuccessResponse(SyncLoanProductsResultDto, { description: '동기화 성공' })
