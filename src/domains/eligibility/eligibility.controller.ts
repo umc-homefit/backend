@@ -82,7 +82,6 @@ export class EligibilityController {
     @Param('noticeId', ParseIntPipe) noticeId: number,
     @Param('unitId', ParseIntPipe) unitId: number,
   ): Promise<ApiResponse<RequestEligibilityAnalysisResultDto>> {
-    // TODO: eligibility.service.ts의 temporaryUserId = 1001 하드코딩을 user.userId로 교체 필요
     const result = await this.eligibilityService.requestEligibilityAnalysis(
       noticeId,
       unitId,
