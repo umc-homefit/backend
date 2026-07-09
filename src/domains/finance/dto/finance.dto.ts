@@ -162,11 +162,12 @@ export class LoanProductDetailResultDto {
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: '공식 안내 URL (상세에만 포함)',
     example: 'https://nhuf.molit.go.kr',
+    nullable: true,
   })
-  officialUrl: string;
+  officialUrl: string | null;
 
   @ApiPropertyOptional({
     description: '상품 설명',

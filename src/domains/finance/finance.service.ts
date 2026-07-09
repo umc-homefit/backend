@@ -1,8 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { LoanProduct, Prisma } from '@prisma/client';
 
 import {
   GetLoanProductsQueryDto,
+  LoanProductDetailResultDto,
   LoanProductListItemDto,
   LoanProductListResultDto,
   LoanProviderType,
@@ -68,6 +69,16 @@ export class FinanceService {
     };
   }
 
+  async getLoanProductDetail(productId: number): Promise<LoanProductDetailResultDto> {
+    const product = await this.financeRepository.findLoanProductById(BigInt(productId));
+
+    if (!product) {
+      throw new NotFoundException('존재하지 않는 상품입니다.');
+    }
+
+    return this.toDetailResultDto(product);
+  }
+
   private toListItemDto(product: LoanProduct): LoanProductListItemDto {
     return {
       productId: Number(product.productId),
@@ -75,6 +86,19 @@ export class FinanceService {
       providerType: product.providerType as LoanProviderType,
       providerName: product.providerName,
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
+    };
+  }
+
+  private toDetailResultDto(product: LoanProduct): LoanProductDetailResultDto {
+    return {
+      productId: Number(product.productId),
+      productName: product.productName,
+      providerType: product.providerType as LoanProviderType,
+      providerName: product.providerName,
+      rateRange: this.formatRateRange(product.minRate, product.maxRate),
+      maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      officialUrl: product.officialUrl,
+      description: product.description,
     };
   }
 

@@ -35,7 +35,7 @@ import {
 import { FinanceService } from './finance.service';
 
 /**
- * 금융상품 목록 조회(getLoanProducts)는 FinanceService를 통해 DB에서 조회한다.
+ * 금융상품 목록 조회(getLoanProducts)/상세 조회(getLoanProductDetail)는 FinanceService를 통해 DB에서 조회한다.
  * 그 외 엔드포인트는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
  */
 @ApiTags('Finance/Guide')
@@ -113,23 +113,10 @@ export class FinanceController {
   @ApiOperation({ summary: '금융상품 상세 조회', description: '금융상품 상세 정보를 조회한다.' })
   @ApiParam({ name: 'productId', type: Number, description: '조회할 상품 ID', example: 101 })
   @ApiSuccessResponse(LoanProductDetailResultDto, { description: '금융상품 상세 조회 성공' })
-  getLoanProductDetail(
+  async getLoanProductDetail(
     @Param('productId', ParseIntPipe) productId: number,
-  ): ApiResponse<LoanProductDetailResultDto> {
-    if (productId !== 101) {
-      throw new NotFoundException('존재하지 않는 상품입니다.');
-    }
-
-    const result: LoanProductDetailResultDto = {
-      productId: 101,
-      productName: '청년 버팀목 전세자금대출',
-      providerType: LoanProviderType.POLICY,
-      providerName: '주택도시기금',
-      rateRange: '1.5% ~ 2.7%',
-      maxLimitAmount: 200000000,
-      officialUrl: 'https://nhuf.molit.go.kr',
-      description: '만 19~34세 청년을 위한 전세자금 대출 상품입니다.',
-    };
+  ): Promise<ApiResponse<LoanProductDetailResultDto>> {
+    const result = await this.financeService.getLoanProductDetail(productId);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 상세 조회에 성공했습니다.');
   }
