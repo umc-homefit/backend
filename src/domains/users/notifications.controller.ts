@@ -10,11 +10,13 @@ import {
   Post,
   Put,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   AlertSettingsResultDto,
   DeleteDeviceTokenResultDto,
@@ -33,6 +35,7 @@ import {
  */
 @ApiTags('Notification')
 @ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
 @Controller('users/me')
 export class NotificationsController {
   @Post('devices')

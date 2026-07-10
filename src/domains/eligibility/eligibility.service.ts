@@ -27,8 +27,6 @@ type ScoreResult = {
 
 @Injectable()
 export class EligibilityService {
-  // TODO: Auth 연동 시 JWT에서 추출한 실제 userId로 교체한다.
-  private readonly temporaryUserId = BigInt(1001);
   private readonly recommendedRentBurdenRate = 40;
 
   constructor(private readonly prisma: PrismaService) {}
@@ -36,6 +34,7 @@ export class EligibilityService {
   async requestEligibilityAnalysis(
     noticeId: number,
     unitId: number,
+    userId: bigint,
   ): Promise<RequestEligibilityAnalysisResultDto> {
     if (noticeId <= 0 || unitId <= 0) {
       throw new BadRequestException('잘못된 공고 ID 또는 주택 ID입니다.');
@@ -48,7 +47,7 @@ export class EligibilityService {
       }),
       this.prisma.noticeUnit.findUnique({ where: { unitId: BigInt(unitId) } }),
       this.prisma.userConditionProfile.findUnique({
-        where: { userId: this.temporaryUserId },
+        where: { userId },
       }),
     ]);
 

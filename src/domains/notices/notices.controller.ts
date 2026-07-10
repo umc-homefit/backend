@@ -8,11 +8,13 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   GetNoticesQueryDto,
   NoticeDetailResultDto,
@@ -127,6 +129,7 @@ export class NoticesController {
   }
 
   @Post(':noticeId/save')
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 저장',
@@ -152,6 +155,7 @@ export class NoticesController {
 
   @Delete(':noticeId/save')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 저장 해제',
