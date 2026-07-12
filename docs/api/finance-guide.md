@@ -141,6 +141,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /loan-products/{productId}` |
 | 설명 | 금융상품 상세 정보를 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -154,6 +155,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 상품 없음 |
 
 ---
@@ -227,6 +229,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guides` |
 | 설명 | 카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -268,6 +271,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guides/{guideId}` |
 | 설명 | 청약 가이드 상세 콘텐츠를 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -280,3 +284,9 @@
   "updatedAt": "2026-06-01T00:00:00Z"
 }
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 가이드 없음 |

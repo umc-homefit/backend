@@ -113,6 +113,8 @@ export class FinanceController {
   }
 
   @Get('loan-products/:productId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: '금융상품 상세 조회', description: '금융상품 상세 정보를 조회한다.' })
   @ApiParam({ name: 'productId', type: Number, description: '조회할 상품 ID', example: 101 })
   @ApiSuccessResponse(LoanProductDetailResultDto, { description: '금융상품 상세 조회 성공' })
@@ -212,6 +214,8 @@ export class FinanceController {
   }
 
   @Get('guides')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '청약 가이드 목록 조회',
     description: '카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다.',
@@ -224,6 +228,8 @@ export class FinanceController {
   }
 
   @Get('guides/:guideId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '청약 가이드 상세 조회',
     description: '청약 가이드 상세 콘텐츠를 조회한다.',
