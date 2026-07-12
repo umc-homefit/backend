@@ -8,12 +8,14 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   DocumentIssueMethod,
   FinanceTermItemDto,
@@ -74,6 +76,8 @@ export class FinanceController {
   }
 
   @Get('loan-products')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융상품 목록 조회',
     description: '조건에 맞는 금융상품 목록을 페이징하여 조회한다.',

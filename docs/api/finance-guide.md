@@ -11,6 +11,18 @@
 - 응답 envelope는 `{ isSuccess, code, message, result }` 형식을 사용한다.
 - 응답 code 접두사는 `FINANCE`를 사용한다.
 - 금액은 **원 단위 정수**로 응답한다.
+- 인증 필수 API는 `Authorization: Bearer {accessToken}` 헤더를 사용한다.
+
+인증이 필요하지만 토큰이 없거나 유효하지 않은 경우 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
+}
+```
 
 ## 공통 enum
 
@@ -43,7 +55,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /loan-products` |
 | 설명 | 조건에 맞는 금융상품 목록을 페이징하여 조회한다. |
-| 인증 | 불필요 |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -75,6 +87,15 @@
   ]
 }
 ```
+
+### Status
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 금융상품 목록 조회 성공 |
+| 400 | 잘못된 Query Parameter |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 500 | 서버 내부 오류 |
 
 ---
 

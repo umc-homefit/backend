@@ -15,6 +15,7 @@
 - 금액은 **원 단위 정수**, 면적은 **m2 숫자**로 응답한다.
 - enum은 **대문자 문자열**을 사용하고, 화면 표시 문구는 `...DisplayText`, `dDayText` 등 별도 필드로 제공한다.
 - 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
+- 인증 필수 API는 `Authorization: Bearer {accessToken}` 헤더를 사용한다.
 
 ### 공통 응답 형식
 
@@ -24,6 +25,17 @@
   "code": "NOTICE200",
   "message": "요청에 성공했습니다.",
   "result": {}
+}
+```
+
+인증이 필요하지만 토큰이 없거나 유효하지 않은 경우 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
 }
 ```
 
@@ -73,8 +85,10 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices` |
 | 설명 | 필터·정렬·페이징을 적용한 공고 목록 조회 |
-| 인증 | 선택 |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | 🔥 P0 · 홈/공고 목록·필터링 |
+
+`isSaved`는 Access Token으로 식별한 현재 로그인 사용자의 저장 여부를 반환한다.
 
 ### Query Parameter
 
@@ -136,6 +150,7 @@
 | --- | --- |
 | 200 | 공고 목록 조회 성공 |
 | 400 | 잘못된 Query Parameter |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
 
 ---
@@ -146,10 +161,10 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}` |
 | 설명 | 공고 상세 + 주택형 + 자격조건 + 첨부파일 + 저장여부 |
-| 인증 | 선택 (로그인 시 `isSaved` 포함) |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | 🔥 P0 · 공고 상세 |
 
-로그인하지 않은 사용자는 `isSaved`를 `false`로 반환한다. 로그인 사용자는 실제 저장 여부를 반환한다.
+`isSaved`는 Access Token으로 식별한 현재 로그인 사용자의 실제 저장 여부를 반환한다.
 
 ### Path Variable
 
@@ -215,6 +230,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 | 500 | 서버 내부 오류 |
 
