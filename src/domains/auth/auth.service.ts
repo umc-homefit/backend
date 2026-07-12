@@ -27,7 +27,7 @@ export class AuthService {
     const user = await this.authRepository.createEmailUser(dto.email, hashedPassword);
 
     return {
-      accessToken: this.issueAccessToken(user.userId),
+      accessToken: this.issueAccessToken(user.userId, user.email),
       isNewUser: true,
       userId: Number(user.userId),
     };
@@ -47,14 +47,14 @@ export class AuthService {
     }
 
     return {
-      accessToken: this.issueAccessToken(user.userId),
+      accessToken: this.issueAccessToken(user.userId, user.email),
       isNewUser: false,
       userId: Number(user.userId),
     };
   }
 
-  private issueAccessToken(userId: bigint): string {
+  private issueAccessToken(userId: bigint, email: string | null): string {
     // JwtModule 기본 설정(JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN) 사용
-    return this.jwtService.sign({ sub: userId.toString() });
+    return this.jwtService.sign({ sub: userId.toString(), email });
   }
 }

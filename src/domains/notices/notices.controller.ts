@@ -8,11 +8,13 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   GetNoticesQueryDto,
   NoticeDetailResultDto,
@@ -31,6 +33,8 @@ export class NoticesController {
   constructor(private readonly noticesService: NoticesService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 목록 조회',
     description: '필터, 정렬, 페이징 조건에 맞춰 공고 목록을 조회한다.',
@@ -43,6 +47,8 @@ export class NoticesController {
   }
 
   @Get(':noticeId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 상세 조회',
     description: '특정 공고의 상세 정보, 주택형, 자격 조건, 신청 기간, 첨부파일 정보를 조회한다.',
@@ -127,6 +133,7 @@ export class NoticesController {
   }
 
   @Post(':noticeId/save')
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 저장',
@@ -152,6 +159,7 @@ export class NoticesController {
 
   @Delete(':noticeId/save')
   @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '공고 저장 해제',
