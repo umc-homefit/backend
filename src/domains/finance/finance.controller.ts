@@ -21,7 +21,6 @@ import {
   GetGuidesQueryDto,
   GetLoanProductsQueryDto,
   GuideCategoryItemDto,
-  GuideContentType,
   GuideDetailResultDto,
   GuideListResultDto,
   LoanProductDetailResultDto,
@@ -35,8 +34,8 @@ import {
 import { FinanceService } from './finance.service';
 
 /**
- * 금융상품 목록 조회(getLoanProducts)/상세 조회(getLoanProductDetail)는 FinanceService를 통해 DB에서 조회한다.
- * 그 외 엔드포인트는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
+ * 금융상품 목록/상세 조회, 가이드 카테고리/목록/상세 조회는 FinanceService를 통해 DB에서 조회한다.
+ * 그 외 엔드포인트(매칭, 필요서류, 금융용어)는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
  */
 @ApiTags('Finance/Guide')
 @Controller()
@@ -202,11 +201,8 @@ export class FinanceController {
     isArray: true,
     description: '가이드 카테고리 목록 조회 성공 (0건 포함)',
   })
-  getGuideCategories(): ApiResponse<GuideCategoryItemDto[]> {
-    const result: GuideCategoryItemDto[] = [
-      { categoryId: 1, categoryName: '신청절차', displayOrder: 1 },
-      { categoryId: 2, categoryName: '자격조건', displayOrder: 2 },
-    ];
+  async getGuideCategories(): Promise<ApiResponse<GuideCategoryItemDto[]>> {
+    const result = await this.financeService.getGuideCategories();
 
     return createSuccessResponse(result, 'FINANCE200', '가이드 카테고리 목록 조회에 성공했습니다.');
   }
@@ -217,19 +213,8 @@ export class FinanceController {
     description: '카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다.',
   })
   @ApiSuccessResponse(GuideListResultDto, { description: '청약 가이드 목록 조회 성공 (0건 포함)' })
-  getGuides(@Query() _query: GetGuidesQueryDto): ApiResponse<GuideListResultDto> {
-    const result: GuideListResultDto = {
-      totalCount: 9,
-      guides: [
-        {
-          guideId: 10,
-          categoryId: 1,
-          title: '추가모집 신청 절차 안내',
-          contentType: GuideContentType.TEXT,
-          displayOrder: 1,
-        },
-      ],
-    };
+  async getGuides(@Query() query: GetGuidesQueryDto): Promise<ApiResponse<GuideListResultDto>> {
+    const result = await this.financeService.getGuides(query);
 
     return createSuccessResponse(result, 'FINANCE200', '청약 가이드 목록 조회에 성공했습니다.');
   }
@@ -241,20 +226,10 @@ export class FinanceController {
   })
   @ApiParam({ name: 'guideId', type: Number, description: '조회할 가이드 ID', example: 10 })
   @ApiSuccessResponse(GuideDetailResultDto, { description: '청약 가이드 상세 조회 성공' })
-  getGuideDetail(
+  async getGuideDetail(
     @Param('guideId', ParseIntPipe) guideId: number,
-  ): ApiResponse<GuideDetailResultDto> {
-    if (guideId !== 10) {
-      throw new NotFoundException('존재하지 않는 가이드입니다.');
-    }
-
-    const result: GuideDetailResultDto = {
-      guideId: 10,
-      title: '추가모집 신청 절차 안내',
-      contentType: GuideContentType.TEXT,
-      contentBody: '1. 공고 확인\n2. 서류 준비\n3. 온라인 신청',
-      updatedAt: '2026-06-01T00:00:00Z',
-    };
+  ): Promise<ApiResponse<GuideDetailResultDto>> {
+    const result = await this.financeService.getGuideDetail(guideId);
 
     return createSuccessResponse(result, 'FINANCE200', '청약 가이드 상세 조회에 성공했습니다.');
   }

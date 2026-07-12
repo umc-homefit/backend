@@ -264,9 +264,6 @@ export class GuideListItemDto {
   @ApiProperty({ description: '가이드 ID', example: 10 })
   guideId: number;
 
-  @ApiProperty({ description: '카테고리 ID', example: 1 })
-  categoryId: number;
-
   @ApiProperty({ description: '가이드 제목', example: '추가모집 신청 절차 안내' })
   title: string;
 
@@ -277,13 +274,19 @@ export class GuideListItemDto {
   })
   contentType: GuideContentType;
 
-  @ApiProperty({ description: '표시 순서', example: 1 })
-  displayOrder: number;
+  @ApiProperty({
+    description: '콘텐츠 본문 (TEXT=문단, IMAGE=img src URL, CHECKLIST=체크리스트 텍스트)',
+    example: '1. 공고 확인\n2. 서류 준비\n3. 온라인 신청',
+  })
+  contentBody: string;
+
+  @ApiProperty({ description: '최종 수정 일시', example: '2026-06-01T00:00:00Z' })
+  updatedAt: string;
 }
 
 export class GuideListResultDto {
-  @ApiProperty({ description: '전체 가이드 수', example: 9 })
-  totalCount: number;
+  @ApiProperty({ description: '페이지 정보', type: PageInfoDto })
+  pageInfo: PageInfoDto;
 
   @ApiProperty({ description: '가이드 목록', type: [GuideListItemDto] })
   guides: GuideListItemDto[];

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LoanProduct, Prisma } from '@prisma/client';
+import { Guide, GuideCategory, LoanProduct, Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -71,5 +71,30 @@ export class FinanceRepository {
         maxLimitAmount: row.maxLimitAmount,
       },
     });
+  }
+
+  findGuideCategories(): Promise<GuideCategory[]> {
+    return this.prisma.guideCategory.findMany({ orderBy: { displayOrder: 'asc' } });
+  }
+
+  findGuides(params: {
+    where: Prisma.GuideWhereInput;
+    skip: number;
+    take: number;
+  }): Promise<Guide[]> {
+    return this.prisma.guide.findMany({
+      where: params.where,
+      skip: params.skip,
+      take: params.take,
+      orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }],
+    });
+  }
+
+  countGuides(where: Prisma.GuideWhereInput): Promise<number> {
+    return this.prisma.guide.count({ where });
+  }
+
+  findGuideById(guideId: bigint): Promise<Guide | null> {
+    return this.prisma.guide.findUnique({ where: { guideId } });
   }
 }

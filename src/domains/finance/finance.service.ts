@@ -1,8 +1,14 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
-import { LoanProduct, Prisma } from '@prisma/client';
+import { Guide, LoanProduct, Prisma } from '@prisma/client';
 
 import {
+  GetGuidesQueryDto,
   GetLoanProductsQueryDto,
+  GuideCategoryItemDto,
+  GuideContentType,
+  GuideDetailResultDto,
+  GuideListItemDto,
+  GuideListResultDto,
   LoanProductDetailResultDto,
   LoanProductListItemDto,
   LoanProductListResultDto,
@@ -110,6 +116,67 @@ export class FinanceService {
       return null;
     }
     return `${minRate.toString()}% ~ ${maxRate.toString()}%`;
+  }
+
+  async getGuideCategories(): Promise<GuideCategoryItemDto[]> {
+    const categories = await this.financeRepository.findGuideCategories();
+
+    return categories.map((category) => ({
+      categoryId: Number(category.categoryId),
+      categoryName: category.categoryName,
+      displayOrder: category.displayOrder,
+    }));
+  }
+
+  async getGuides(query: GetGuidesQueryDto): Promise<GuideListResultDto> {
+    const page = query.page ?? 0;
+    const size = query.size ?? 20;
+    const where: Prisma.GuideWhereInput = {
+      ...(query.categoryId !== undefined ? { categoryId: BigInt(query.categoryId) } : {}),
+      ...(query.announcementType ? { announcementType: query.announcementType } : {}),
+    };
+
+    const [guides, totalElements] = await Promise.all([
+      this.financeRepository.findGuides({ where, skip: page * size, take: size }),
+      this.financeRepository.countGuides(where),
+    ]);
+
+    const totalPages = Math.ceil(totalElements / size);
+
+    return {
+      pageInfo: {
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: page + 1 < totalPages,
+      },
+      guides: guides.map((guide) => this.toGuideListItemDto(guide)),
+    };
+  }
+
+  async getGuideDetail(guideId: number): Promise<GuideDetailResultDto> {
+    const guide = await this.financeRepository.findGuideById(BigInt(guideId));
+
+    if (!guide) {
+      throw new NotFoundException('존재하지 않는 가이드입니다.');
+    }
+
+    return this.toGuideDto(guide);
+  }
+
+  private toGuideListItemDto(guide: Guide): GuideListItemDto {
+    return this.toGuideDto(guide);
+  }
+
+  private toGuideDto(guide: Guide): GuideDetailResultDto {
+    return {
+      guideId: Number(guide.guideId),
+      title: guide.title,
+      contentType: guide.contentType as GuideContentType,
+      contentBody: guide.contentBody,
+      updatedAt: guide.updatedAt.toISOString(),
+    };
   }
 
   /**
