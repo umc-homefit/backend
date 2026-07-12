@@ -48,7 +48,11 @@ export class GetNoticesQueryDto {
   @IsString()
   district?: string;
 
-  @ApiPropertyOptional({ description: '공고 모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiPropertyOptional({
+    description: '공고 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   @IsOptional()
   @IsEnum(NoticeStatus)
   status?: NoticeStatus;
@@ -97,7 +101,11 @@ export class GetNoticesQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기 (기본 10, 최대 50 권장)', default: 10, example: 10 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 10, 최대 50 권장)',
+    default: 10,
+    example: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -165,7 +173,7 @@ export class NoticeListItemDto {
   @ApiProperty({ description: '저장 수', example: 32 })
   interestedCount: number;
 
-  @ApiProperty({ description: '현재 사용자 저장 여부 (비로그인 시 false)', example: false })
+  @ApiProperty({ description: '현재 로그인 사용자의 저장 여부', example: false })
   isSaved: boolean;
 }
 
@@ -333,7 +341,7 @@ export class NoticeDetailResultDto {
   @ApiProperty({ description: '저장 수', example: 32 })
   interestedCount: number;
 
-  @ApiProperty({ description: '현재 사용자 저장 여부 (비로그인 시 false)', example: true })
+  @ApiProperty({ description: '현재 로그인 사용자의 저장 여부', example: true })
   isSaved: boolean;
 
   @ApiProperty({ description: '공고 주택형 목록', type: [NoticeUnitDto] })
