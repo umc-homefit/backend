@@ -86,7 +86,7 @@ export class FinanceRepository {
       where: params.where,
       skip: params.skip,
       take: params.take,
-      orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }],
+      orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }, { guideId: 'asc' }],
     });
   }
 
