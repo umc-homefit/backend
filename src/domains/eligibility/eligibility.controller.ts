@@ -104,30 +104,13 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
-  getEligibilityAnalysis(
+  async getEligibilityAnalysis(
+    // JWT에서 추출한 현재 로그인 사용자 정보입니다.
+    // analysisId만으로 조회하면 다른 사용자의 분석 결과를 볼 수 있으므로 Service에 함께 전달합니다.
+    @CurrentUser() user: CurrentUserPayload,
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<EligibilityAnalysisResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: EligibilityAnalysisResultDto = {
-      analysisId: 1,
-      noticeId: 12,
-      unitId: 3,
-      resultLevel: EligibilityResultLevel.HIGH,
-      eligibilityScore: 82,
-      expectedDepositAmount: 10000000,
-      expectedMonthlyRentAmount: 350000,
-      maintenanceFeeAmount: 50000,
-      shortageAmount: 2000000,
-      rentBurdenRate: 28.57,
-      summaryMessage:
-        '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
-      conditionResults: MOCK_CONDITION_RESULTS,
-      analyzedAt: '2026-07-01T00:10:00',
-    };
-
+  ): Promise<ApiResponse<EligibilityAnalysisResultDto>> {
+    const result = await this.eligibilityService.getEligibilityAnalysis(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '분석 결과 조회에 성공했습니다.');
   }
 

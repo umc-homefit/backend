@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   EligibilityConditionCode,
+  EligibilityAnalysisResultDto,
   EligibilityConditionResultDto,
   EligibilityConditionResultStatus,
   EligibilityResultLevel,
@@ -143,6 +144,57 @@ export class EligibilityService {
         resultStatus: conditionResult.resultStatus as EligibilityConditionResultStatus,
         failReason: conditionResult.failReason,
       })),
+      analyzedAt: analysis.analyzedAt.toISOString().replace(/\.\d{3}Z$/, ''),
+    };
+  }
+
+  async getEligibilityAnalysis(
+    analysisId: number,
+    userId: bigint,
+  ): Promise<EligibilityAnalysisResultDto> {
+    // ParseIntPipe는 숫자가 아닌 경로 파라미터를 400으로 처리합니다.
+    if (analysisId <= 0) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    const analysis = await this.prisma.eligibilityAnalysis.findFirst({
+      where: {
+        eligibilityAnalysisId: BigInt(analysisId),
+        // 분석은 사용자 조건 프로필에 연결되어 있습니다.
+        // 현재 로그인한 사용자의 프로필에 연결된 분석만 조회해 타인의 결과를 차단합니다.
+        userConditionProfile: { is: { userId } },
+      },
+      // 분석 생성 시 저장된 조건별 판정 결과도 상세 응답에 필요합니다.
+      include: { conditionResults: true },
+    });
+
+    if (!analysis) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    return {
+      // Prisma의 BigInt와 Decimal은 JSON 응답으로 직접 직렬화할 수 없으므로 number로 변환합니다.
+      analysisId: Number(analysis.eligibilityAnalysisId),
+      noticeId: Number(analysis.noticeId),
+      unitId: Number(analysis.unitId),
+      resultLevel: analysis.resultLevel as EligibilityResultLevel,
+      eligibilityScore: Number(analysis.eligibilityScore),
+      expectedDepositAmount: Number(analysis.expectedDepositAmount),
+      expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
+      maintenanceFeeAmount: Number(analysis.maintenanceFeeAmount),
+      shortageAmount: Number(analysis.shortageAmount),
+      rentBurdenRate: Number(analysis.rentBurdenRate),
+      summaryMessage: analysis.summaryMessage,
+      // 조건을 다시 계산하지 않고, 분석 생성 시점에 DB에 저장된 판정 결과를 그대로 반환합니다.
+      conditionResults: analysis.conditionResults.map((conditionResult) => ({
+        conditionCode: conditionResult.conditionCode as EligibilityConditionCode,
+        conditionName: conditionResult.conditionName,
+        requiredValue: conditionResult.requiredValue,
+        userValue: conditionResult.userValue,
+        resultStatus: conditionResult.resultStatus as EligibilityConditionResultStatus,
+        failReason: conditionResult.failReason,
+      })),
+      // 생성 API 응답과 같은 초 단위 ISO 문자열 형식으로 맞춥니다.
       analyzedAt: analysis.analyzedAt.toISOString().replace(/\.\d{3}Z$/, ''),
     };
   }
