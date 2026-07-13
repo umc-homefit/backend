@@ -52,6 +52,12 @@ export class AuthService {
       userId: Number(user.userId),
     };
   }
+  
+  async logout(userId: bigint): Promise<void> {
+    // TODO: 현재는 access token만 발급하는 stateless 구조라 서버에서 무효화할 대상이 없다.
+    // refresh token을 도입하거나 access token 블랙리스트(Redis 등)를 쓰게 되면 여기서 실제 삭제/무효화 처리.
+    void userId;
+  }
 
   private issueAccessToken(userId: bigint, email: string | null): string {
     // JwtModule 기본 설정(JWT_ACCESS_SECRET, JWT_ACCESS_EXPIRES_IN) 사용

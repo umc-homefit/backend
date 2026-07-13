@@ -1,8 +1,10 @@
-import { Body, Controller, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards  } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { EmptyResultDto } from '../../common/dto/api-response.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { AuthService } from './auth.service';
 import {
@@ -14,7 +16,10 @@ import {
 
 /**
  * signup/login은 AuthService를 통해 실제 DB 조회, 비밀번호 해싱/검증, JWT 발급까지 연동되어 있다.
- * logout과 social은 아직 mock 구현이다 (Access Token 무효화/블랙리스트 로직 미도입).
+ * [Refresh Token 관련 - 초기 단계 판단으로 의도적 미도입]
+ * 추후 도입 시 AuthResultDto에 refreshToken 필드 추가 + AuthService에서 발급/검증/저장 로직 구현 필요.
+ * logout()도 그때 실제 무효화 로직(Refresh Token 삭제 또는 Access Token 블랙리스트)이 채워질 예정.
+ * social은 아직 mock 구현이다 
  */
 @ApiTags('Auth/User')
 @Controller('auth')
@@ -63,14 +68,15 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard) // 실제 JWT 검증 가드 적용
   @ApiOperation({ summary: '로그아웃', description: '현재 Access Token을 무효화한다.' })
   @ApiSuccessResponse(EmptyResultDto, {
     description: '로그아웃 완료',
     nullable: true,
     example: { isSuccess: true, code: 'AUTH200', message: '로그아웃 되었습니다.', result: null },
   })
-  logout(): ApiResponse<null> {
-    // TODO: 토큰 블랙리스트/세션 무효화가 필요해지면 AuthService에 위임해서 처리
+  async logout(@CurrentUser() user: CurrentUserPayload): Promise<ApiResponse<null>> {
+    await this.authService.logout(user.userId);
     return createSuccessResponse(null, 'AUTH200', '로그아웃 되었습니다.');
   }
 }
