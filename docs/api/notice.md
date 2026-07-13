@@ -366,7 +366,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /users/me/saved-notices` |
 | 설명 | 마이페이지 저장 공고 목록 |
-| 인증 | **필수** |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | ⭐ P1 · 저장 공고 관리 |
 
 ### Query Parameter
@@ -375,7 +375,7 @@
 | --- | --- | --- | --- |
 | `sort` | enum | N | `LATEST`(savedAt 기준) / `POPULAR`(interestedCount 기준) |
 | `page` | number | N | 기본 0 |
-| `size` | number | N | 기본 10 |
+| `size` | number | N | 기본 10, 최대 50 |
 
 ### Response (result)
 
@@ -391,6 +391,7 @@
         "title": "강동구 청년안심주택 2025-03호",
         "region": "서울", "district": "강동구",
         "status": "RECRUITING", "statusDisplayText": "모집중",
+        "isAdditionalRecruitment": true,
         "applicationEndAt": "2026-07-10T18:00:00+09:00",
         "dDayText": "D-3", "interestedCount": 32,
         "savedAt": "2026-06-30T10:00:00+09:00"
@@ -403,14 +404,7 @@
 
 | 상태 | 설명 |
 | --- | --- |
-| 200 | 성공 |
-| 401 | 인증 필요 |
+| 200 | 저장 공고 목록 조회 성공 |
+| 400 | 잘못된 Query Parameter (`sort`, `page`, `size`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
-
----
-
-## 추후 논의
-
-- 추가모집을 boolean보다 세분화해야 하는지 여부
-- `POPULAR` 정렬의 정확한 기준과 집계 방식
-- 저장 공고 API의 1차 구현 포함 여부

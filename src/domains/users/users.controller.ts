@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -7,12 +7,6 @@ import { ApiResponse, createSuccessResponse } from '../../common/types/api-respo
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UsersService } from './users.service';
 
-import {
-  GetSavedNoticesQueryDto,
-  NoticeSort,
-  NoticeStatus,
-  SavedNoticeListResultDto,
-} from '../notices/dto/notices.dto';
 import {
   BasicInfoResultDto,
   ConditionProfileResultDto,
@@ -76,46 +70,5 @@ export class UsersController {
   ): Promise<ApiResponse<UpdateConditionProfileResultDto>> {
     const result = await this.usersService.updateConditionProfile(user.userId, body);
     return createSuccessResponse(result, 'USER200', '조건 프로필 수정 성공');
-  }
-
-  @Get('saved-notices')
-  @ApiOperation({ summary: '저장 공고 목록 조회', description: '마이페이지에서 사용자가 저장한 공고 목록을 조회한다.' })
-  @ApiSuccessResponse(SavedNoticeListResultDto, { description: '저장 공고 목록 조회 성공' })
-  async getSavedNotices(
-    @CurrentUser() _user: CurrentUserPayload,
-    @Query() query: GetSavedNoticesQueryDto,
-  ): Promise<ApiResponse<SavedNoticeListResultDto>> {
-    // 💡 공고 스크랩 파트는 차후 연동을 위해 Mock 유지 (Notices 도메인 담당자 작업 예정)
-    // CurrentUser는 실제 연동 시 _user.userId로 필터링하는 용도로 사용 예정 (구조만 미리 정리)
-    const result: SavedNoticeListResultDto = {
-      savedNotices: [
-        {
-          savedNoticeId: 100,
-          noticeId: 1,
-          title: '강동구 청년안심주택 2025-03호',
-          region: '서울',
-          district: '강동구',
-          status: NoticeStatus.RECRUITING,
-          statusDisplayText: '모집중',
-          applicationEndAt: '2026-07-10T18:00:00+09:00',
-          dDayText: 'D-3',
-          interestedCount: 32,
-          savedAt: '2026-06-30T10:00:00+09:00',
-        },
-      ],
-      pageInfo: {
-        page: query.page ?? 0,
-        size: query.size ?? 10,
-        totalElements: 12,
-        totalPages: 2,
-        hasNext: true,
-      },
-    };
-
-    if (query.sort === NoticeSort.POPULAR) {
-      result.savedNotices.sort((a, b) => b.interestedCount - a.interestedCount);
-    }
-
-    return createSuccessResponse(result, 'NOTICE200', '저장 공고 목록 조회에 성공했습니다.');
   }
 }

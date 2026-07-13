@@ -5,6 +5,7 @@ import { PageInfoDto } from '../../common/dto/page-info.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   GetNoticesQueryDto,
+  GetSavedNoticesQueryDto,
   NoticeConditionDto,
   NoticeConditionTargetType,
   NoticeDetailResultDto,
@@ -16,6 +17,9 @@ import {
   NoticeStatus,
   NoticeUnitDto,
   SaveNoticeResultDto,
+  SavedNoticeItemDto,
+  SavedNoticeListResultDto,
+  SavedNoticeSort,
   UnsaveNoticeResultDto,
 } from './dto/notices.dto';
 
@@ -43,6 +47,19 @@ type NoticeDetailRecord = Prisma.NoticeGetPayload<{
     };
     _count: {
       select: { savedNotices: true };
+    };
+  };
+}>;
+
+type SavedNoticeRecord = Prisma.SavedNoticeGetPayload<{
+  include: {
+    notice: {
+      include: {
+        complex: true;
+        _count: {
+          select: { savedNotices: true };
+        };
+      };
     };
   };
 }>;
@@ -100,6 +117,46 @@ export class NoticesService {
     return {
       notices: notices.map((notice) => this.toNoticeListItem(notice)),
       pageInfo,
+    };
+  }
+
+  async getSavedNotices(
+    userId: bigint,
+    query: GetSavedNoticesQueryDto,
+  ): Promise<SavedNoticeListResultDto> {
+    const page = query.page ?? 0;
+    const size = query.size ?? 10;
+
+    const [totalElements, savedNotices] = await this.prisma.$transaction([
+      this.prisma.savedNotice.count({ where: { userId } }),
+      this.prisma.savedNotice.findMany({
+        where: { userId },
+        include: {
+          notice: {
+            include: {
+              complex: true,
+              _count: {
+                select: { savedNotices: true },
+              },
+            },
+          },
+        },
+        orderBy: this.buildSavedNoticeOrderBy(query.sort),
+        skip: page * size,
+        take: size,
+      }),
+    ]);
+    const totalPages = Math.ceil(totalElements / size);
+
+    return {
+      savedNotices: savedNotices.map((savedNotice) => this.toSavedNoticeItem(savedNotice)),
+      pageInfo: {
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: page + 1 < totalPages,
+      },
     };
   }
 
@@ -282,6 +339,41 @@ export class NoticesService {
       default:
         return [{ createdAt: 'desc' }, { noticeId: 'desc' }];
     }
+  }
+
+  private buildSavedNoticeOrderBy(
+    sort: SavedNoticeSort | undefined,
+  ): Prisma.SavedNoticeOrderByWithRelationInput[] {
+    switch (sort) {
+      case SavedNoticeSort.POPULAR:
+        return [
+          { notice: { savedNotices: { _count: 'desc' } } },
+          { createdAt: 'desc' },
+          { savedNoticeId: 'desc' },
+        ];
+      case SavedNoticeSort.LATEST:
+      default:
+        return [{ createdAt: 'desc' }, { savedNoticeId: 'desc' }];
+    }
+  }
+
+  private toSavedNoticeItem(savedNotice: SavedNoticeRecord): SavedNoticeItemDto {
+    const status = this.toNoticeStatus(savedNotice.notice.status);
+
+    return {
+      savedNoticeId: this.toNumber(savedNotice.savedNoticeId),
+      noticeId: this.toNumber(savedNotice.noticeId),
+      title: savedNotice.notice.title,
+      region: savedNotice.notice.complex.region,
+      district: savedNotice.notice.complex.district,
+      status,
+      statusDisplayText: this.toStatusDisplayText(status),
+      isAdditionalRecruitment: savedNotice.notice.isAdditionalRecruitment,
+      applicationEndAt: this.toIsoString(savedNotice.notice.applicationEndAt),
+      dDayText: this.toDdayText(savedNotice.notice.applicationEndAt),
+      interestedCount: savedNotice.notice._count.savedNotices,
+      savedAt: this.toIsoString(savedNotice.createdAt)!,
+    };
   }
 
   private toNoticeListItem(notice: NoticeListRecord): NoticeListItemDto {
