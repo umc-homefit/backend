@@ -149,16 +149,28 @@ export class MarkNotificationReadResultDto {
   isRead: boolean;
 }
 
-export class NotificationListResultDto {
-  @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
-  notifications: NotificationItemDto[];
-
+export class NotificationPageInfoDto {
   @ApiProperty({ description: '현재 페이지 번호', example: 0 })
-  currentPage: number;
+  page: number;
+
+  @ApiProperty({ description: '페이지당 개수', example: 20 })
+  size: number;
+
+  @ApiProperty({ description: '전체 알림 개수', example: 95 })
+  totalElements: number;
 
   @ApiProperty({ description: '전체 페이지 수', example: 5 })
   totalPages: number;
 
-  @ApiProperty({ description: '전체 알림 개수', example: 95 })
-  totalElements: number;
+  @ApiProperty({ description: '다음 페이지 존재 여부', example: true })
+  hasNext: boolean;
+}
+
+
+export class NotificationListResultDto {
+  @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
+  notifications: NotificationItemDto[];
+
+  @ApiProperty({ description: '페이지네이션 정보', type: NotificationPageInfoDto })
+  pageInfo: NotificationPageInfoDto;
 }
