@@ -36,8 +36,10 @@ export class NotificationsRepository {
 
   // --- Devices ---
 
-  async findDeviceByUserAndToken(userId: bigint, fcmToken: string) {
-    return this.prisma.userDevice.findFirst({ where: { userId, fcmToken } });
+  // userId로 좁히지 않고 토큰 자체로 전역 조회한다.
+  // 동일 기기(fcmToken)가 로그아웃 후 다른 계정으로 로그인하는 경우를 감지하기 위함.
+  async findDeviceByToken(fcmToken: string) {
+    return this.prisma.userDevice.findFirst({ where: { fcmToken } });
   }
 
   async createDevice(userId: bigint, fcmToken: string, deviceType: string) {
@@ -46,6 +48,11 @@ export class NotificationsRepository {
 
   async touchDevice(deviceId: bigint, deviceType: string) {
     return this.prisma.userDevice.update({ where: { deviceId }, data: { deviceType } });
+  }
+
+  // 다른 유저 소유였던 토큰을 현재 유저로 재할당한다 (기기 소유자가 바뀐 경우).
+  async reassignDevice(deviceId: bigint, userId: bigint, deviceType: string) {
+    return this.prisma.userDevice.update({ where: { deviceId }, data: { userId, deviceType } });
   }
 
   async findDeviceByIdAndUser(deviceId: bigint, userId: bigint) {

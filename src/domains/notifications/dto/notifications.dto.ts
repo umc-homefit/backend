@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum DeviceType {
   AOS = 'AOS',
@@ -113,11 +113,12 @@ export class GetNotificationsQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '한 페이지당 알림 개수', default: 20, example: 20 })
+  @ApiPropertyOptional({ description: '한 페이지당 알림 개수 (최대 50)', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 20;
 }
 
@@ -166,7 +167,8 @@ export class NotificationPageInfoDto {
   hasNext: boolean;
 }
 
-
+// [Notion 명세 반영] 다른 목록 API(SavedNotice 등)와 형태를 맞추기 위해
+// currentPage/totalPages/totalElements 평면 구조 -> pageInfo 중첩 구조로 변경
 export class NotificationListResultDto {
   @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
   notifications: NotificationItemDto[];

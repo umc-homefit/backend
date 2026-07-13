@@ -22,14 +22,22 @@ export class NotificationsService {
     userId: bigint,
     dto: RegisterDeviceTokenRequestDto,
   ): Promise<RegisterDeviceTokenResultDto> {
-    const existing = await this.notificationsRepository.findDeviceByUserAndToken(
-      userId,
-      dto.deviceToken,
-    );
+    // 토큰 자체로 전역 조회: 같은 기기가 다른 계정 소유였을 수 있어서(로그아웃 후 재로그인 등)
+    const existing = await this.notificationsRepository.findDeviceByToken(dto.deviceToken);
 
-    const device = existing
-      ? await this.notificationsRepository.touchDevice(existing.deviceId, dto.deviceType)
-      : await this.notificationsRepository.createDevice(userId, dto.deviceToken, dto.deviceType);
+    let device;
+    if (!existing) {
+      device = await this.notificationsRepository.createDevice(userId, dto.deviceToken, dto.deviceType);
+    } else if (existing.userId === userId) {
+      device = await this.notificationsRepository.touchDevice(existing.deviceId, dto.deviceType);
+    } else {
+      // 다른 유저 소유였던 토큰 -> 현재 유저로 재할당 (이전 유저에게 알림이 새는 것 방지)
+      device = await this.notificationsRepository.reassignDevice(
+        existing.deviceId,
+        userId,
+        dto.deviceType,
+      );
+    }
 
     return {
       userId: Number(userId),
