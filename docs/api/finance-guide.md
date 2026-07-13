@@ -105,7 +105,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /loan-products/match` |
 | 설명 | 사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다. |
-| 인증 | 현재 Swagger 기준 불필요. 사용자 조건 연동 시 인증 필수 전환 가능 |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -132,6 +132,11 @@
   ]
 }
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
 
@@ -162,10 +167,10 @@
 
 ## 4. 필요서류 조회
 
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| `GET` | `/loan-products/{productId}/documents` | 금융상품 신청 필요서류 조회 |
-| `GET` | `/notices/{noticeId}/documents` | 공고 지원 필요서류 조회 |
+| Method | Endpoint | 설명 | 인증 |
+| --- | --- | --- | --- |
+| `GET` | `/loan-products/{productId}/documents` | 금융상품 신청 필요서류 조회 | **필수** · `Authorization: Bearer {accessToken}` |
+| `GET` | `/notices/{noticeId}/documents` | 공고 지원 필요서류 조회 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -181,6 +186,12 @@
 ]
 ```
 
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 상품/공고 또는 서류 없음 |
+
 ---
 
 ## 5. 금융 용어 목록 조회
@@ -189,6 +200,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /finance-terms` |
 | 설명 | 금융 용어 사전을 검색어 기준으로 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -203,6 +215,11 @@
   { "term": "DSR" }
 ]
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 (0건 포함) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
 

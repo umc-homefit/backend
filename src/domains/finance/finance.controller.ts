@@ -48,6 +48,8 @@ export class FinanceController {
   ) {}
 
   @Get('loan-products/match')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융상품 매칭 조회',
     description: '사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다.',
@@ -127,6 +129,8 @@ export class FinanceController {
   }
 
   @Get('loan-products/:productId/documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '필요서류 조회 (상품용)',
     description: '금융상품 신청에 필요한 서류 목록을 조회한다.',
@@ -157,6 +161,8 @@ export class FinanceController {
   }
 
   @Get('finance-terms')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융 용어 목록 조회',
     description: '금융 용어 사전을 검색어 기준으로 조회한다.',
@@ -169,6 +175,8 @@ export class FinanceController {
   }
 
   @Get('notices/:noticeId/documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '필요서류 조회 (공고용)',
     description: '공고 지원에 필요한 서류 목록을 조회한다.',
