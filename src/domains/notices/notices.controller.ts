@@ -3,16 +3,20 @@ import {
   Delete,
   Get,
   HttpCode,
+  HttpStatus,
   NotFoundException,
   Param,
   ParseIntPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -40,8 +44,11 @@ export class NoticesController {
     description: '필터, 정렬, 페이징 조건에 맞춰 공고 목록을 조회한다.',
   })
   @ApiSuccessResponse(NoticeListResultDto, { description: '공고 목록 조회 성공' })
-  async getNotices(@Query() query: GetNoticesQueryDto): Promise<ApiResponse<NoticeListResultDto>> {
-    const result = await this.noticesService.getNotices(query);
+  async getNotices(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: GetNoticesQueryDto,
+  ): Promise<ApiResponse<NoticeListResultDto>> {
+    const result = await this.noticesService.getNotices(user.userId, query);
 
     return createSuccessResponse(result, 'NOTICE200', '공고 목록 조회에 성공했습니다.');
   }
@@ -56,9 +63,10 @@ export class NoticesController {
   @ApiParam({ name: 'noticeId', type: Number, description: '조회할 공고 ID', example: 1 })
   @ApiSuccessResponse(NoticeDetailResultDto, { description: '공고 상세 조회 성공' })
   async getNoticeDetail(
+    @CurrentUser() user: CurrentUserPayload,
     @Param('noticeId', ParseIntPipe) noticeId: number,
   ): Promise<ApiResponse<NoticeDetailResultDto>> {
-    const result = await this.noticesService.getNoticeDetail(noticeId);
+    const result = await this.noticesService.getNoticeDetail(user.userId, noticeId);
 
     return createSuccessResponse(result, 'NOTICE200', '공고 상세 조회에 성공했습니다.');
   }
@@ -140,21 +148,22 @@ export class NoticesController {
     description: '공고를 저장(찜)한다. 이미 저장된 공고를 다시 저장하면 멱등하게 200을 반환한다.',
   })
   @ApiParam({ name: 'noticeId', type: Number, description: '저장할 공고 ID', example: 1 })
+  @ApiSuccessResponse(SaveNoticeResultDto, { status: 200, description: '이미 저장된 공고' })
   @ApiSuccessResponse(SaveNoticeResultDto, { status: 201, description: '공고 저장 성공' })
-  saveNotice(@Param('noticeId', ParseIntPipe) noticeId: number): ApiResponse<SaveNoticeResultDto> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('존재하지 않는 공고입니다.');
-    }
+  async saveNotice(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('noticeId', ParseIntPipe) noticeId: number,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<ApiResponse<SaveNoticeResultDto>> {
+    const { result, created } = await this.noticesService.saveNotice(user.userId, noticeId);
 
-    const result: SaveNoticeResultDto = {
-      savedNoticeId: 100,
-      noticeId,
-      isSaved: true,
-      interestedCount: 33,
-      savedAt: '2026-06-30T10:00:00+09:00',
-    };
+    response.status(created ? HttpStatus.CREATED : HttpStatus.OK);
 
-    return createSuccessResponse(result, 'NOTICE201', '공고 저장에 성공했습니다.');
+    return createSuccessResponse(
+      result,
+      created ? 'NOTICE201' : 'NOTICE200',
+      created ? '공고 저장에 성공했습니다.' : '이미 저장된 공고입니다.',
+    );
   }
 
   @Delete(':noticeId/save')
@@ -168,18 +177,11 @@ export class NoticesController {
   })
   @ApiParam({ name: 'noticeId', type: Number, description: '저장 해제할 공고 ID', example: 1 })
   @ApiSuccessResponse(UnsaveNoticeResultDto, { description: '공고 저장 해제 성공' })
-  unsaveNotice(
+  async unsaveNotice(
+    @CurrentUser() user: CurrentUserPayload,
     @Param('noticeId', ParseIntPipe) noticeId: number,
-  ): ApiResponse<UnsaveNoticeResultDto> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('존재하지 않는 공고입니다.');
-    }
-
-    const result: UnsaveNoticeResultDto = {
-      noticeId,
-      isSaved: false,
-      interestedCount: 32,
-    };
+  ): Promise<ApiResponse<UnsaveNoticeResultDto>> {
+    const result = await this.noticesService.unsaveNotice(user.userId, noticeId);
 
     return createSuccessResponse(result, 'NOTICE200', '공고 저장 해제에 성공했습니다.');
   }

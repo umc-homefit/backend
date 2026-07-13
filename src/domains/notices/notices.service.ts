@@ -15,12 +15,20 @@ import {
   NoticeSort,
   NoticeStatus,
   NoticeUnitDto,
+  SaveNoticeResultDto,
+  UnsaveNoticeResultDto,
 } from './dto/notices.dto';
 
 type NoticeListRecord = Prisma.NoticeGetPayload<{
   include: {
     complex: true;
     units: true;
+    savedNotices: {
+      select: { savedNoticeId: true };
+    };
+    _count: {
+      select: { savedNotices: true };
+    };
   };
 }>;
 
@@ -30,8 +38,19 @@ type NoticeDetailRecord = Prisma.NoticeGetPayload<{
     units: true;
     conditions: true;
     files: true;
+    savedNotices: {
+      select: { savedNoticeId: true };
+    };
+    _count: {
+      select: { savedNotices: true };
+    };
   };
 }>;
+
+type SaveNoticeServiceResult = {
+  result: SaveNoticeResultDto;
+  created: boolean;
+};
 
 @Injectable()
 export class NoticesService {
@@ -40,7 +59,7 @@ export class NoticesService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getNotices(query: GetNoticesQueryDto): Promise<NoticeListResultDto> {
+  async getNotices(userId: bigint, query: GetNoticesQueryDto): Promise<NoticeListResultDto> {
     const page = query.page ?? 0;
     const size = Math.min(query.size ?? 10, this.maxPageSize);
     const where = this.buildNoticeWhere(query);
@@ -53,6 +72,14 @@ export class NoticesService {
           complex: true,
           units: {
             orderBy: { unitId: 'asc' },
+          },
+          savedNotices: {
+            where: { userId },
+            select: { savedNoticeId: true },
+            take: 1,
+          },
+          _count: {
+            select: { savedNotices: true },
           },
         },
         orderBy: this.buildNoticeOrderBy(query.sort),
@@ -76,7 +103,7 @@ export class NoticesService {
     };
   }
 
-  async getNoticeDetail(noticeId: number): Promise<NoticeDetailResultDto> {
+  async getNoticeDetail(userId: bigint, noticeId: number): Promise<NoticeDetailResultDto> {
     const notice = await this.prisma.notice.findUnique({
       where: { noticeId: BigInt(noticeId) },
       include: {
@@ -90,6 +117,14 @@ export class NoticesService {
         files: {
           orderBy: { fileId: 'asc' },
         },
+        savedNotices: {
+          where: { userId },
+          select: { savedNoticeId: true },
+          take: 1,
+        },
+        _count: {
+          select: { savedNotices: true },
+        },
       },
     });
 
@@ -98,6 +133,74 @@ export class NoticesService {
     }
 
     return this.toNoticeDetail(notice);
+  }
+
+  async saveNotice(userId: bigint, noticeId: number): Promise<SaveNoticeServiceResult> {
+    const noticeIdBigInt = BigInt(noticeId);
+    await this.ensureNoticeExists(noticeIdBigInt);
+
+    const existing = await this.prisma.savedNotice.findUnique({
+      where: { userId_noticeId: { userId, noticeId: noticeIdBigInt } },
+    });
+
+    const savedNotice = await this.prisma.savedNotice.upsert({
+      where: { userId_noticeId: { userId, noticeId: noticeIdBigInt } },
+      update: {},
+      create: { userId, noticeId: noticeIdBigInt },
+    });
+    const interestedCount = await this.syncInterestedCount(noticeIdBigInt);
+
+    return {
+      created: existing === null,
+      result: {
+        savedNoticeId: this.toNumber(savedNotice.savedNoticeId),
+        noticeId,
+        isSaved: true,
+        interestedCount,
+        savedAt: this.toIsoString(savedNotice.createdAt)!,
+      },
+    };
+  }
+
+  async unsaveNotice(userId: bigint, noticeId: number): Promise<UnsaveNoticeResultDto> {
+    const noticeIdBigInt = BigInt(noticeId);
+    await this.ensureNoticeExists(noticeIdBigInt);
+
+    await this.prisma.savedNotice.deleteMany({
+      where: { userId, noticeId: noticeIdBigInt },
+    });
+
+    return {
+      noticeId,
+      isSaved: false,
+      interestedCount: await this.syncInterestedCount(noticeIdBigInt),
+    };
+  }
+
+  private async ensureNoticeExists(noticeId: bigint): Promise<void> {
+    const notice = await this.prisma.notice.findUnique({
+      where: { noticeId },
+      select: { noticeId: true },
+    });
+
+    if (!notice) {
+      throw new NotFoundException('존재하지 않는 공고입니다.');
+    }
+  }
+
+  private countSavedNotices(noticeId: bigint): Promise<number> {
+    return this.prisma.savedNotice.count({ where: { noticeId } });
+  }
+
+  private async syncInterestedCount(noticeId: bigint): Promise<number> {
+    const interestedCount = await this.countSavedNotices(noticeId);
+
+    await this.prisma.notice.update({
+      where: { noticeId },
+      data: { interestedCount },
+    });
+
+    return interestedCount;
   }
 
   private buildNoticeWhere(query: GetNoticesQueryDto): Prisma.NoticeWhereInput {
@@ -174,7 +277,7 @@ export class NoticesService {
       case NoticeSort.DEADLINE:
         return [{ applicationEndAt: 'asc' }, { noticeId: 'desc' }];
       case NoticeSort.POPULAR:
-        return [{ interestedCount: 'desc' }, { views: 'desc' }, { noticeId: 'desc' }];
+        return [{ savedNotices: { _count: 'desc' } }, { views: 'desc' }, { noticeId: 'desc' }];
       case NoticeSort.LATEST:
       default:
         return [{ createdAt: 'desc' }, { noticeId: 'desc' }];
@@ -202,8 +305,8 @@ export class NoticesService {
       applicationEndAt: this.toIsoString(notice.applicationEndAt),
       dDayText: this.toDdayText(notice.applicationEndAt),
       views: notice.views,
-      interestedCount: notice.interestedCount,
-      isSaved: false,
+      interestedCount: notice._count.savedNotices,
+      isSaved: notice.savedNotices.length > 0,
     };
   }
 
@@ -224,8 +327,8 @@ export class NoticesService {
       applicationStartAt: this.toIsoString(notice.applicationStartAt),
       applicationEndAt: this.toIsoString(notice.applicationEndAt),
       views: notice.views,
-      interestedCount: notice.interestedCount,
-      isSaved: false,
+      interestedCount: notice._count.savedNotices,
+      isSaved: notice.savedNotices.length > 0,
       units: notice.units.map((unit) => this.toNoticeUnit(unit)),
       conditions: notice.conditions.map((condition) => this.toNoticeCondition(condition)),
       files: notice.files.map((file) => this.toNoticeFile(file)),
