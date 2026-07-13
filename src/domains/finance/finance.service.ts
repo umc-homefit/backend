@@ -1,4 +1,9 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Guide, LoanProduct, Prisma } from '@prisma/client';
 
 import {
@@ -190,6 +195,11 @@ export class FinanceService {
     ]);
     const officialUrl = detailInfo.guidUrl;
     const maxLimitAmount = Number(detailInfo.maxLoanLmtAmt);
+    if (!Number.isSafeInteger(maxLimitAmount) || maxLimitAmount <= 0) {
+      throw new BadGatewayException(
+        `전세자금보증상품 상세정보 API의 maxLoanLmtAmt 값이 올바르지 않습니다: ${detailInfo.maxLoanLmtAmt}`,
+      );
+    }
     const skippedBanks: string[] = [];
     let syncedCount = 0;
 
@@ -308,6 +318,13 @@ export class FinanceService {
       );
     }
 
-    return data.body.item;
+    const item = data.body?.item;
+    if (!item || !item.guidUrl) {
+      throw new BadGatewayException(
+        '전세자금보증상품 상세정보 API 응답에 item 또는 guidUrl이 없습니다.',
+      );
+    }
+
+    return item;
   }
 }

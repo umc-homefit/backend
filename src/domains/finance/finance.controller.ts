@@ -199,6 +199,8 @@ export class FinanceController {
   }
 
   @Get('guide-categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '가이드 카테고리 목록 조회',
     description: '청약 가이드 카테고리 목록을 표시 순서대로 조회한다.',

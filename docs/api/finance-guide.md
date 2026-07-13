@@ -149,7 +149,7 @@
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `officialUrl` | string | 공식 안내 URL |
+| `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
 | 상태 | 설명 |
@@ -212,6 +212,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guide-categories` |
 | 설명 | 청약 가이드 카테고리 목록을 표시 순서대로 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -220,6 +221,11 @@
   { "categoryId": 1, "categoryName": "신청절차", "displayOrder": 1 }
 ]
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
 
