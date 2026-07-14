@@ -49,12 +49,13 @@ export class NotificationsRepository {
     });
   }
 
-  async findDeviceByIdAndUser(deviceId: bigint, userId: bigint) {
-    return this.prisma.userDevice.findFirst({ where: { deviceId, userId } });
-  }
-
-  async deleteDevice(deviceId: bigint) {
-    return this.prisma.userDevice.delete({ where: { deviceId } });
+  // 조회 후 삭제(findFirst -> delete)는 그 사이에 토큰이 다른 유저로 재할당되면
+  // 엉뚱한 소유자의 디바이스를 지울 수 있는 TOCTOU 레이스가 있다.
+  // deviceId + userId 조건을 delete 쿼리 자체에 걸어 원자적으로 처리한다.
+  // count === 0이면 존재하지 않거나 본인 소유가 아니라는 뜻으로 취급한다.
+  async deleteDeviceByIdAndUser(deviceId: bigint, userId: bigint): Promise<number> {
+    const result = await this.prisma.userDevice.deleteMany({ where: { deviceId, userId } });
+    return result.count;
   }
 
   // --- Notifications ---

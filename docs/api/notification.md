@@ -24,7 +24,7 @@
 | `alert_settings` | `interested_region` | `interestedRegion` | 신규 공고 알림 대상 지역 |
 | `user_device` | `device_id` | `deviceId` | 디바이스 고유 ID |
 | `user_device` | `fcm_token` | `deviceToken` | FCM 디바이스 토큰 (필드명 다름 주의) |
-| `user_device` | `device_type` | `deviceType` | AOS / IOS |
+| `user_device` | `device_type` | `deviceType` | ANDROID / IOS |
 | `notification_logs` | `notification_log_id` | `notificationId` | 알림 고유 ID |
 | `notification_logs` | `notification_type` | `type` | 알림 타입 |
 | `notification_logs` | `body` | `content` | 알림 본문 (필드명 다름 주의) |
@@ -74,6 +74,8 @@
 ```
 
 > 동일한 `userId` + `deviceToken` 조합으로 다시 호출하면 새로 생성하지 않고 기존 디바이스의 `deviceType`만 갱신한다 (멱등 동작).
+>
+> `deviceToken`은 전역 UNIQUE로 관리된다. 같은 기기(`deviceToken`)로 로그아웃 후 **다른 계정**으로 다시 로그인해서 이 API를 호출하면, 해당 디바이스 레코드의 소유자가 현재 로그인한 사용자로 자동 재할당된다 (이전 계정에는 더 이상 알림이 발송되지 않는다).
 
 ---
 
@@ -94,7 +96,8 @@
 
 ```json
 {
-  "userId": 1001
+  "userId": 1001,
+  "deviceId": 12
 }
 ```
 
@@ -166,7 +169,7 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `page` | number | N | 기본값 0 |
-| `size` | number | N | 기본값 20 |
+| `size` | number | N | 기본값 20, 최대 50 |
 
 ### Response (result)
 

@@ -37,17 +37,16 @@ export class NotificationsService {
   }
 
   async deleteDeviceToken(userId: bigint, deviceId: number): Promise<DeleteDeviceTokenResultDto> {
-    const device = await this.notificationsRepository.findDeviceByIdAndUser(
+    // deviceId+userId 조건으로 원자적 삭제. 조회와 삭제 사이에 소유자가 바뀌는 레이스가 없다.
+    const deletedCount = await this.notificationsRepository.deleteDeviceByIdAndUser(
       BigInt(deviceId),
       userId,
     );
-    if (!device) {
+    if (deletedCount === 0) {
       throw new NotFoundException('존재하지 않는 디바이스입니다.');
     }
 
-    await this.notificationsRepository.deleteDevice(BigInt(deviceId));
-
-    return { userId: Number(userId), deviceId: Number(device.deviceId) };
+    return { userId: Number(userId), deviceId };
   }
 
   // --- Alert Settings ---
