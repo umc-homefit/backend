@@ -154,6 +154,7 @@
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
+| `maxLimitAmount` | number \| null | 최대 한도 (원 단위) |
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
@@ -212,9 +213,14 @@
 
 ```json
 [
-  { "term": "DSR" }
+  { "term": "DSR", "detailDescription": "DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다." }
 ]
 ```
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `term` | string | 용어명 |
+| `detailDescription` | string \| null | 상세 설명 |
 
 | 상태 | 설명 |
 | --- | --- |
