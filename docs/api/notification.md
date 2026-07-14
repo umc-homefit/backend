@@ -34,7 +34,7 @@
 
 | enum | 값 | 비고 |
 | --- | --- | --- |
-| `deviceType` | `AOS` / `IOS` | FCM 디바이스 OS 타입 |
+| `deviceType` | `ANDROID` / `IOS` | FCM 디바이스 OS 타입 |
 | `type` | `NEW_NOTICE` / `CLOSING_SOON` | 알림 타입. 추후 일정/금융 알림 확장 가능 |
 
 ## API 목록
@@ -62,7 +62,7 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `deviceToken` | string | Y | 푸시 발송용 기기 고유 토큰 |
-| `deviceType` | enum | Y | `AOS` / `IOS` |
+| `deviceType` | enum | Y | `ANDROID` / `IOS` |
 
 ### Response (result)
 

@@ -9,13 +9,14 @@ export class NotificationsRepository {
 
   // --- Alert Settings ---
 
+  // findFirst -> create 방식은 동시 요청 시 userId UNIQUE 위반이 날 수 있어 upsert로 원자화한다.
+  // update: {}는 이미 있으면 아무 것도 안 바꾸고 그대로 반환하겠다는 의미.
   async findOrCreateAlertSettings(userId: bigint) {
-    const existing = await this.prisma.alertSetting.findUnique({ where: { userId } });
-    if (existing) {
-      return existing;
-    }
-    // 1인 1설정 개념이라, 아직 생성 안 된 유저는 기본값으로 최초 생성해서 반환한다.
-    return this.prisma.alertSetting.create({ data: { userId } });
+    return this.prisma.alertSetting.upsert({
+      where: { userId },
+      update: {},
+      create: { userId },
+    });
   }
 
   async upsertAlertSettings(userId: bigint, dto: UpdateAlertSettingsRequestDto) {
@@ -36,23 +37,16 @@ export class NotificationsRepository {
 
   // --- Devices ---
 
-  // userId로 좁히지 않고 토큰 자체로 전역 조회한다.
-  // 동일 기기(fcmToken)가 로그아웃 후 다른 계정으로 로그인하는 경우를 감지하기 위함.
-  async findDeviceByToken(fcmToken: string) {
-    return this.prisma.userDevice.findFirst({ where: { fcmToken } });
-  }
-
-  async createDevice(userId: bigint, fcmToken: string, deviceType: string) {
-    return this.prisma.userDevice.create({ data: { userId, fcmToken, deviceType } });
-  }
-
-  async touchDevice(deviceId: bigint, deviceType: string) {
-    return this.prisma.userDevice.update({ where: { deviceId }, data: { deviceType } });
-  }
-
-  // 다른 유저 소유였던 토큰을 현재 유저로 재할당한다 (기기 소유자가 바뀐 경우).
-  async reassignDevice(deviceId: bigint, userId: bigint, deviceType: string) {
-    return this.prisma.userDevice.update({ where: { deviceId }, data: { userId, deviceType } });
+  // fcmToken이 schema.prisma에서 @unique로 지정되어 있어야 동작한다.
+  // upsert는 DB 레벨에서 원자적으로 처리되므로, 동시에 같은 토큰으로 여러 요청이 와도
+  // findFirst 후 create/update로 나눠 처리할 때 생기는 레이스 컨디션이 없다.
+  // 다른 유저 소유였던 토큰이어도 update 절이 userId를 덮어써서 자동으로 재할당된다.
+  async upsertDeviceByToken(userId: bigint, fcmToken: string, deviceType: string) {
+    return this.prisma.userDevice.upsert({
+      where: { fcmToken },
+      update: { userId, deviceType },
+      create: { userId, fcmToken, deviceType },
+    });
   }
 
   async findDeviceByIdAndUser(deviceId: bigint, userId: bigint) {

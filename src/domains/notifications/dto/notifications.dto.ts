@@ -3,7 +3,7 @@ import { Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum DeviceType {
-  AOS = 'AOS',
+  ANDROID = 'ANDROID',
   IOS = 'IOS',
 }
 
@@ -12,7 +12,7 @@ export class RegisterDeviceTokenRequestDto {
   @IsString()
   deviceToken: string;
 
-  @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.AOS })
+  @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.ANDROID })
   @IsIn(Object.values(DeviceType))
   deviceType: DeviceType;
 }
@@ -28,6 +28,9 @@ export class RegisterDeviceTokenResultDto {
 export class DeleteDeviceTokenResultDto {
   @ApiProperty({ description: '사용자 고유 식별자', example: 1001 })
   userId: number;
+
+  @ApiProperty({ description: '삭제된 디바이스 ID', example: 12 })
+  deviceId: number;
 }
 
 export class AlertSettingsResultDto {

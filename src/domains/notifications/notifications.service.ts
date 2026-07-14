@@ -22,22 +22,13 @@ export class NotificationsService {
     userId: bigint,
     dto: RegisterDeviceTokenRequestDto,
   ): Promise<RegisterDeviceTokenResultDto> {
-    // 토큰 자체로 전역 조회: 같은 기기가 다른 계정 소유였을 수 있어서(로그아웃 후 재로그인 등)
-    const existing = await this.notificationsRepository.findDeviceByToken(dto.deviceToken);
-
-    let device;
-    if (!existing) {
-      device = await this.notificationsRepository.createDevice(userId, dto.deviceToken, dto.deviceType);
-    } else if (existing.userId === userId) {
-      device = await this.notificationsRepository.touchDevice(existing.deviceId, dto.deviceType);
-    } else {
-      // 다른 유저 소유였던 토큰 -> 현재 유저로 재할당 (이전 유저에게 알림이 새는 것 방지)
-      device = await this.notificationsRepository.reassignDevice(
-        existing.deviceId,
-        userId,
-        dto.deviceType,
-      );
-    }
+    // fcmToken UNIQUE 기반 upsert: 신규 생성, 본인 재등록, 타 유저 소유였던 토큰 재할당까지
+    // DB 레벨에서 원자적으로 한 번에 처리된다 (schema.prisma의 fcmToken @unique 필요).
+    const device = await this.notificationsRepository.upsertDeviceByToken(
+      userId,
+      dto.deviceToken,
+      dto.deviceType,
+    );
 
     return {
       userId: Number(userId),
@@ -56,7 +47,7 @@ export class NotificationsService {
 
     await this.notificationsRepository.deleteDevice(BigInt(deviceId));
 
-    return { userId: Number(userId) };
+    return { userId: Number(userId), deviceId: Number(device.deviceId) };
   }
 
   // --- Alert Settings ---
