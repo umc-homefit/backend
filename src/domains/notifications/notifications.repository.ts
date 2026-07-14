@@ -66,7 +66,10 @@ export class NotificationsRepository {
     const [items, totalElements] = await this.prisma.$transaction([
       this.prisma.notificationLog.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        // createdAt은 초 단위(@db.Timestamp(0))까지만 저장되어 동시간대 row의 순서가
+        // 보장되지 않을 수 있다. notificationLogId를 2차 정렬 기준으로 더해 offset
+        // 페이지네이션에서 중복/누락 없이 안정적인 순서를 보장한다.
+        orderBy: [{ createdAt: 'desc' }, { notificationLogId: 'desc' }],
         skip: page * size,
         take: size,
       }),

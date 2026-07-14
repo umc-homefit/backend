@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum DeviceType {
   ANDROID = 'ANDROID',
@@ -10,6 +10,7 @@ export enum DeviceType {
 export class RegisterDeviceTokenRequestDto {
   @ApiProperty({ description: '푸시 발송용 기기 고유 토큰', example: 'eX_sample_FCM_token_string...' })
   @IsString()
+  @IsNotEmpty()
   deviceToken: string;
 
   @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.ANDROID })
