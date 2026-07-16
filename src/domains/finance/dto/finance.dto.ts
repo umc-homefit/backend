@@ -50,7 +50,7 @@ export class MatchLoanProductsQueryDto {
   @ApiPropertyOptional({ description: '매칭 기준 공고 ID', example: 22 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'noticeId는 정수여야 합니다.' })
   noticeId?: number;
 
   @ApiPropertyOptional({
@@ -59,7 +59,9 @@ export class MatchLoanProductsQueryDto {
     example: LoanProviderType.POLICY,
   })
   @IsOptional()
-  @IsEnum(LoanProviderType)
+  @IsEnum(LoanProviderType, {
+    message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
+  })
   providerType?: LoanProviderType;
 }
 
@@ -129,17 +131,22 @@ export class MatchLoanProductsResultDto {
 export class GetLoanProductsQueryDto {
   @ApiPropertyOptional({ description: '상품 제공 유형', enum: LoanProviderType })
   @IsOptional()
-  @IsEnum(LoanProviderType)
+  @IsEnum(LoanProviderType, {
+    message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
+  })
   providerType?: LoanProviderType;
 
   @ApiPropertyOptional({ description: '상품 카테고리', enum: ProductCategory })
   @IsOptional()
-  @IsEnum(ProductCategory)
+  @IsEnum(ProductCategory, {
+    message:
+      'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+  })
   productCategory?: ProductCategory;
 
   @ApiPropertyOptional({ description: '상품명/취급기관명 검색어 (부분 검색)', example: '버팀목' })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'keyword는 문자열이어야 합니다.' })
   keyword?: string;
 
   @ApiPropertyOptional({
@@ -149,21 +156,23 @@ export class GetLoanProductsQueryDto {
     example: LoanProductSort.RECOMMENDED,
   })
   @IsOptional()
-  @IsEnum(LoanProductSort)
+  @IsEnum(LoanProductSort, {
+    message: 'sort는 반드시 다음 중 하나여야합니다 : RECOMMENDED, LATEST, RATE_ASC, LIMIT_DESC',
+  })
   sort?: LoanProductSort = LoanProductSort.RECOMMENDED;
 
   @ApiPropertyOptional({ description: '페이지 번호 (0부터 시작)', default: 0, example: 0 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(0)
+  @IsInt({ message: 'page는 정수여야 합니다.' })
+  @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
   @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'size는 정수여야 합니다.' })
+  @Min(1, { message: 'size는 1 이상이어야 합니다.' })
   size?: number = 20;
 }
 
@@ -196,6 +205,9 @@ export class LoanProductListItemDto {
 
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
+
+  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
+  maxLimitAmount: number | null;
 }
 
 export class LoanProductListResultDto {
@@ -315,8 +327,8 @@ export class LoanProductDetailResultDto {
 
 export class GetFinanceTermsQueryDto {
   @ApiProperty({ description: '정확히 일치하는 용어명 (필수, 부분검색 아님)', example: 'DSR' })
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'term은 비어있을 수 없습니다.' })
+  @IsString({ message: 'term은 문자열이어야 합니다.' })
   term: string;
 }
 
@@ -376,7 +388,7 @@ export class GetGuidesQueryDto {
   @ApiPropertyOptional({ description: '가이드 카테고리 ID', example: 1 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'categoryId는 정수여야 합니다.' })
   categoryId?: number;
 
   @ApiPropertyOptional({
@@ -385,21 +397,23 @@ export class GetGuidesQueryDto {
     example: GuideAnnouncementType.COMMON,
   })
   @IsOptional()
-  @IsEnum(GuideAnnouncementType)
+  @IsEnum(GuideAnnouncementType, {
+    message: 'announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT',
+  })
   announcementType?: GuideAnnouncementType;
 
   @ApiPropertyOptional({ description: '페이지 번호 (0부터 시작)', default: 0, example: 0 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(0)
+  @IsInt({ message: 'page는 정수여야 합니다.' })
+  @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
   @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'size는 정수여야 합니다.' })
+  @Min(1, { message: 'size는 1 이상이어야 합니다.' })
   size?: number = 20;
 }
 

@@ -91,7 +91,8 @@
       "providerName": "하나은행",
       "rateRange": "3.2% ~ 4.5%",
       "maxIncome": 60000000,
-      "firstTimeBuyerOnly": false
+      "firstTimeBuyerOnly": false,
+      "maxLimitAmount": 200000000
     }
   ]
 }
@@ -105,7 +106,7 @@
 {
   "isSuccess": false,
   "code": "COMMON400",
-  "message": "providerType must be one of the following values: POLICY, BANK",
+  "message": "providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK",
   "result": null
 }
 ```
@@ -394,7 +395,7 @@
 {
   "isSuccess": false,
   "code": "COMMON400",
-  "message": "announcementType must be one of the following values: COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT",
+  "message": "announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT",
   "result": null
 }
 ```

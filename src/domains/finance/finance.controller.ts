@@ -170,14 +170,14 @@ export class FinanceController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
-    summary: '금융 용어 목록 조회',
-    description: '금융 용어 사전을 검색어 기준으로 조회한다.',
+    summary: '금융 용어 상세 조회',
+    description: '지정한 금융 용어 하나의 상세 설명을 조회한다.',
   })
-  @ApiSuccessResponse(FinanceTermItemDto, { isArray: true, description: '금융 용어 목록 조회 성공' })
-  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto[]> {
-    const result: FinanceTermItemDto[] = [{ term: 'DSR', detailDescription: null }];
+  @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 상세 조회 성공' })
+  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto> {
+    const result: FinanceTermItemDto = { term: 'DSR', detailDescription: null };
 
-    return createSuccessResponse(result, 'FINANCE200', '금융 용어 목록 조회에 성공했습니다.');
+    return createSuccessResponse(result, 'FINANCE200', '금융 용어 상세 조회에 성공했습니다.');
   }
 
   @Get('notices/:noticeId/documents')

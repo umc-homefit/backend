@@ -144,6 +144,7 @@ export class FinanceService {
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
+      maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
     };
   }
 
