@@ -29,7 +29,9 @@ import {
   LoanProviderType,
   MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
+  ProductCategory,
   RequiredDocumentItemDto,
+  RequiredDocumentType,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceService } from './finance.service';
@@ -59,13 +61,18 @@ export class FinanceController {
   ): ApiResponse<MatchLoanProductsResultDto> {
     const result: MatchLoanProductsResultDto = {
       matchedCount: 2,
+      minRate: '1.2%',
+      maxLimitAmount: 200000000,
       products: [
         {
           productId: 101,
           productName: '청년 버팀목 전세자금대출',
           providerType: LoanProviderType.POLICY,
+          productCategory: ProductCategory.JEONSE_LOAN,
           providerName: '주택도시기금',
           rateRange: '1.5% ~ 2.7%',
+          maxIncome: 60000000,
+          firstTimeBuyerOnly: false,
           maxLimitAmount: 200000000,
           isEligible: true,
         },
@@ -150,6 +157,7 @@ export class FinanceController {
               documentName: '소득금액증명원',
               issuer: '국세청',
               issueMethod: DocumentIssueMethod.ONLINE,
+              documentType: RequiredDocumentType.COMMON,
               isRequired: true,
             },
           ]
@@ -195,6 +203,7 @@ export class FinanceController {
               documentName: '소득금액증명원',
               issuer: '국세청',
               issueMethod: DocumentIssueMethod.ONLINE,
+              documentType: RequiredDocumentType.COMMON,
               isRequired: true,
             },
           ]

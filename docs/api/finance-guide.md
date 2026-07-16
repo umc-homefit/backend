@@ -29,7 +29,10 @@
 | enum | 값 | 비고 |
 | --- | --- | --- |
 | `providerType` | `POLICY` / `BANK` | 정책 상품/은행 상품 |
+| `productCategory` | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` | 상품 카테고리 (주택담보대출/전세대출/청약저축). 청약저축도 `loan-products` API로 통합 조회 |
+| `sort` (loan-products) | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` | 금융상품 목록 정렬 기준. 기본값 `RECOMMENDED` |
 | `issueMethod` | `ONLINE` / `OFFLINE` / `BOTH` | 서류 발급 방법 |
+| `documentType` | `COMMON` / `PRODUCT` / `ANNOUNCEMENT` | 서류 구분 (공통/상품별/공고별) |
 | `contentType` | `TEXT` / `IMAGE` / `CHECKLIST` | 가이드 콘텐츠 타입 |
 | `announcementType` | `COMMON` / `YOUTH_SAFE_HOUSE` / `ADDITIONAL_RECRUIT` | 가이드 대상 공고 유형 |
 
@@ -62,6 +65,9 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `providerType` | enum | N | `POLICY` / `BANK` |
+| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` |
+| `keyword` | string | N | 상품명/취급기관명 부분 검색 |
+| `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
 | `page` | number | N | 기본값 0 |
 | `size` | number | N | 기본값 20 |
 
@@ -81,8 +87,11 @@
       "productId": 103,
       "productName": "하나은행 청년 전세자금대출",
       "providerType": "BANK",
+      "productCategory": "JEONSE_LOAN",
       "providerName": "하나은행",
-      "rateRange": "3.2% ~ 4.5%"
+      "rateRange": "3.2% ~ 4.5%",
+      "maxIncome": 60000000,
+      "firstTimeBuyerOnly": false
     }
   ]
 }
@@ -130,19 +139,26 @@
 ```json
 {
   "matchedCount": 2,
+  "minRate": "1.2%",
+  "maxLimitAmount": 200000000,
   "products": [
     {
       "productId": 101,
       "productName": "청년 버팀목 전세자금대출",
       "providerType": "POLICY",
+      "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
       "rateRange": "1.5% ~ 2.7%",
+      "maxIncome": 60000000,
+      "firstTimeBuyerOnly": false,
       "maxLimitAmount": 200000000,
       "isEligible": true
     }
   ]
 }
 ```
+
+`minRate`/`maxLimitAmount`(최상위)는 매칭된 상품들 중 최저 금리/최대 한도 집계값이다.
 
 사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
 
@@ -178,8 +194,17 @@
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
 | `maxLimitAmount` | number \| null | 최대 한도 (원 단위) |
+| `ltvRatio` | number \| null | LTV 한도(담보가치 대비 대출 비율, %). 대출 상품 전용 |
+| `dtiRatio` | number \| null | DTI 한도(소득 대비 원리금 상환 비율, %). 대출 상품 전용 |
+| `loanTermMinYears` | number \| null | 대출 기간 최소(년) |
+| `loanTermMaxYears` | number \| null | 대출 기간 최대(년) |
+| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p) |
+| `minMonthlyDeposit` | number \| null | 월 최소 납입액 (원 단위). 청약저축 전용 |
+| `maxMonthlyDeposit` | number \| null | 월 최대 납입액 (원 단위). 청약저축 전용 |
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
+
+목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`)도 상세 응답에 동일하게 포함된다.
 
 상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
 
@@ -216,12 +241,24 @@
     "documentName": "소득금액증명원",
     "issuer": "국세청",
     "issueMethod": "ONLINE",
+    "documentType": "COMMON",
     "isRequired": true
   }
 ]
 ```
 
 상품/공고가 존재하지 않거나 등록된 서류가 없는 경우에도 빈 배열(`[]`)로 200을 반환한다.
+
+인증 실패 시 아래 형식으로 401을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
+}
+```
 
 | 상태 | 설명 |
 | --- | --- |
@@ -233,6 +270,7 @@
 ## 5. 금융 용어 상세 조회
 
 > 이름은 "목록 조회"이지만 실제로는 용어 하나를 정확히 지정해 그 설명을 받는 **단건 상세 조회**다. 부분 검색/목록 응답이 아니므로 혼동하지 않도록 주의.
+> 다건 조회(예: LTV/DTI 동시 조회)는 지원하지 않는다. 여러 용어가 필요하면 FE가 `term`을 바꿔가며 여러 번 호출한다.
 
 | 항목 | 내용 |
 | --- | --- |
@@ -290,6 +328,17 @@
 [
   { "categoryId": 1, "categoryName": "신청절차", "displayOrder": 1 }
 ]
+```
+
+인증 실패 시 아래 형식으로 401을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
+}
 ```
 
 | 상태 | 설명 |

@@ -22,12 +22,13 @@ export class FinanceRepository {
     where: Prisma.LoanProductWhereInput;
     skip: number;
     take: number;
+    orderBy: Prisma.LoanProductOrderByWithRelationInput[];
   }): Promise<LoanProduct[]> {
     return this.prisma.loanProduct.findMany({
       where: params.where,
       skip: params.skip,
       take: params.take,
-      orderBy: { productId: 'asc' },
+      orderBy: params.orderBy,
     });
   }
 

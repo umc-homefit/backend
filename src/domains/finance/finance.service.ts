@@ -17,7 +17,9 @@ import {
   LoanProductDetailResultDto,
   LoanProductListItemDto,
   LoanProductListResultDto,
+  LoanProductSort,
   LoanProviderType,
+  ProductCategory,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
@@ -57,12 +59,26 @@ export class FinanceService {
   async getLoanProducts(query: GetLoanProductsQueryDto): Promise<LoanProductListResultDto> {
     const page = query.page ?? 0;
     const size = query.size ?? 20;
-    const where: Prisma.LoanProductWhereInput = query.providerType
-      ? { providerType: query.providerType }
-      : {};
+    const where: Prisma.LoanProductWhereInput = {
+      ...(query.providerType ? { providerType: query.providerType } : {}),
+      ...(query.productCategory ? { productCategory: query.productCategory } : {}),
+      ...(query.keyword
+        ? {
+            OR: [
+              { productName: { contains: query.keyword, mode: 'insensitive' } },
+              { providerName: { contains: query.keyword, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
 
     const [products, totalElements] = await Promise.all([
-      this.financeRepository.findLoanProducts({ where, skip: page * size, take: size }),
+      this.financeRepository.findLoanProducts({
+        where,
+        skip: page * size,
+        take: size,
+        orderBy: this.buildLoanProductOrderBy(query.sort),
+      }),
       this.financeRepository.countLoanProducts(where),
     ]);
 
@@ -90,13 +106,32 @@ export class FinanceService {
     return this.toDetailResultDto(product);
   }
 
+  private buildLoanProductOrderBy(
+    sort: LoanProductSort | undefined,
+  ): Prisma.LoanProductOrderByWithRelationInput[] {
+    switch (sort) {
+      case LoanProductSort.LATEST:
+        return [{ createdAt: 'desc' }, { productId: 'desc' }];
+      case LoanProductSort.RATE_ASC:
+        return [{ minRate: 'asc' }, { productId: 'asc' }];
+      case LoanProductSort.LIMIT_DESC:
+        return [{ maxLimitAmount: 'desc' }, { productId: 'asc' }];
+      case LoanProductSort.RECOMMENDED:
+      default:
+        return [{ productId: 'asc' }];
+    }
+  }
+
   private toListItemDto(product: LoanProduct): LoanProductListItemDto {
     return {
       productId: Number(product.productId),
       productName: product.productName,
       providerType: product.providerType as LoanProviderType,
+      productCategory: product.productCategory as ProductCategory | null,
       providerName: product.providerName,
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
+      maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
+      firstTimeBuyerOnly: product.firstTimeBuyerOnly,
     };
   }
 
@@ -105,9 +140,24 @@ export class FinanceService {
       productId: Number(product.productId),
       productName: product.productName,
       providerType: product.providerType as LoanProviderType,
+      productCategory: product.productCategory as ProductCategory | null,
       providerName: product.providerName,
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
+      maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
+      firstTimeBuyerOnly: product.firstTimeBuyerOnly,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      ltvRatio: product.ltvRatio,
+      dtiRatio: product.dtiRatio,
+      loanTermMinYears: product.loanTermMinYears,
+      loanTermMaxYears: product.loanTermMaxYears,
+      preferentialRateDiscount:
+        product.preferentialRateDiscount === null
+          ? null
+          : Number(product.preferentialRateDiscount),
+      minMonthlyDeposit:
+        product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
+      maxMonthlyDeposit:
+        product.maxMonthlyDeposit === null ? null : Number(product.maxMonthlyDeposit),
       officialUrl: product.officialUrl,
       description: product.description,
     };
