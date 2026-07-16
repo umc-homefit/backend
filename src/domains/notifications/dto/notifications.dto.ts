@@ -1,18 +1,19 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export enum DeviceType {
-  AOS = 'AOS',
+  ANDROID = 'ANDROID',
   IOS = 'IOS',
 }
 
 export class RegisterDeviceTokenRequestDto {
   @ApiProperty({ description: '푸시 발송용 기기 고유 토큰', example: 'eX_sample_FCM_token_string...' })
   @IsString()
+  @IsNotEmpty()
   deviceToken: string;
 
-  @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.AOS })
+  @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.ANDROID })
   @IsIn(Object.values(DeviceType))
   deviceType: DeviceType;
 }
@@ -28,6 +29,9 @@ export class RegisterDeviceTokenResultDto {
 export class DeleteDeviceTokenResultDto {
   @ApiProperty({ description: '사용자 고유 식별자', example: 1001 })
   userId: number;
+
+  @ApiProperty({ description: '삭제된 디바이스 ID', example: 12 })
+  deviceId: number;
 }
 
 export class AlertSettingsResultDto {
@@ -113,11 +117,12 @@ export class GetNotificationsQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '한 페이지당 알림 개수', default: 20, example: 20 })
+  @ApiPropertyOptional({ description: '한 페이지당 알림 개수 (최대 50)', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 20;
 }
 
@@ -149,16 +154,29 @@ export class MarkNotificationReadResultDto {
   isRead: boolean;
 }
 
-export class NotificationListResultDto {
-  @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
-  notifications: NotificationItemDto[];
-
+export class NotificationPageInfoDto {
   @ApiProperty({ description: '현재 페이지 번호', example: 0 })
-  currentPage: number;
+  page: number;
+
+  @ApiProperty({ description: '페이지당 개수', example: 20 })
+  size: number;
+
+  @ApiProperty({ description: '전체 알림 개수', example: 95 })
+  totalElements: number;
 
   @ApiProperty({ description: '전체 페이지 수', example: 5 })
   totalPages: number;
 
-  @ApiProperty({ description: '전체 알림 개수', example: 95 })
-  totalElements: number;
+  @ApiProperty({ description: '다음 페이지 존재 여부', example: true })
+  hasNext: boolean;
+}
+
+// [Notion 명세 반영] 다른 목록 API(SavedNotice 등)와 형태를 맞추기 위해
+// currentPage/totalPages/totalElements 평면 구조 -> pageInfo 중첩 구조로 변경
+export class NotificationListResultDto {
+  @ApiProperty({ description: '알림 목록', type: [NotificationItemDto] })
+  notifications: NotificationItemDto[];
+
+  @ApiProperty({ description: '페이지네이션 정보', type: NotificationPageInfoDto })
+  pageInfo: NotificationPageInfoDto;
 }

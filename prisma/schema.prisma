@@ -83,7 +83,7 @@ model AlertSetting {
 model UserDevice {
   deviceId   BigInt   @id(map: "PK_USER_DEVICE") @default(autoincrement()) @map("device_id")
   userId     BigInt   @map("user_id")
-  fcmToken   String   @map("fcm_token") @db.VarChar(255)
+  fcmToken   String   @unique(map: "UK_USER_DEVICE_FCM_TOKEN") @map("fcm_token") @db.VarChar(255)
   deviceType String?  @map("device_type") @db.VarChar(20)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
