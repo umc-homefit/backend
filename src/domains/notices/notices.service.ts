@@ -22,6 +22,7 @@ import {
   SavedNoticeSort,
   UnsaveNoticeResultDto,
 } from './dto/notices.dto';
+import { buildNoticeStatusWhere, calculateNoticeStatus } from './notice-status.util';
 
 type NoticeListRecord = Prisma.NoticeGetPayload<{
   include: {
@@ -79,7 +80,8 @@ export class NoticesService {
   async getNotices(userId: bigint, query: GetNoticesQueryDto): Promise<NoticeListResultDto> {
     const page = query.page ?? 0;
     const size = Math.min(query.size ?? 10, this.maxPageSize);
-    const where = this.buildNoticeWhere(query);
+    const currentKstDateTime = this.toCurrentKstDateTime();
+    const where = this.buildNoticeWhere(query, currentKstDateTime);
 
     const [totalElements, notices] = await this.prisma.$transaction([
       this.prisma.notice.count({ where }),
@@ -115,7 +117,7 @@ export class NoticesService {
     };
 
     return {
-      notices: notices.map((notice) => this.toNoticeListItem(notice)),
+      notices: notices.map((notice) => this.toNoticeListItem(notice, currentKstDateTime)),
       pageInfo,
     };
   }
@@ -126,6 +128,7 @@ export class NoticesService {
   ): Promise<SavedNoticeListResultDto> {
     const page = query.page ?? 0;
     const size = query.size ?? 10;
+    const currentKstDateTime = this.toCurrentKstDateTime();
 
     const [totalElements, savedNotices] = await this.prisma.$transaction([
       this.prisma.savedNotice.count({ where: { userId } }),
@@ -149,7 +152,9 @@ export class NoticesService {
     const totalPages = Math.ceil(totalElements / size);
 
     return {
-      savedNotices: savedNotices.map((savedNotice) => this.toSavedNoticeItem(savedNotice)),
+      savedNotices: savedNotices.map((savedNotice) =>
+        this.toSavedNoticeItem(savedNotice, currentKstDateTime),
+      ),
       pageInfo: {
         page,
         size,
@@ -189,7 +194,7 @@ export class NoticesService {
       throw new NotFoundException('존재하지 않는 공고입니다.');
     }
 
-    return this.toNoticeDetail(notice);
+    return this.toNoticeDetail(notice, this.toCurrentKstDateTime());
   }
 
   async saveNotice(userId: bigint, noticeId: number): Promise<SaveNoticeServiceResult> {
@@ -260,7 +265,10 @@ export class NoticesService {
     return interestedCount;
   }
 
-  private buildNoticeWhere(query: GetNoticesQueryDto): Prisma.NoticeWhereInput {
+  private buildNoticeWhere(
+    query: GetNoticesQueryDto,
+    currentKstDateTime: Date,
+  ): Prisma.NoticeWhereInput {
     const where: Prisma.NoticeWhereInput = {};
     const keyword = query.keyword?.trim();
 
@@ -289,7 +297,7 @@ export class NoticesService {
     }
 
     if (query.status) {
-      where.status = query.status;
+      where.AND = [buildNoticeStatusWhere(query.status, currentKstDateTime)];
     }
 
     if (query.isAdditionalRecruitment !== undefined) {
@@ -357,8 +365,15 @@ export class NoticesService {
     }
   }
 
-  private toSavedNoticeItem(savedNotice: SavedNoticeRecord): SavedNoticeItemDto {
-    const status = this.toNoticeStatus(savedNotice.notice.status);
+  private toSavedNoticeItem(
+    savedNotice: SavedNoticeRecord,
+    currentKstDateTime: Date,
+  ): SavedNoticeItemDto {
+    const status = calculateNoticeStatus(
+      savedNotice.notice.applicationStartAt,
+      savedNotice.notice.applicationEndAt,
+      currentKstDateTime,
+    );
 
     return {
       savedNoticeId: this.toNumber(savedNotice.savedNoticeId),
@@ -376,9 +391,13 @@ export class NoticesService {
     };
   }
 
-  private toNoticeListItem(notice: NoticeListRecord): NoticeListItemDto {
+  private toNoticeListItem(notice: NoticeListRecord, currentKstDateTime: Date): NoticeListItemDto {
     const unitStats = this.getUnitStats(notice.units);
-    const status = this.toNoticeStatus(notice.status);
+    const status = calculateNoticeStatus(
+      notice.applicationStartAt,
+      notice.applicationEndAt,
+      currentKstDateTime,
+    );
 
     return {
       noticeId: this.toNumber(notice.noticeId),
@@ -402,8 +421,15 @@ export class NoticesService {
     };
   }
 
-  private toNoticeDetail(notice: NoticeDetailRecord): NoticeDetailResultDto {
-    const status = this.toNoticeStatus(notice.status);
+  private toNoticeDetail(
+    notice: NoticeDetailRecord,
+    currentKstDateTime: Date,
+  ): NoticeDetailResultDto {
+    const status = calculateNoticeStatus(
+      notice.applicationStartAt,
+      notice.applicationEndAt,
+      currentKstDateTime,
+    );
 
     return {
       noticeId: this.toNumber(notice.noticeId),
@@ -495,14 +521,6 @@ export class NoticesService {
     return `전용 ${this.formatArea(areas[0])}㎡`;
   }
 
-  private toNoticeStatus(status: string): NoticeStatus {
-    if (Object.values(NoticeStatus).includes(status as NoticeStatus)) {
-      return status as NoticeStatus;
-    }
-
-    return NoticeStatus.RECRUITING;
-  }
-
   private toConditionTargetType(targetType: string | null): NoticeConditionTargetType {
     if (
       targetType &&
@@ -577,6 +595,10 @@ export class NoticesService {
     return new Date(
       Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()),
     );
+  }
+
+  private toCurrentKstDateTime(): Date {
+    return new Date(Date.now() + this.kstOffsetMs);
   }
 
   private pad(value: number): string {

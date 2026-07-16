@@ -54,7 +54,7 @@ export class GetNoticesQueryDto {
   district?: string;
 
   @ApiPropertyOptional({
-    description: '공고 모집 상태',
+    description: '신청 시작·마감 시각으로 계산한 공고 모집 상태',
     enum: NoticeStatus,
     example: NoticeStatus.RECRUITING,
   })
@@ -146,7 +146,11 @@ export class NoticeListItemDto {
   @ApiPropertyOptional({ description: '최대 월세 (원 단위)', example: 410000, nullable: true })
   monthlyRentMax: number | null;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
@@ -317,7 +321,11 @@ export class NoticeDetailResultDto {
   @ApiProperty({ description: '원문 공고 URL', example: 'https://example.com/notice' })
   sourceUrl: string;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
@@ -445,7 +453,11 @@ export class SavedNoticeItemDto {
   @ApiPropertyOptional({ description: '시/군/구', example: '강동구', nullable: true })
   district: string | null;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
