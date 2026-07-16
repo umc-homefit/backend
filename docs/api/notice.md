@@ -61,6 +61,14 @@
 | `sort` (목록) | `LATEST`(기본) / `DEADLINE` / `POPULAR` | 1차는 `LATEST`, `DEADLINE` 우선. `POPULAR`은 저장 수 기반 P1 |
 | `fileType` | `PDF` / `IMAGE` / `LINK` / `DOC` / `OTHER` | |
 
+`status`는 DB에 저장하지 않고 `applicationStartAt`, `applicationEndAt`과 현재 시각을 비교하여 API에서 계산한다. 목록 필터와 목록·상세·저장 공고 응답은 모두 같은 계산 기준을 사용한다.
+
+- KST 기준 시작 전: `SCHEDULED` (`모집예정`)
+- 모집 기간 중 마감까지 72시간 초과: `RECRUITING` (`모집중`)
+- 모집 기간 중 마감까지 0시간 초과 72시간 이하: `CLOSING_SOON` (`마감임박`)
+- 마감 시각부터: `CLOSED` (`마감`)
+- 시작·마감 시각이 모두 없으면 기존 호환성을 위해 `RECRUITING`으로 응답한다.
+
 `isAdditionalRecruitment`는 boolean 단일값으로 사용한다.
 
 - `false`: 일반 공고
@@ -96,7 +104,7 @@
 | --- | --- | --- | --- | --- |
 | `region` | string | N | P0 | 시/도. 예: `서울` |
 | `district` | string | N | P0 | 시/군/구. 예: `강동구` |
-| `status` | enum | N | P0 | `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` |
+| `status` | enum | N | P0 | 신청 시작·마감 시각으로 계산한 `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` |
 | `isAdditionalRecruitment` | boolean | N | P0 | 추가모집 여부 |
 | `sort` | enum | N | P0 | `LATEST` 기본, `DEADLINE` |
 | `page` | number | N | P0 | 0부터 시작. 기본 0 |
