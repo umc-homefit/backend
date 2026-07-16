@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -143,19 +142,18 @@ export class FinanceController {
   getLoanProductDocuments(
     @Param('productId', ParseIntPipe) productId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
-    if (productId !== 101) {
-      throw new NotFoundException('상품 또는 서류가 없습니다.');
-    }
-
-    const result: RequiredDocumentItemDto[] = [
-      {
-        documentId: 5,
-        documentName: '소득금액증명원',
-        issuer: '국세청',
-        issueMethod: DocumentIssueMethod.ONLINE,
-        isRequired: true,
-      },
-    ];
+    const result: RequiredDocumentItemDto[] =
+      productId === 101
+        ? [
+            {
+              documentId: 5,
+              documentName: '소득금액증명원',
+              issuer: '국세청',
+              issueMethod: DocumentIssueMethod.ONLINE,
+              isRequired: true,
+            },
+          ]
+        : [];
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
@@ -189,19 +187,18 @@ export class FinanceController {
   getNoticeDocuments(
     @Param('noticeId', ParseIntPipe) noticeId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('공고 또는 서류가 없습니다.');
-    }
-
-    const result: RequiredDocumentItemDto[] = [
-      {
-        documentId: 5,
-        documentName: '소득금액증명원',
-        issuer: '국세청',
-        issueMethod: DocumentIssueMethod.ONLINE,
-        isRequired: true,
-      },
-    ];
+    const result: RequiredDocumentItemDto[] =
+      noticeId === 1
+        ? [
+            {
+              documentId: 5,
+              documentName: '소득금액증명원',
+              issuer: '국세청',
+              issueMethod: DocumentIssueMethod.ONLINE,
+              isRequired: true,
+            },
+          ]
+        : [];
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }

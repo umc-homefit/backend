@@ -84,7 +84,7 @@ export class FinanceService {
     const product = await this.financeRepository.findLoanProductById(BigInt(productId));
 
     if (!product) {
-      throw new NotFoundException('존재하지 않는 상품입니다.');
+      throw new NotFoundException({ code: 'FINANCE404', message: '존재하지 않는 상품입니다.' });
     }
 
     return this.toDetailResultDto(product);
@@ -164,7 +164,7 @@ export class FinanceService {
     const guide = await this.financeRepository.findGuideById(BigInt(guideId));
 
     if (!guide) {
-      throw new NotFoundException('존재하지 않는 가이드입니다.');
+      throw new NotFoundException({ code: 'FINANCE404', message: '존재하지 않는 가이드입니다.' });
     }
 
     return this.toGuideDto(guide);

@@ -41,7 +41,7 @@
 | P1 | `GET` | `/loan-products/match` | 사용자 조건/공고 기준 금융상품 매칭 |
 | P1 | `GET` | `/loan-products/{productId}` | 금융상품 상세 조회 |
 | P1 | `GET` | `/loan-products/{productId}/documents` | 금융상품 필요서류 조회 |
-| P1 | `GET` | `/finance-terms` | 금융 용어 목록 조회 |
+| P1 | `GET` | `/finance-terms` | 금융 용어 상세 조회 (단건, `term` 필수) |
 | P1 | `GET` | `/notices/{noticeId}/documents` | 공고 필요서류 조회 |
 | P1 | `GET` | `/guide-categories` | 가이드 카테고리 목록 조회 |
 | P1 | `GET` | `/guides` | 청약 가이드 목록 조회 |
@@ -90,10 +90,21 @@
 
 ### Status
 
+잘못된 `providerType` 값 등 Query Parameter 검증 실패 시 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "COMMON400",
+  "message": "providerType must be one of the following values: POLICY, BANK",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 금융상품 목록 조회 성공 |
-| 400 | 잘못된 Query Parameter |
+| 400 | 잘못된 Query Parameter (`COMMON400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
 
@@ -133,9 +144,21 @@
 }
 ```
 
+사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE400",
+  "message": "금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
+| 400 | 사용자 금융정보 미입력 (`FINANCE400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
@@ -158,11 +181,22 @@
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
+상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 상품입니다.",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
-| 404 | 상품 없음 |
+| 404 | 상품 없음 (`FINANCE404`) |
 
 ---
 
@@ -196,26 +230,26 @@
 
 ---
 
-## 5. 금융 용어 목록 조회
+## 5. 금융 용어 상세 조회
+
+> 이름은 "목록 조회"이지만 실제로는 용어 하나를 정확히 지정해 그 설명을 받는 **단건 상세 조회**다. 부분 검색/목록 응답이 아니므로 혼동하지 않도록 주의.
 
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /finance-terms` |
-| 설명 | 금융 용어 사전을 검색어 기준으로 조회한다. |
+| 설명 | 지정한 금융 용어 하나의 상세 설명을 조회한다. |
 | 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `term` | string | N | 부분 검색 키워드 |
+| `term` | string | **Y** | 조회할 용어명 (정확히 일치, 부분검색 아님). 예: `DSR` |
 
 ### Response (result)
 
 ```json
-[
-  { "term": "DSR", "detailDescription": "DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다." }
-]
+{ "term": "DSR", "detailDescription": "DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다." }
 ```
 
 | 필드 | 타입 | 설명 |
@@ -223,10 +257,22 @@
 | `term` | string | 용어명 |
 | `detailDescription` | string \| null | 상세 설명 |
 
+`term`에 해당하는 용어가 없으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 용어입니다.",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
-| 200 | 조회 성공 (0건 포함) |
+| 200 | 조회 성공 |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 존재하지 않는 용어 (`FINANCE404`) |
 
 ---
 
@@ -293,9 +339,21 @@
 }
 ```
 
+잘못된 `announcementType` 값 등 Query Parameter 검증 실패 시 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "COMMON400",
+  "message": "announcementType must be one of the following values: COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 (0건 포함) |
+| 400 | 잘못된 Query Parameter (`COMMON400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
@@ -320,8 +378,19 @@
 }
 ```
 
+가이드가 존재하지 않으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 가이드입니다.",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
-| 404 | 가이드 없음 |
+| 404 | 가이드 없음 (`FINANCE404`) |
