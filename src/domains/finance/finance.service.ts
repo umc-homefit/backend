@@ -125,9 +125,9 @@ export class FinanceService {
       case LoanProductSort.LATEST:
         return [{ createdAt: 'desc' }, { productId: 'desc' }];
       case LoanProductSort.RATE_ASC:
-        return [{ minRate: 'asc' }, { productId: 'asc' }];
+        return [{ minRate: { sort: 'asc', nulls: 'last' } }, { productId: 'asc' }];
       case LoanProductSort.LIMIT_DESC:
-        return [{ maxLimitAmount: 'desc' }, { productId: 'asc' }];
+        return [{ maxLimitAmount: { sort: 'desc', nulls: 'last' } }, { productId: 'asc' }];
       case LoanProductSort.RECOMMENDED:
       default:
         return [{ productId: 'asc' }];
@@ -308,6 +308,7 @@ export class FinanceService {
     return {
       productName: `${item.organId} 전세자금대출 (보증비율 ${guaranteeRatio}%)`,
       providerType: LoanProviderType.BANK,
+      productCategory: ProductCategory.JEONSE_LOAN,
       providerName: item.organId,
       guaranteeRatio,
       minRate: rate,
@@ -354,7 +355,13 @@ export class FinanceService {
       throw new InternalServerErrorException(message);
     }
 
-    const data = (await response.json()) as RentLoanRateApiResponse;
+    const data = await this.parseExternalApiResponse<RentLoanRateApiResponse>(response, {
+      apiName,
+      requestUrl,
+      startedAt,
+      validate: (parsed) => Boolean(parsed?.header) && Array.isArray(parsed?.body?.items),
+      invalidMessage: '전세자금대출 금리 API 응답에 header 또는 body.items가 없습니다.',
+    });
     if (data.header.resultCode !== '00') {
       const message = `전세자금대출 금리 API 오류: ${data.header.resultMsg}`;
       await this.logExternalApiFailure({
@@ -409,7 +416,16 @@ export class FinanceService {
       throw new InternalServerErrorException(message);
     }
 
-    const data = (await response.json()) as LoanGuaranteeDetailInfoApiResponse;
+    const data = await this.parseExternalApiResponse<LoanGuaranteeDetailInfoApiResponse>(
+      response,
+      {
+        apiName,
+        requestUrl,
+        startedAt,
+        validate: (parsed) => Boolean(parsed?.header) && Boolean(parsed?.body),
+        invalidMessage: '전세자금보증상품 상세정보 API 응답에 header 또는 body가 없습니다.',
+      },
+    );
     if (data.header.resultCode !== '00') {
       const message = `전세자금보증상품 상세정보 API 오류: ${data.header.resultMsg}`;
       await this.logExternalApiFailure({
@@ -462,6 +478,52 @@ export class FinanceService {
       });
       throw new InternalServerErrorException(`외부 API 호출 중 네트워크 오류가 발생했습니다: ${message}`);
     }
+  }
+
+  /**
+   * response.json() 파싱 실패나 header/body 누락(구조 이상)도 INVALID_RESPONSE로 로그를 남기도록 공통 처리한다.
+   * try/catch 밖에서 파싱하면 예외가 로그 없이 그대로 튀어나가던 문제를 막기 위함.
+   */
+  private async parseExternalApiResponse<T>(
+    response: Response,
+    context: {
+      apiName: string;
+      requestUrl: string;
+      startedAt: Date;
+      validate: (parsed: T) => boolean;
+      invalidMessage: string;
+    },
+  ): Promise<T> {
+    let parsed: T;
+    try {
+      parsed = (await response.json()) as T;
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      const message = `${context.invalidMessage} (JSON 파싱 실패: ${detail})`;
+      await this.logExternalApiFailure({
+        apiName: context.apiName,
+        errorType: EXTERNAL_API_ERROR_TYPE.INVALID_RESPONSE,
+        httpStatusCode: response.status,
+        requestUrl: context.requestUrl,
+        errorMessage: message,
+        startedAt: context.startedAt,
+      });
+      throw new BadGatewayException(message);
+    }
+
+    if (!context.validate(parsed)) {
+      await this.logExternalApiFailure({
+        apiName: context.apiName,
+        errorType: EXTERNAL_API_ERROR_TYPE.INVALID_RESPONSE,
+        httpStatusCode: response.status,
+        requestUrl: context.requestUrl,
+        errorMessage: context.invalidMessage,
+        startedAt: context.startedAt,
+      });
+      throw new BadGatewayException(context.invalidMessage);
+    }
+
+    return parsed;
   }
 
   private async logExternalApiFailure(params: {

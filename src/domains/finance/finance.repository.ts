@@ -6,6 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export interface LoanProductRateUpsertInput {
   productName: string;
   providerType: string;
+  productCategory: string;
   providerName: string;
   guaranteeRatio: number;
   minRate: number;
@@ -72,6 +73,7 @@ export class FinanceRepository {
       update: {
         productName: row.productName,
         providerType: row.providerType,
+        productCategory: row.productCategory,
         minRate: row.minRate,
         maxRate: row.maxRate,
         officialUrl: row.officialUrl,
@@ -80,6 +82,7 @@ export class FinanceRepository {
       create: {
         productName: row.productName,
         providerType: row.providerType,
+        productCategory: row.productCategory,
         providerName: row.providerName,
         guaranteeRatio: row.guaranteeRatio,
         minRate: row.minRate,
