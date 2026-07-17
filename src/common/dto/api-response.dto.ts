@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { COMMON_ERROR_CODES } from '../constants/error-code';
 import { DEFAULT_SUCCESS_CODE, DEFAULT_SUCCESS_MESSAGE } from '../types/api-response.type';
 
 export class ApiResponseDto {
@@ -15,3 +16,19 @@ export class ApiResponseDto {
 
 /** result가 없는 응답(예: 로그아웃)을 문서화할 때 사용하는 placeholder 모델 */
 export class EmptyResultDto {}
+
+/**
+ * 실패 응답 envelope 문서화용 모델. ApiResponseDto(성공)와 짝을 이룬다.
+ * 실제 code/message 값은 ApiErrorResponse 데코레이터 호출 시 각자 지정하고,
+ * 이 클래스는 필드 구조(shape)만 Swagger에 알려주는 용도다.
+ */
+export class ApiErrorResponseDto {
+  @ApiProperty({ description: '요청 성공 여부 (실패 시 항상 false)', example: false })
+  isSuccess: boolean;
+
+  @ApiProperty({ description: '도메인 에러 코드 또는 공통 에러 코드', example: COMMON_ERROR_CODES.BAD_REQUEST })
+  code: string;
+
+  @ApiProperty({ description: '에러 메시지', example: '요청을 처리할 수 없습니다.' })
+  message: string;
+}
