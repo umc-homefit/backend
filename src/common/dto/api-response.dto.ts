@@ -19,8 +19,8 @@ export class EmptyResultDto {}
 
 /**
  * 실패 응답 envelope 문서화용 모델. ApiResponseDto(성공)와 짝을 이룬다.
- * 실제 code/message 값은 ApiErrorResponse 데코레이터 호출 시 각자 지정하고,
- * 이 클래스는 필드 구조(shape)만 Swagger에 알려주는 용도다.
+ * ApiErrorResponse 데코레이터가 이 DTO를 실제로 재사용(allOf 합성)하므로,
+ * 필드를 추가/변경하면 모든 엔드포인트의 에러 응답 문서에 자동 반영된다.
  */
 export class ApiErrorResponseDto {
   @ApiProperty({ description: '요청 성공 여부 (실패 시 항상 false)', example: false })
@@ -31,4 +31,13 @@ export class ApiErrorResponseDto {
 
   @ApiProperty({ description: '에러 메시지', example: '요청을 처리할 수 없습니다.' })
   message: string;
+
+  @ApiProperty({
+    description: '실패 시 항상 null',
+    example: null,
+    nullable: true,
+    type: 'object',
+    additionalProperties: false,
+  })
+  result: null;
 }
