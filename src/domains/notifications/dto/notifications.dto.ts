@@ -1,14 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { DeviceType } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
-export enum DeviceType {
-  ANDROID = 'ANDROID',
-  IOS = 'IOS',
-}
+export { DeviceType };
 
 export class RegisterDeviceTokenRequestDto {
-  @ApiProperty({ description: '푸시 발송용 기기 고유 토큰', example: 'eX_sample_FCM_token_string...' })
+  @ApiProperty({
+    description: '푸시 발송용 기기 고유 토큰',
+    example: 'eX_sample_FCM_token_string...',
+  })
   @IsString()
   @IsNotEmpty()
   deviceToken: string;
@@ -99,7 +109,11 @@ export class UpdateAlertSettingsResultDto {
   @ApiProperty({ description: '변경된 금융상품 알림 상태', example: true })
   financeAlertEnabled: boolean;
 
-  @ApiPropertyOptional({ description: '변경된 신규 공고 알림 대상 지역', example: '서울', nullable: true })
+  @ApiPropertyOptional({
+    description: '변경된 신규 공고 알림 대상 지역',
+    example: '서울',
+    nullable: true,
+  })
   interestedRegion: string | null;
 
   @ApiProperty({ description: '최초 설정 생성 일시', example: '2026-06-28T10:00:00Z' })

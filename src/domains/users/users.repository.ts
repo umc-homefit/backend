@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { 
-  UpdateConditionProfileRequestDto, 
-  UpdateProfileRequestDto 
-} from './dto/users.dto';
+import { UpdateConditionProfileRequestDto, UpdateProfileRequestDto } from './dto/users.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -17,7 +15,7 @@ export class UsersRepository {
   }
 
   // 2. 회원 상태 수정 (탈퇴 시 Soft Delete 등에 활용)
-  async updateUserStatus(userId: bigint, status: string) {
+  async updateUserStatus(userId: bigint, status: UserStatus) {
     return await this.prisma.user.update({
       where: { userId },
       data: { status },
@@ -77,7 +75,12 @@ export class UsersRepository {
     return await this.prisma.userConditionProfile.upsert({
       where: { userId },
       update: conditionData,
-      create: { userId, ...conditionData },
+      create: {
+        userId,
+        ...conditionData,
+        householdHeadStatus: 'UNKNOWN',
+        maritalStatus: 'UNKNOWN',
+      },
     });
   }
 }

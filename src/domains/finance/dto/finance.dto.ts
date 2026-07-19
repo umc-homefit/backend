@@ -1,49 +1,31 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  DocumentIssueMethod,
+  GuideAnnouncementType,
+  GuideContentType,
+  LoanProviderType,
+  ProductCategory,
+  RequiredDocumentType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
-export enum LoanProviderType {
-  POLICY = 'POLICY',
-  BANK = 'BANK',
-}
-
-export enum ProductCategory {
-  MORTGAGE_LOAN = 'MORTGAGE_LOAN',
-  JEONSE_LOAN = 'JEONSE_LOAN',
-  SUBSCRIPTION_SAVINGS = 'SUBSCRIPTION_SAVINGS',
-}
+export {
+  DocumentIssueMethod,
+  GuideAnnouncementType,
+  GuideContentType,
+  LoanProviderType,
+  ProductCategory,
+  RequiredDocumentType,
+};
 
 export enum LoanProductSort {
   RECOMMENDED = 'RECOMMENDED',
   LATEST = 'LATEST',
   RATE_ASC = 'RATE_ASC',
   LIMIT_DESC = 'LIMIT_DESC',
-}
-
-export enum DocumentIssueMethod {
-  ONLINE = 'ONLINE',
-  OFFLINE = 'OFFLINE',
-  BOTH = 'BOTH',
-}
-
-export enum RequiredDocumentType {
-  COMMON = 'COMMON',
-  PRODUCT = 'PRODUCT',
-  ANNOUNCEMENT = 'ANNOUNCEMENT',
-}
-
-export enum GuideContentType {
-  TEXT = 'TEXT',
-  IMAGE = 'IMAGE',
-  CHECKLIST = 'CHECKLIST',
-}
-
-export enum GuideAnnouncementType {
-  COMMON = 'COMMON',
-  YOUTH_SAFE_HOUSE = 'YOUTH_SAFE_HOUSE',
-  ADDITIONAL_RECRUIT = 'ADDITIONAL_RECRUIT',
 }
 
 export class MatchLoanProductsQueryDto {
@@ -93,7 +75,11 @@ export class MatchedLoanProductDto {
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;
 
-  @ApiPropertyOptional({ description: '연소득 조건 상한 (원 단위)', example: 60000000, nullable: true })
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
   maxIncome: number | null;
 
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
@@ -200,7 +186,11 @@ export class LoanProductListItemDto {
   @ApiPropertyOptional({ description: '금리 범위', example: '3.2% ~ 4.5%', nullable: true })
   rateRange: string | null;
 
-  @ApiPropertyOptional({ description: '연소득 조건 상한 (원 단위)', example: 60000000, nullable: true })
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
   maxIncome: number | null;
 
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
@@ -260,7 +250,11 @@ export class LoanProductDetailResultDto {
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;
 
-  @ApiPropertyOptional({ description: '연소득 조건 상한 (원 단위)', example: 60000000, nullable: true })
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
   maxIncome: number | null;
 
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
@@ -398,7 +392,8 @@ export class GetGuidesQueryDto {
   })
   @IsOptional()
   @IsEnum(GuideAnnouncementType, {
-    message: 'announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT',
+    message:
+      'announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT',
   })
   announcementType?: GuideAnnouncementType;
 
