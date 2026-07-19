@@ -488,7 +488,7 @@ model LoanProduct {
   minIncome                BigInt?          @map("min_income") // 소득 하한. 하한 없는 상품은 NULL
   maxAsset                 BigInt?          @map("max_asset")
   minAsset                 BigInt?          @map("min_asset") // 자산 하한. 하한 없는 상품은 NULL
-  requireNoHouse           Boolean?         @default(true) @map("require_no_house") // 변경: nullable
+  requireNoHouse           Boolean?         @map("require_no_house") // nullable, 기본값 없음
   firstTimeBuyerOnly       Boolean?         @map("first_time_buyer_only") // 생애최초 전용 여부. requireNoHouse(무주택)와 별개 조건
   ltvRatio                 Int?             @map("ltv_ratio") // 담보가치 대비 대출 비율(%). 대출 상품 전용. loanRatioPercent(전세보증금 대비)와 중복/충돌 가능성 있어 정리 필요
   dtiRatio                 Int?             @map("dti_ratio") // 소득 대비 원리금 상환 비율(%). 대출 상품 전용
