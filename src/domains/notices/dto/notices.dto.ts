@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { NoticeConditionTargetType, NoticeFileType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
@@ -22,20 +23,7 @@ export enum SavedNoticeSort {
   POPULAR = 'POPULAR',
 }
 
-export enum NoticeConditionTargetType {
-  YOUTH = 'YOUTH',
-  NEWLYWED = 'NEWLYWED',
-  COMMON = 'COMMON',
-  OTHER = 'OTHER',
-}
-
-export enum NoticeFileType {
-  PDF = 'PDF',
-  IMAGE = 'IMAGE',
-  LINK = 'LINK',
-  DOC = 'DOC',
-  OTHER = 'OTHER',
-}
+export { NoticeConditionTargetType, NoticeFileType };
 
 export class GetNoticesQueryDto {
   @ApiPropertyOptional({ description: '공고명, 단지명, 지역 검색어', example: '강동' })

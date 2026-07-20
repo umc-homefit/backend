@@ -92,11 +92,13 @@ export class EligibilityService {
       monthlyIncomeAmount,
       rentBurdenRate,
       policyConditions: conditionResults.filter((conditionResult) =>
-        [
-          EligibilityConditionCode.INCOME,
-          EligibilityConditionCode.ASSET,
-          EligibilityConditionCode.HOMELESS,
-        ].includes(conditionResult.conditionCode),
+        (
+          [
+            EligibilityConditionCode.INCOME,
+            EligibilityConditionCode.ASSET,
+            EligibilityConditionCode.HOMELESS,
+          ] as EligibilityConditionCode[]
+        ).includes(conditionResult.conditionCode),
       ),
     });
 
