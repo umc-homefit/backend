@@ -59,6 +59,24 @@ npm run start:dev
 - Health Check: `GET http://localhost:3000/api/health`
 - Swagger: `http://localhost:3000/api/docs`
 
+## Docker 실행 및 배포
+
+Docker Compose로 API, PostgreSQL, Prisma migration을 같은 조건에서 실행할 수 있다.
+
+```bash
+cp .env.example .env
+# .env의 POSTGRES_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET 입력
+docker compose up --build
+```
+
+Compose는 DB 준비 확인 → `prisma migrate deploy` → API 시작 순서로 실행하며, PostgreSQL 데이터는 Docker volume에 유지된다.
+
+- Health Check: `GET http://localhost:3000/api/health`
+- Swagger: `http://localhost:3000/api/docs`
+- 종료: `docker compose down`
+
+Railway/AWS 환경변수, migration, HTTPS, 배포 후 확인 절차는 [배포 가이드](./docs/deployment.md)를 참고한다.
+
 ## API 문서
 
 - Notion API 명세(SSOT): https://app.notion.com/p/api-38e2a03e23d98097aa90e434b9017faa
