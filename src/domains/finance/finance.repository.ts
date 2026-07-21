@@ -1,37 +1,69 @@
 import { Injectable } from '@nestjs/common';
-import { LoanProduct, Prisma } from '@prisma/client';
+import {
+  ExternalApiCallLog,
+  ExternalApiErrorType,
+  Guide,
+  GuideCategory,
+  LoanProduct,
+  LoanProviderType,
+  Prisma,
+  ProductCategory,
+} from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface LoanProductRateUpsertInput {
   productName: string;
-  providerType: string;
+  providerType: LoanProviderType;
+  productCategory: ProductCategory;
   providerName: string;
   guaranteeRatio: number;
   minRate: number;
   maxRate: number;
   officialUrl: string;
+  maxLimitAmount: number;
+}
+
+export interface ExternalApiCallLogInput {
+  apiName: string;
+  errorType: ExternalApiErrorType;
+  httpStatusCode: number | null;
+  requestUrl: string | null;
+  errorMessage: string;
+  startedAt: Date;
 }
 
 @Injectable()
 export class FinanceRepository {
+  /** DB 컬럼이 timezone 없는 TIMESTAMP라 UTC 값 그대로 저장하면 KST보다 9시간 느리게 보임. 저장 직전에 밀어서 넣는다. */
+  private readonly kstOffsetMs = 9 * 60 * 60 * 1000;
+
   constructor(private readonly prisma: PrismaService) {}
+
+  private toKstDate(date: Date): Date {
+    return new Date(date.getTime() + this.kstOffsetMs);
+  }
 
   findLoanProducts(params: {
     where: Prisma.LoanProductWhereInput;
     skip: number;
     take: number;
+    orderBy: Prisma.LoanProductOrderByWithRelationInput[];
   }): Promise<LoanProduct[]> {
     return this.prisma.loanProduct.findMany({
       where: params.where,
       skip: params.skip,
       take: params.take,
-      orderBy: { productId: 'asc' },
+      orderBy: params.orderBy,
     });
   }
 
   countLoanProducts(where: Prisma.LoanProductWhereInput): Promise<number> {
     return this.prisma.loanProduct.count({ where });
+  }
+
+  findLoanProductById(productId: bigint): Promise<LoanProduct | null> {
+    return this.prisma.loanProduct.findUnique({ where: { productId } });
   }
 
   /**
@@ -50,17 +82,62 @@ export class FinanceRepository {
       update: {
         productName: row.productName,
         providerType: row.providerType,
+        productCategory: row.productCategory,
         minRate: row.minRate,
         maxRate: row.maxRate,
+        officialUrl: row.officialUrl,
+        maxLimitAmount: row.maxLimitAmount,
       },
       create: {
         productName: row.productName,
         providerType: row.providerType,
+        productCategory: row.productCategory,
         providerName: row.providerName,
         guaranteeRatio: row.guaranteeRatio,
         minRate: row.minRate,
         maxRate: row.maxRate,
         officialUrl: row.officialUrl,
+        maxLimitAmount: row.maxLimitAmount,
+      },
+    });
+  }
+
+  findGuideCategories(): Promise<GuideCategory[]> {
+    return this.prisma.guideCategory.findMany({ orderBy: { displayOrder: 'asc' } });
+  }
+
+  findGuides(params: {
+    where: Prisma.GuideWhereInput;
+    skip: number;
+    take: number;
+  }): Promise<Guide[]> {
+    return this.prisma.guide.findMany({
+      where: params.where,
+      skip: params.skip,
+      take: params.take,
+      orderBy: [{ categoryId: 'asc' }, { displayOrder: 'asc' }, { guideId: 'asc' }],
+    });
+  }
+
+  countGuides(where: Prisma.GuideWhereInput): Promise<number> {
+    return this.prisma.guide.count({ where });
+  }
+
+  findGuideById(guideId: bigint): Promise<Guide | null> {
+    return this.prisma.guide.findUnique({ where: { guideId } });
+  }
+
+  createExternalApiCallLog(input: ExternalApiCallLogInput): Promise<ExternalApiCallLog> {
+    return this.prisma.externalApiCallLog.create({
+      data: {
+        apiName: input.apiName,
+        errorType: input.errorType,
+        httpStatusCode: input.httpStatusCode,
+        requestUrl: input.requestUrl,
+        errorMessage: input.errorMessage,
+        startedAt: this.toKstDate(input.startedAt),
+        failedAt: this.toKstDate(new Date()),
+        createdAt: this.toKstDate(new Date()),
       },
     });
   }

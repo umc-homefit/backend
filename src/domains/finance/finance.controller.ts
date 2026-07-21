@@ -3,7 +3,6 @@ import {
   ForbiddenException,
   Get,
   HttpCode,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -23,7 +22,6 @@ import {
   GetGuidesQueryDto,
   GetLoanProductsQueryDto,
   GuideCategoryItemDto,
-  GuideContentType,
   GuideDetailResultDto,
   GuideListResultDto,
   LoanProductDetailResultDto,
@@ -31,14 +29,16 @@ import {
   LoanProviderType,
   MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
+  ProductCategory,
   RequiredDocumentItemDto,
+  RequiredDocumentType,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceService } from './finance.service';
 
 /**
- * 금융상품 목록 조회(getLoanProducts)는 FinanceService를 통해 DB에서 조회한다.
- * 그 외 엔드포인트는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
+ * 금융상품 목록/상세 조회, 가이드 카테고리/목록/상세 조회는 FinanceService를 통해 DB에서 조회한다.
+ * 그 외 엔드포인트(매칭, 필요서류, 금융용어)는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
  */
 @ApiTags('Finance/Guide')
 @Controller()
@@ -49,6 +49,8 @@ export class FinanceController {
   ) {}
 
   @Get('loan-products/match')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융상품 매칭 조회',
     description: '사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다.',
@@ -59,13 +61,18 @@ export class FinanceController {
   ): ApiResponse<MatchLoanProductsResultDto> {
     const result: MatchLoanProductsResultDto = {
       matchedCount: 2,
+      minRate: '1.2%',
+      maxLimitAmount: 200000000,
       products: [
         {
           productId: 101,
           productName: '청년 버팀목 전세자금대출',
           providerType: LoanProviderType.POLICY,
+          productCategory: ProductCategory.JEONSE_LOAN,
           providerName: '주택도시기금',
           rateRange: '1.5% ~ 2.7%',
+          maxIncome: 60000000,
+          firstTimeBuyerOnly: false,
           maxLimitAmount: 200000000,
           isEligible: true,
         },
@@ -98,8 +105,8 @@ export class FinanceController {
   @ApiOperation({
     summary: '[테스트] 금융상품 외부 API 동기화',
     description:
-      '한국주택금융공사 전세자금대출 금리 정보 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
-      'officialUrl은 은행별 URL을 아직 확보하지 못해 HF 공식 사이트로 통일한다. ' +
+      '한국주택금융공사 전세자금대출 금리 정보 공공API와 전세자금보증상품 상세정보 조회 공공API를 호출해 LoanProduct 테이블에 저장한다. ' +
+      'officialUrl/maxLimitAmount는 은행별 값이 아니라, 두 tier(90%/100%)가 공통으로 속한 일반전세자금보증(grntDvcd=2D) 상세정보 기준으로 동일하게 채워진다. ' +
       '개발/테스트 용도이며, 운영 환경(NODE_ENV=production)에서는 호출할 수 없다.',
   })
   @ApiSuccessResponse(SyncLoanProductsResultDto, { description: '동기화 성공' })
@@ -114,31 +121,22 @@ export class FinanceController {
   }
 
   @Get('loan-products/:productId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: '금융상품 상세 조회', description: '금융상품 상세 정보를 조회한다.' })
   @ApiParam({ name: 'productId', type: Number, description: '조회할 상품 ID', example: 101 })
   @ApiSuccessResponse(LoanProductDetailResultDto, { description: '금융상품 상세 조회 성공' })
-  getLoanProductDetail(
+  async getLoanProductDetail(
     @Param('productId', ParseIntPipe) productId: number,
-  ): ApiResponse<LoanProductDetailResultDto> {
-    if (productId !== 101) {
-      throw new NotFoundException('존재하지 않는 상품입니다.');
-    }
-
-    const result: LoanProductDetailResultDto = {
-      productId: 101,
-      productName: '청년 버팀목 전세자금대출',
-      providerType: LoanProviderType.POLICY,
-      providerName: '주택도시기금',
-      rateRange: '1.5% ~ 2.7%',
-      maxLimitAmount: 200000000,
-      officialUrl: 'https://nhuf.molit.go.kr',
-      description: '만 19~34세 청년을 위한 전세자금 대출 상품입니다.',
-    };
+  ): Promise<ApiResponse<LoanProductDetailResultDto>> {
+    const result = await this.financeService.getLoanProductDetail(productId);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 상세 조회에 성공했습니다.');
   }
 
   @Get('loan-products/:productId/documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '필요서류 조회 (상품용)',
     description: '금융상품 신청에 필요한 서류 목록을 조회한다.',
@@ -151,36 +149,40 @@ export class FinanceController {
   getLoanProductDocuments(
     @Param('productId', ParseIntPipe) productId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
-    if (productId !== 101) {
-      throw new NotFoundException('상품 또는 서류가 없습니다.');
-    }
-
-    const result: RequiredDocumentItemDto[] = [
-      {
-        documentId: 5,
-        documentName: '소득금액증명원',
-        issuer: '국세청',
-        issueMethod: DocumentIssueMethod.ONLINE,
-        isRequired: true,
-      },
-    ];
+    const result: RequiredDocumentItemDto[] =
+      productId === 101
+        ? [
+            {
+              documentId: 5,
+              documentName: '소득금액증명원',
+              issuer: '국세청',
+              issueMethod: DocumentIssueMethod.ONLINE,
+              documentType: RequiredDocumentType.COMMON,
+              isRequired: true,
+            },
+          ]
+        : [];
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
 
   @Get('finance-terms')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
-    summary: '금융 용어 목록 조회',
-    description: '금융 용어 사전을 검색어 기준으로 조회한다.',
+    summary: '금융 용어 상세 조회',
+    description: '지정한 금융 용어 하나의 상세 설명을 조회한다.',
   })
-  @ApiSuccessResponse(FinanceTermItemDto, { isArray: true, description: '금융 용어 목록 조회 성공' })
-  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto[]> {
-    const result: FinanceTermItemDto[] = [{ term: 'DSR', detailDescription: null }];
+  @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 상세 조회 성공' })
+  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto> {
+    const result: FinanceTermItemDto = { term: 'DSR', detailDescription: null };
 
-    return createSuccessResponse(result, 'FINANCE200', '금융 용어 목록 조회에 성공했습니다.');
+    return createSuccessResponse(result, 'FINANCE200', '금융 용어 상세 조회에 성공했습니다.');
   }
 
   @Get('notices/:noticeId/documents')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '필요서류 조회 (공고용)',
     description: '공고 지원에 필요한 서류 목록을 조회한다.',
@@ -193,24 +195,26 @@ export class FinanceController {
   getNoticeDocuments(
     @Param('noticeId', ParseIntPipe) noticeId: number,
   ): ApiResponse<RequiredDocumentItemDto[]> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('공고 또는 서류가 없습니다.');
-    }
-
-    const result: RequiredDocumentItemDto[] = [
-      {
-        documentId: 5,
-        documentName: '소득금액증명원',
-        issuer: '국세청',
-        issueMethod: DocumentIssueMethod.ONLINE,
-        isRequired: true,
-      },
-    ];
+    const result: RequiredDocumentItemDto[] =
+      noticeId === 1
+        ? [
+            {
+              documentId: 5,
+              documentName: '소득금액증명원',
+              issuer: '국세청',
+              issueMethod: DocumentIssueMethod.ONLINE,
+              documentType: RequiredDocumentType.COMMON,
+              isRequired: true,
+            },
+          ]
+        : [];
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
 
   @Get('guide-categories')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '가이드 카테고리 목록 조회',
     description: '청약 가이드 카테고리 목록을 표시 순서대로 조회한다.',
@@ -219,59 +223,39 @@ export class FinanceController {
     isArray: true,
     description: '가이드 카테고리 목록 조회 성공 (0건 포함)',
   })
-  getGuideCategories(): ApiResponse<GuideCategoryItemDto[]> {
-    const result: GuideCategoryItemDto[] = [
-      { categoryId: 1, categoryName: '신청절차', displayOrder: 1 },
-      { categoryId: 2, categoryName: '자격조건', displayOrder: 2 },
-    ];
+  async getGuideCategories(): Promise<ApiResponse<GuideCategoryItemDto[]>> {
+    const result = await this.financeService.getGuideCategories();
 
     return createSuccessResponse(result, 'FINANCE200', '가이드 카테고리 목록 조회에 성공했습니다.');
   }
 
   @Get('guides')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '청약 가이드 목록 조회',
     description: '카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다.',
   })
   @ApiSuccessResponse(GuideListResultDto, { description: '청약 가이드 목록 조회 성공 (0건 포함)' })
-  getGuides(@Query() _query: GetGuidesQueryDto): ApiResponse<GuideListResultDto> {
-    const result: GuideListResultDto = {
-      totalCount: 9,
-      guides: [
-        {
-          guideId: 10,
-          categoryId: 1,
-          title: '추가모집 신청 절차 안내',
-          contentType: GuideContentType.TEXT,
-          displayOrder: 1,
-        },
-      ],
-    };
+  async getGuides(@Query() query: GetGuidesQueryDto): Promise<ApiResponse<GuideListResultDto>> {
+    const result = await this.financeService.getGuides(query);
 
     return createSuccessResponse(result, 'FINANCE200', '청약 가이드 목록 조회에 성공했습니다.');
   }
 
   @Get('guides/:guideId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '청약 가이드 상세 조회',
     description: '청약 가이드 상세 콘텐츠를 조회한다.',
   })
   @ApiParam({ name: 'guideId', type: Number, description: '조회할 가이드 ID', example: 10 })
   @ApiSuccessResponse(GuideDetailResultDto, { description: '청약 가이드 상세 조회 성공' })
-  getGuideDetail(
+  async getGuideDetail(
     @Param('guideId', ParseIntPipe) guideId: number,
-  ): ApiResponse<GuideDetailResultDto> {
-    if (guideId !== 10) {
-      throw new NotFoundException('존재하지 않는 가이드입니다.');
-    }
-
-    const result: GuideDetailResultDto = {
-      guideId: 10,
-      title: '추가모집 신청 절차 안내',
-      contentType: GuideContentType.TEXT,
-      contentBody: '1. 공고 확인\n2. 서류 준비\n3. 온라인 신청',
-      updatedAt: '2026-06-01T00:00:00Z',
-    };
+  ): Promise<ApiResponse<GuideDetailResultDto>> {
+    const result = await this.financeService.getGuideDetail(guideId);
 
     return createSuccessResponse(result, 'FINANCE200', '청약 가이드 상세 조회에 성공했습니다.');
   }

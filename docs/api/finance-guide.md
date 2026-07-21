@@ -29,7 +29,10 @@
 | enum | 값 | 비고 |
 | --- | --- | --- |
 | `providerType` | `POLICY` / `BANK` | 정책 상품/은행 상품 |
+| `productCategory` | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` | 상품 카테고리 (주택담보대출/전세대출/청약저축). 청약저축도 `loan-products` API로 통합 조회 |
+| `sort` (loan-products) | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` | 금융상품 목록 정렬 기준. 기본값 `RECOMMENDED` |
 | `issueMethod` | `ONLINE` / `OFFLINE` / `BOTH` | 서류 발급 방법 |
+| `documentType` | `COMMON` / `PRODUCT` / `ANNOUNCEMENT` | 서류 구분 (공통/상품별/공고별) |
 | `contentType` | `TEXT` / `IMAGE` / `CHECKLIST` | 가이드 콘텐츠 타입 |
 | `announcementType` | `COMMON` / `YOUTH_SAFE_HOUSE` / `ADDITIONAL_RECRUIT` | 가이드 대상 공고 유형 |
 
@@ -41,7 +44,7 @@
 | P1 | `GET` | `/loan-products/match` | 사용자 조건/공고 기준 금융상품 매칭 |
 | P1 | `GET` | `/loan-products/{productId}` | 금융상품 상세 조회 |
 | P1 | `GET` | `/loan-products/{productId}/documents` | 금융상품 필요서류 조회 |
-| P1 | `GET` | `/finance-terms` | 금융 용어 목록 조회 |
+| P1 | `GET` | `/finance-terms` | 금융 용어 상세 조회 (단건, `term` 필수) |
 | P1 | `GET` | `/notices/{noticeId}/documents` | 공고 필요서류 조회 |
 | P1 | `GET` | `/guide-categories` | 가이드 카테고리 목록 조회 |
 | P1 | `GET` | `/guides` | 청약 가이드 목록 조회 |
@@ -62,6 +65,9 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `providerType` | enum | N | `POLICY` / `BANK` |
+| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` |
+| `keyword` | string | N | 상품명/취급기관명 부분 검색 |
+| `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
 | `page` | number | N | 기본값 0 |
 | `size` | number | N | 기본값 20 |
 
@@ -81,8 +87,12 @@
       "productId": 103,
       "productName": "하나은행 청년 전세자금대출",
       "providerType": "BANK",
+      "productCategory": "JEONSE_LOAN",
       "providerName": "하나은행",
-      "rateRange": "3.2% ~ 4.5%"
+      "rateRange": "3.2% ~ 4.5%",
+      "maxIncome": 60000000,
+      "firstTimeBuyerOnly": false,
+      "maxLimitAmount": 200000000
     }
   ]
 }
@@ -90,10 +100,21 @@
 
 ### Status
 
+잘못된 `providerType` 값 등 Query Parameter 검증 실패 시 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "COMMON400",
+  "message": "providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK",
+  "result": null
+}
+```
+
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 금융상품 목록 조회 성공 |
-| 400 | 잘못된 Query Parameter |
+| 400 | 잘못된 Query Parameter (`COMMON400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
 
@@ -105,7 +126,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /loan-products/match` |
 | 설명 | 사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다. |
-| 인증 | 현재 Swagger 기준 불필요. 사용자 조건 연동 시 인증 필수 전환 가능 |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -119,19 +140,43 @@
 ```json
 {
   "matchedCount": 2,
+  "minRate": "1.2%",
+  "maxLimitAmount": 200000000,
   "products": [
     {
       "productId": 101,
       "productName": "청년 버팀목 전세자금대출",
       "providerType": "POLICY",
+      "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
       "rateRange": "1.5% ~ 2.7%",
+      "maxIncome": 60000000,
+      "firstTimeBuyerOnly": false,
       "maxLimitAmount": 200000000,
       "isEligible": true
     }
   ]
 }
 ```
+
+`minRate`/`maxLimitAmount`(최상위)는 매칭된 상품들 중 최저 금리/최대 한도 집계값이다.
+
+사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE400",
+  "message": "금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 400 | 사용자 금융정보 미입력 (`FINANCE400`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
 
@@ -141,6 +186,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /loan-products/{productId}` |
 | 설명 | 금융상품 상세 정보를 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -148,22 +194,44 @@
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `officialUrl` | string | 공식 안내 URL |
+| `maxLimitAmount` | number \| null | 최대 한도 (원 단위) |
+| `ltvRatio` | number \| null | LTV 한도(담보가치 대비 대출 비율, %). 대출 상품 전용 |
+| `dtiRatio` | number \| null | DTI 한도(소득 대비 원리금 상환 비율, %). 대출 상품 전용 |
+| `loanTermMinYears` | number \| null | 대출 기간 최소(년) |
+| `loanTermMaxYears` | number \| null | 대출 기간 최대(년) |
+| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p) |
+| `minMonthlyDeposit` | number \| null | 월 최소 납입액 (원 단위). 청약저축 전용 |
+| `maxMonthlyDeposit` | number \| null | 월 최대 납입액 (원 단위). 청약저축 전용 |
+| `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
+
+목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`)도 상세 응답에 동일하게 포함된다.
+
+상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 상품입니다.",
+  "result": null
+}
+```
 
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
-| 404 | 상품 없음 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 상품 없음 (`FINANCE404`) |
 
 ---
 
 ## 4. 필요서류 조회
 
-| Method | Endpoint | 설명 |
-| --- | --- | --- |
-| `GET` | `/loan-products/{productId}/documents` | 금융상품 신청 필요서류 조회 |
-| `GET` | `/notices/{noticeId}/documents` | 공고 지원 필요서류 조회 |
+| Method | Endpoint | 설명 | 인증 |
+| --- | --- | --- | --- |
+| `GET` | `/loan-products/{productId}/documents` | 금융상품 신청 필요서류 조회 | **필수** · `Authorization: Bearer {accessToken}` |
+| `GET` | `/notices/{noticeId}/documents` | 공고 지원 필요서류 조회 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -174,33 +242,76 @@
     "documentName": "소득금액증명원",
     "issuer": "국세청",
     "issueMethod": "ONLINE",
+    "documentType": "COMMON",
     "isRequired": true
   }
 ]
 ```
 
+상품/공고가 존재하지 않거나 등록된 서류가 없는 경우에도 빈 배열(`[]`)로 200을 반환한다.
+
+인증 실패 시 아래 형식으로 401을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 (0건 포함) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+
 ---
 
-## 5. 금융 용어 목록 조회
+## 5. 금융 용어 상세 조회
+
+> 이름은 "목록 조회"이지만 실제로는 용어 하나를 정확히 지정해 그 설명을 받는 **단건 상세 조회**다. 부분 검색/목록 응답이 아니므로 혼동하지 않도록 주의.
+> 다건 조회(예: LTV/DTI 동시 조회)는 지원하지 않는다. 여러 용어가 필요하면 FE가 `term`을 바꿔가며 여러 번 호출한다.
 
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /finance-terms` |
-| 설명 | 금융 용어 사전을 검색어 기준으로 조회한다. |
+| 설명 | 지정한 금융 용어 하나의 상세 설명을 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `term` | string | N | 부분 검색 키워드 |
+| `term` | string | **Y** | 조회할 용어명 (정확히 일치, 부분검색 아님). 예: `DSR` |
 
 ### Response (result)
 
 ```json
-[
-  { "term": "DSR" }
-]
+{ "term": "DSR", "detailDescription": "DSR(Debt Service Ratio)은 연간 소득 대비 모든 대출의 원리금 상환액 비율을 의미하며, 신규 대출 한도를 산정할 때 핵심 기준으로 사용됩니다." }
 ```
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `term` | string | 용어명 |
+| `detailDescription` | string \| null | 상세 설명 |
+
+`term`에 해당하는 용어가 없으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 용어입니다.",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 존재하지 않는 용어 (`FINANCE404`) |
 
 ---
 
@@ -210,6 +321,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guide-categories` |
 | 설명 | 청약 가이드 카테고리 목록을 표시 순서대로 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -219,6 +331,22 @@
 ]
 ```
 
+인증 실패 시 아래 형식으로 401을 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+
 ---
 
 ## 7. 청약 가이드 목록 조회
@@ -227,6 +355,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guides` |
 | 설명 | 카테고리/공고 유형 조건에 맞는 청약 가이드 목록을 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Query Parameter
 
@@ -260,6 +389,23 @@
 }
 ```
 
+잘못된 `announcementType` 값 등 Query Parameter 검증 실패 시 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "COMMON400",
+  "message": "announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 (0건 포함) |
+| 400 | 잘못된 Query Parameter (`COMMON400`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+
 ---
 
 ## 8. 청약 가이드 상세 조회
@@ -268,6 +414,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /guides/{guideId}` |
 | 설명 | 청약 가이드 상세 콘텐츠를 조회한다. |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
 ### Response (result)
 
@@ -280,3 +427,20 @@
   "updatedAt": "2026-06-01T00:00:00Z"
 }
 ```
+
+가이드가 존재하지 않으면 아래 형식으로 404를 반환한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "FINANCE404",
+  "message": "존재하지 않는 가이드입니다.",
+  "result": null
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 조회 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
+| 404 | 가이드 없음 (`FINANCE404`) |

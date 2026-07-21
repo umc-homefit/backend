@@ -7,15 +7,174 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserProvider {
+  LOCAL
+  KAKAO
+  GOOGLE
+
+  @@map("user_provider")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+
+  @@map("user_status")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  RETRYING
+
+  @@map("notification_status")
+}
+
+enum NoticeFileType {
+  PDF
+  IMAGE
+  LINK
+  DOC
+  OTHER
+
+  @@map("notice_file_type")
+}
+
+enum ExternalApiErrorType {
+  HTTP_ERROR
+  RESULT_CODE_ERROR
+  INVALID_RESPONSE
+  NETWORK_ERROR
+
+  @@map("external_api_error_type")
+}
+
+enum LoanProviderType {
+  POLICY
+  BANK
+
+  @@map("loan_provider_type")
+}
+
+enum ProductCategory {
+  MORTGAGE_LOAN
+  JEONSE_LOAN
+  SUBSCRIPTION_SAVINGS
+
+  @@map("loan_product_category")
+}
+
+enum CrawlStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
+
+  @@map("crawl_status")
+}
+
+enum CrawlerType {
+  PLAYWRIGHT
+  CHEERIO
+  MANUAL
+
+  @@map("crawler_type")
+}
+
+enum NoticeConditionTargetType {
+  YOUTH
+  NEWLYWED
+  COMMON
+  OTHER
+
+  @@map("notice_condition_target_type")
+}
+
+enum EligibilityResultLevel {
+  HIGH
+  MEDIUM
+  LOW
+  NOT_ELIGIBLE
+  NEED_CHECK
+
+  @@map("eligibility_result_level")
+}
+
+enum GuideContentType {
+  TEXT
+  IMAGE
+  CHECKLIST
+
+  @@map("guide_content_type")
+}
+
+enum GuideAnnouncementType {
+  YOUTH_SAFE_HOUSE
+  ADDITIONAL_RECRUIT
+  COMMON
+
+  @@map("guide_announcement_type")
+}
+
+enum DeviceType {
+  ANDROID
+  IOS
+
+  @@map("device_type")
+}
+
+enum DocumentTargetType {
+  ANNOUNCEMENT
+  PRODUCT
+
+  @@map("document_target_type")
+}
+
+enum EligibilityConditionCode {
+  INCOME
+  ASSET
+  CASH
+  HOMELESS
+  RENT_BURDEN
+  DEBT
+  REGION
+
+  @@map("eligibility_condition_code")
+}
+
+enum EligibilityConditionResultStatus {
+  PASS
+  FAIL
+  NEED_CHECK
+
+  @@map("eligibility_condition_result_status")
+}
+
+enum DocumentIssueMethod {
+  ONLINE
+  OFFLINE
+  BOTH
+
+  @@map("document_issue_method")
+}
+
+enum RequiredDocumentType {
+  COMMON
+  PRODUCT
+  ANNOUNCEMENT
+
+  @@map("required_document_type")
+}
+
 model User {
-  userId     BigInt   @id(map: "PK_USERS") @default(autoincrement()) @map("user_id")
-  email      String?  @unique(map: "UK_USERS_EMAIL") @db.VarChar(255)
-  password   String?  @db.VarChar(255)
-  provider   String   @db.VarChar(50)
-  providerId String?  @map("provider_id") @db.VarChar(255)
-  status     String   @default("ACTIVE") @db.VarChar(20)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  userId     BigInt       @id(map: "PK_USERS") @default(autoincrement()) @map("user_id")
+  email      String?      @unique(map: "UK_USERS_EMAIL") @db.VarChar(255)
+  password   String?      @db.VarChar(255)
+  provider   UserProvider
+  providerId String?      @map("provider_id") @db.VarChar(255)
+  status     UserStatus   @default(ACTIVE)
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   alertSetting     AlertSetting?
   conditionProfile UserConditionProfile?
@@ -44,19 +203,26 @@ model UserProfile {
 }
 
 model UserConditionProfile {
-  userConditionProfileId   BigInt   @id(map: "PK_USER_CONDITION_PROFILES") @default(autoincrement()) @map("user_condition_profile_id")
-  userId                   BigInt   @unique(map: "UK_USER_CONDITION_PROFILES_USER_ID") @map("user_id")
-  monthlyIncomeAmount      BigInt   @default(0) @map("monthly_income_amount")
-  totalAssetAmount         BigInt   @default(0) @map("total_asset_amount")
-  totalDebtAmount          BigInt   @default(0) @map("total_debt_amount")
-  monthlyDebtPaymentAmount BigInt   @default(0) @map("monthly_debt_payment_amount")
-  cashSavings              BigInt   @default(0) @map("cash_savings")
-  housingOwnershipStatus   String   @default("UNKNOWN") @map("housing_ownership_status") @db.VarChar(50)
-  isHomeless               Boolean  @default(false) @map("is_homeless")
-  residenceRegionCode      String?  @map("residence_region_code") @db.VarChar(100)
-  workplaceRegionCode      String?  @map("workplace_region_code") @db.VarChar(100)
-  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  userConditionProfileId   BigInt    @id(map: "PK_USER_CONDITION_PROFILES") @default(autoincrement()) @map("user_condition_profile_id")
+  userId                   BigInt    @unique(map: "UK_USER_CONDITION_PROFILES_USER_ID") @map("user_id")
+  monthlyIncomeAmount      BigInt    @default(0) @map("monthly_income_amount")
+  totalAssetAmount         BigInt    @default(0) @map("total_asset_amount")
+  totalDebtAmount          BigInt    @default(0) @map("total_debt_amount")
+  monthlyDebtPaymentAmount BigInt    @default(0) @map("monthly_debt_payment_amount")
+  cashSavings              BigInt    @default(0) @map("cash_savings")
+  housingOwnershipStatus   String    @default("UNKNOWN") @map("housing_ownership_status") @db.VarChar(50)
+  isHomeless               Boolean   @default(false) @map("is_homeless")
+  residenceRegionCode      String?   @map("residence_region_code") @db.VarChar(100)
+  workplaceRegionCode      String?   @map("workplace_region_code") @db.VarChar(100)
+  householdHeadStatus      String    @map("household_head_status") @db.VarChar(30)
+  maritalStatus            String    @map("marital_status") @db.VarChar(30)
+  marriageDate             DateTime? @map("marriage_date") @db.Date
+  minorChildrenCount       Int       @default(0) @map("minor_children_count")
+  hasRecentNewborn         Boolean   @default(false) @map("has_recent_newborn")
+  newbornBirthDate         DateTime? @map("newborn_birth_date") @db.Date
+  hasExistingHousingLoan   Boolean   @default(false) @map("has_existing_housing_loan")
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   eligibilityAnalyses EligibilityAnalysis[]
   user                User                  @relation(fields: [userId], references: [userId], map: "FK_users_TO_user_condition_profiles_1")
@@ -81,12 +247,12 @@ model AlertSetting {
 }
 
 model UserDevice {
-  deviceId   BigInt   @id(map: "PK_USER_DEVICE") @default(autoincrement()) @map("device_id")
-  userId     BigInt   @map("user_id")
-  fcmToken   String   @map("fcm_token") @db.VarChar(255)
-  deviceType String?  @map("device_type") @db.VarChar(20)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  deviceId   BigInt      @id(map: "PK_USER_DEVICE") @default(autoincrement()) @map("device_id")
+  userId     BigInt      @map("user_id")
+  fcmToken   String      @unique(map: "UK_USER_DEVICE_FCM_TOKEN") @map("fcm_token") @db.VarChar(255)
+  deviceType DeviceType? @map("device_type")
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   user User @relation(fields: [userId], references: [userId], map: "FK_users_TO_user_device_1")
 
@@ -119,7 +285,6 @@ model Notice {
   sourceUrl               String    @map("source_url") @db.Text
   dedupHash               String    @unique(map: "UK_NOTICES_DEDUP_HASH") @map("dedup_hash") @db.VarChar(255)
   contentHash             String?   @map("content_hash") @db.VarChar(255)
-  status                  String    @db.VarChar(30)
   isAdditionalRecruitment Boolean   @default(false) @map("is_additional_recruitment")
   applicationStartAt      DateTime? @map("application_start_at") @db.Timestamp(0)
   applicationEndAt        DateTime? @map("application_end_at") @db.Timestamp(0)
@@ -164,23 +329,23 @@ model NoticeUnit {
 }
 
 model NoticeCondition {
-  conditionId                 BigInt   @id(map: "PK_NOTICE_CONDITIONS") @default(autoincrement()) @map("condition_id")
-  noticeId                    BigInt   @map("notice_id")
-  targetType                  String?  @map("target_type") @db.VarChar(100)
-  minAge                      Int?     @map("min_age")
-  maxAge                      Int?     @map("max_age")
-  incomeLimitAmount           BigInt?  @map("income_limit_amount")
-  incomeLimitText             String?  @map("income_limit_text") @db.Text
-  assetLimitAmount            BigInt?  @map("asset_limit_amount")
-  assetLimitText              String?  @map("asset_limit_text") @db.Text
-  requiresHomeless            Boolean? @map("requires_homeless")
-  housingOwnershipRequirement String?  @map("housing_ownership_requirement") @db.Text
-  residenceRequirement        String?  @map("residence_requirement") @db.Text
-  householdRequirement        String?  @map("household_requirement") @db.Text
-  subscriptionRequirement     String?  @map("subscription_requirement") @db.Text
-  rawConditionText            String?  @map("raw_condition_text") @db.Text
-  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  conditionId                 BigInt                    @id(map: "PK_NOTICE_CONDITIONS") @default(autoincrement()) @map("condition_id")
+  noticeId                    BigInt                    @map("notice_id")
+  targetType                  NoticeConditionTargetType @default(OTHER) @map("target_type")
+  minAge                      Int?                      @map("min_age")
+  maxAge                      Int?                      @map("max_age")
+  incomeLimitAmount           BigInt?                   @map("income_limit_amount")
+  incomeLimitText             String?                   @map("income_limit_text") @db.Text
+  assetLimitAmount            BigInt?                   @map("asset_limit_amount")
+  assetLimitText              String?                   @map("asset_limit_text") @db.Text
+  requiresHomeless            Boolean?                  @map("requires_homeless")
+  housingOwnershipRequirement String?                   @map("housing_ownership_requirement") @db.Text
+  residenceRequirement        String?                   @map("residence_requirement") @db.Text
+  householdRequirement        String?                   @map("household_requirement") @db.Text
+  subscriptionRequirement     String?                   @map("subscription_requirement") @db.Text
+  rawConditionText            String?                   @map("raw_condition_text") @db.Text
+  createdAt                   DateTime                  @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                   DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   eligibilityConditionResults EligibilityConditionResult[]
   notice                      Notice                       @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notice_conditions_1")
@@ -189,13 +354,13 @@ model NoticeCondition {
 }
 
 model NoticeFile {
-  fileId       BigInt    @id(map: "PK_NOTICE_FILES") @default(autoincrement()) @map("file_id")
-  noticeId     BigInt    @map("notice_id")
-  fileName     String    @map("file_name") @db.VarChar(255)
-  fileType     String    @map("file_type") @db.VarChar(30)
-  fileUrl      String    @map("file_url") @db.Text
-  registeredAt DateTime? @map("registered_at") @db.Timestamp(0)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  fileId       BigInt         @id(map: "PK_NOTICE_FILES") @default(autoincrement()) @map("file_id")
+  noticeId     BigInt         @map("notice_id")
+  fileName     String         @map("file_name") @db.VarChar(255)
+  fileType     NoticeFileType @map("file_type")
+  fileUrl      String         @map("file_url") @db.Text
+  registeredAt DateTime?      @map("registered_at") @db.Timestamp(0)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamp(0)
 
   notice Notice @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notice_files_1")
 
@@ -216,17 +381,17 @@ model SavedNotice {
 }
 
 model NotificationLog {
-  notificationLogId BigInt    @id(map: "PK_NOTIFICATION_LOGS") @default(autoincrement()) @map("notification_log_id")
-  userId            BigInt    @map("user_id")
-  noticeId          BigInt?   @map("notice_id")
-  notificationType  String    @map("notification_type") @db.VarChar(30)
-  isRead            Boolean   @default(false) @map("is_read")
-  title             String    @db.VarChar(255)
-  body              String?   @db.Text
-  status            String    @db.VarChar(30)
-  sentAt            DateTime? @map("sent_at") @db.Timestamp(0)
-  failureReason     String?   @map("failure_reason") @db.Text
-  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  notificationLogId BigInt             @id(map: "PK_NOTIFICATION_LOGS") @default(autoincrement()) @map("notification_log_id")
+  userId            BigInt             @map("user_id")
+  noticeId          BigInt?            @map("notice_id")
+  notificationType  String             @map("notification_type") @db.VarChar(30)
+  isRead            Boolean            @default(false) @map("is_read")
+  title             String             @db.VarChar(255)
+  body              String?            @db.Text
+  status            NotificationStatus @default(PENDING)
+  sentAt            DateTime?          @map("sent_at") @db.Timestamp(0)
+  failureReason     String?            @map("failure_reason") @db.Text
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamp(0)
 
   notice Notice? @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_notification_logs_1")
   user   User    @relation(fields: [userId], references: [userId], map: "FK_users_TO_notification_logs_1")
@@ -235,38 +400,52 @@ model NotificationLog {
 }
 
 model CrawlLog {
-  crawlLogId         BigInt    @id(map: "PK_CRAWL_LOGS") @default(autoincrement()) @map("crawl_log_id")
-  complexId          BigInt?   @map("complex_id")
-  status             String    @db.VarChar(30)
-  crawlerType        String?   @map("crawler_type") @db.VarChar(30)
-  errorType          String?   @map("error_type") @db.VarChar(50)
-  startedAt          DateTime  @map("started_at") @db.Timestamp(0)
-  finishedAt         DateTime? @map("finished_at") @db.Timestamp(0)
-  attemptCount       Int       @default(0) @map("attempt_count")
-  errorMessage       String?   @map("error_message") @db.Text
-  createdNoticeCount Int       @default(0) @map("created_notice_count")
-  updatedNoticeCount Int       @default(0) @map("updated_notice_count")
-  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamp(0)
+  crawlLogId         BigInt       @id(map: "PK_CRAWL_LOGS") @default(autoincrement()) @map("crawl_log_id")
+  complexId          BigInt?      @map("complex_id")
+  status             CrawlStatus
+  crawlerType        CrawlerType? @map("crawler_type")
+  errorType          String?      @map("error_type") @db.VarChar(50)
+  startedAt          DateTime     @map("started_at") @db.Timestamp(0)
+  finishedAt         DateTime?    @map("finished_at") @db.Timestamp(0)
+  attemptCount       Int          @default(0) @map("attempt_count")
+  errorMessage       String?      @map("error_message") @db.Text
+  createdNoticeCount Int          @default(0) @map("created_notice_count")
+  updatedNoticeCount Int          @default(0) @map("updated_notice_count")
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamp(0)
 
   complex HousingComplex? @relation(fields: [complexId], references: [complexId], map: "FK_housing_complexes_TO_crawl_logs_1")
 
   @@map("crawl_logs")
 }
 
+model ExternalApiCallLog {
+  externalApiLogId BigInt                @id(map: "PK_EXTERNAL_API_CALL_LOGS") @default(autoincrement()) @map("external_api_log_id")
+  apiName          String                @map("api_name") @db.VarChar(50) // 예: LOAN_RATE_API, LOAN_GUARANTEE_INFO_API
+  errorType        ExternalApiErrorType? @map("error_type") // HTTP_ERROR / RESULT_CODE_ERROR / INVALID_RESPONSE / NETWORK_ERROR
+  httpStatusCode   Int?                  @map("http_status_code") // 네트워크 단계 오류 시 NULL
+  requestUrl       String?               @map("request_url") @db.VarChar(500) // serviceKey 등 인증정보는 반드시 제외하고 저장
+  errorMessage     String?               @map("error_message") @db.Text
+  startedAt        DateTime              @map("started_at") @db.Timestamp(0)
+  failedAt         DateTime              @default(now()) @map("failed_at") @db.Timestamp(0)
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@map("external_api_call_logs")
+}
+
 model EligibilityAnalysis {
-  eligibilityAnalysisId     BigInt   @id(map: "PK_ELIGIBILITY_ANALYSES") @default(autoincrement()) @map("eligibility_analysis_id")
-  userConditionProfileId    BigInt   @map("user_condition_profile_id")
-  noticeId                  BigInt   @map("notice_id")
-  unitId                    BigInt   @map("unit_id")
-  resultLevel               String   @map("result_level") @db.VarChar(30)
-  eligibilityScore          Decimal  @map("eligibility_score") @db.Decimal(5, 2)
-  expectedDepositAmount     BigInt   @map("expected_deposit_amount")
-  expectedMonthlyRentAmount BigInt   @map("expected_monthly_rent_amount")
-  maintenanceFeeAmount      BigInt   @default(0) @map("maintenance_fee_amount")
-  shortageAmount            BigInt   @map("shortage_amount")
-  rentBurdenRate            Decimal  @map("rent_burden_rate") @db.Decimal(5, 2)
-  summaryMessage            String?  @map("summary_message") @db.VarChar(500)
-  analyzedAt                DateTime @default(now()) @map("analyzed_at") @db.Timestamp(0)
+  eligibilityAnalysisId     BigInt                 @id(map: "PK_ELIGIBILITY_ANALYSES") @default(autoincrement()) @map("eligibility_analysis_id")
+  userConditionProfileId    BigInt                 @map("user_condition_profile_id")
+  noticeId                  BigInt                 @map("notice_id")
+  unitId                    BigInt                 @map("unit_id")
+  resultLevel               EligibilityResultLevel @map("result_level")
+  eligibilityScore          Decimal                @map("eligibility_score") @db.Decimal(5, 2)
+  expectedDepositAmount     BigInt                 @map("expected_deposit_amount")
+  expectedMonthlyRentAmount BigInt                 @map("expected_monthly_rent_amount")
+  maintenanceFeeAmount      BigInt                 @default(0) @map("maintenance_fee_amount")
+  shortageAmount            BigInt                 @map("shortage_amount")
+  rentBurdenRate            Decimal                @map("rent_burden_rate") @db.Decimal(5, 2)
+  summaryMessage            String?                @map("summary_message") @db.VarChar(500)
+  analyzedAt                DateTime               @default(now()) @map("analyzed_at") @db.Timestamp(0)
 
   conditionResults     EligibilityConditionResult[]
   notice               Notice                       @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_eligibility_analyses_1")
@@ -277,15 +456,15 @@ model EligibilityAnalysis {
 }
 
 model EligibilityConditionResult {
-  eligibilityConditionResultId BigInt  @id(map: "PK_ELIGIBILITY_CONDITION_RESULTS") @default(autoincrement()) @map("eligibility_condition_result_id")
-  eligibilityAnalysisId        BigInt  @map("eligibility_analysis_id")
-  conditionId                  BigInt? @map("condition_id")
-  conditionCode                String  @map("condition_code") @db.VarChar(50)
-  conditionName                String  @map("condition_name") @db.VarChar(100)
-  requiredValue                String? @map("required_value") @db.VarChar(255)
-  userValue                    String? @map("user_value") @db.VarChar(255)
-  resultStatus                 String  @map("result_status") @db.VarChar(30)
-  failReason                   String? @map("fail_reason") @db.VarChar(500)
+  eligibilityConditionResultId BigInt                           @id(map: "PK_ELIGIBILITY_CONDITION_RESULTS") @default(autoincrement()) @map("eligibility_condition_result_id")
+  eligibilityAnalysisId        BigInt                           @map("eligibility_analysis_id")
+  conditionId                  BigInt?                          @map("condition_id")
+  conditionCode                EligibilityConditionCode         @map("condition_code")
+  conditionName                String                           @map("condition_name") @db.VarChar(100)
+  requiredValue                String?                          @map("required_value") @db.VarChar(255)
+  userValue                    String?                          @map("user_value") @db.VarChar(255)
+  resultStatus                 EligibilityConditionResultStatus @map("result_status")
+  failReason                   String?                          @map("fail_reason") @db.VarChar(500)
 
   condition           NoticeCondition?    @relation(fields: [conditionId], references: [conditionId], map: "FK_notice_conditions_TO_eligibility_condition_results_1")
   eligibilityAnalysis EligibilityAnalysis @relation(fields: [eligibilityAnalysisId], references: [eligibilityAnalysisId], map: "FK_eligibility_analyses_TO_eligibility_condition_results_1")
@@ -294,23 +473,37 @@ model EligibilityConditionResult {
 }
 
 model LoanProduct {
-  productId      BigInt   @id(map: "PK_LOAN_PRODUCTS") @default(autoincrement()) @map("product_id")
-  productName    String   @map("product_name") @db.VarChar(255)
-  providerType   String   @map("provider_type") @db.VarChar(30)
-  providerName   String   @map("provider_name") @db.VarChar(100)
-  guaranteeRatio Int?     @map("guarantee_ratio") // 신규: 보증비율(%). 은행 대출상품 전용
-  minRate        Decimal? @map("min_rate") @db.Decimal(5, 2)
-  maxRate        Decimal? @map("max_rate") @db.Decimal(5, 2)
-  maxLimitAmount BigInt?  @map("max_limit_amount")
-  minAge         Int?     @map("min_age")
-  maxAge         Int?     @map("max_age")
-  maxIncome      BigInt?  @map("max_income")
-  maxAsset       BigInt?  @map("max_asset")
-  requireNoHouse Boolean? @map("require_no_house") // 변경: nullable
-  officialUrl    String?  @map("official_url") @db.VarChar(500) // 변경: nullable
-  description    String?  @db.Text
-  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  productId                BigInt           @id(map: "PK_LOAN_PRODUCTS") @default(autoincrement()) @map("product_id")
+  productName              String           @map("product_name") @db.VarChar(255)
+  providerType             LoanProviderType @map("provider_type")
+  providerName             String           @map("provider_name") @db.VarChar(100)
+  productCategory          ProductCategory? @map("product_category") // MORTGAGE_LOAN / JEONSE_LOAN / SUBSCRIPTION_SAVINGS. 기존 로우는 백필 전까지 NULL
+  guaranteeRatio           Int?             @map("guarantee_ratio") // 신규: 보증비율(%). 은행 대출상품 전용
+  minRate                  Decimal?         @map("min_rate") @db.Decimal(5, 2)
+  maxRate                  Decimal?         @map("max_rate") @db.Decimal(5, 2)
+  maxLimitAmount           BigInt?          @map("max_limit_amount")
+  minAge                   Int?             @map("min_age")
+  maxAge                   Int?             @map("max_age")
+  maxIncome                BigInt?          @map("max_income")
+  minIncome                BigInt?          @map("min_income") // 소득 하한. 하한 없는 상품은 NULL
+  maxAsset                 BigInt?          @map("max_asset")
+  minAsset                 BigInt?          @map("min_asset") // 자산 하한. 하한 없는 상품은 NULL
+  requireNoHouse           Boolean?         @map("require_no_house") // nullable, 기본값 없음
+  firstTimeBuyerOnly       Boolean?         @map("first_time_buyer_only") // 생애최초 전용 여부. requireNoHouse(무주택)와 별개 조건
+  ltvRatio                 Int?             @map("ltv_ratio") // 담보가치 대비 대출 비율(%). 대출 상품 전용. loanRatioPercent(전세보증금 대비)와 중복/충돌 가능성 있어 정리 필요
+  dtiRatio                 Int?             @map("dti_ratio") // 소득 대비 원리금 상환 비율(%). 대출 상품 전용
+  loanTermMinYears         Int?             @map("loan_term_min_years")
+  loanTermMaxYears         Int?             @map("loan_term_max_years")
+  preferentialRateDiscount Decimal?         @map("preferential_rate_discount") @db.Decimal(4, 2) // 우대금리 최대 할인폭(%p)
+  minMonthlyDeposit        BigInt?          @map("min_monthly_deposit") // 청약저축 전용: 월 최소 납입액
+  maxMonthlyDeposit        BigInt?          @map("max_monthly_deposit") // 청약저축 전용: 월 최대 납입액
+  maxDepositAmount         BigInt?          @map("max_deposit_amount") // 전세보증금 상한 (원 단위). 예: 청년전용 버팀목 3억원
+  loanRatioPercent         Decimal?         @map("loan_ratio_percent") @db.Decimal(5, 2) // 대출비율: 전세보증금 대비 최대 대출 가능 비율(%). ltvRatio와 중복/충돌 가능성 있어 정리 필요
+  maxAreaM2                Decimal?         @map("max_area_m2") @db.Decimal(6, 2) // 임차 전용면적 상한(㎡). notice_units.exclusive_area_m2와 비교
+  officialUrl              String?          @map("official_url") @db.VarChar(500) // 변경: nullable
+  description              String?          @db.Text
+  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   documentMappings DocumentMapping[]
 
@@ -338,15 +531,15 @@ model GuideCategory {
 }
 
 model Guide {
-  guideId          BigInt   @id(map: "PK_GUIDES") @default(autoincrement()) @map("guide_id")
-  categoryId       BigInt   @map("category_id")
-  title            String   @db.VarChar(255)
-  contentType      String   @map("content_type") @db.VarChar(20)
-  contentBody      String   @map("content_body") @db.Text
-  announcementType String   @map("announcement_type") @db.VarChar(50)
-  displayOrder     Int      @map("display_order")
-  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  guideId          BigInt                @id(map: "PK_GUIDES") @default(autoincrement()) @map("guide_id")
+  categoryId       BigInt                @map("category_id")
+  title            String                @db.VarChar(255)
+  contentType      GuideContentType      @map("content_type")
+  contentBody      String                @map("content_body") @db.Text
+  announcementType GuideAnnouncementType @map("announcement_type")
+  displayOrder     Int                   @map("display_order")
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   category GuideCategory @relation(fields: [categoryId], references: [categoryId], map: "FK_guide_categories_TO_guides_1")
 
@@ -354,14 +547,14 @@ model Guide {
 }
 
 model RequiredDocument {
-  documentId         BigInt   @id(map: "PK_REQUIRED_DOCUMENTS") @default(autoincrement()) @map("document_id")
-  documentName       String   @map("document_name") @db.VarChar(255)
-  issuer             String?  @db.VarChar(100)
-  issueMethod        String   @map("issue_method") @db.VarChar(30)
-  validityPeriodDays Int?     @map("validity_period_days")
-  documentType       String   @map("document_type") @db.VarChar(30)
-  description        String?  @db.Text
-  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  documentId         BigInt               @id(map: "PK_REQUIRED_DOCUMENTS") @default(autoincrement()) @map("document_id")
+  documentName       String               @map("document_name") @db.VarChar(255)
+  issuer             String?              @db.VarChar(100)
+  issueMethod        DocumentIssueMethod  @map("issue_method")
+  validityPeriodDays Int?                 @map("validity_period_days")
+  documentType       RequiredDocumentType @map("document_type")
+  description        String?              @db.Text
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamp(0)
 
   documentMappings DocumentMapping[]
 
@@ -369,12 +562,12 @@ model RequiredDocument {
 }
 
 model DocumentMapping {
-  mappingId  BigInt  @id(map: "PK_DOCUMENT_MAPPINGS") @default(autoincrement()) @map("mapping_id")
-  noticeId   BigInt? @map("notice_id")
-  productId  BigInt? @map("product_id")
-  documentId BigInt  @map("document_id")
-  targetType String  @map("target_type") @db.VarChar(50)
-  isRequired Boolean @default(true) @map("is_required")
+  mappingId  BigInt             @id(map: "PK_DOCUMENT_MAPPINGS") @default(autoincrement()) @map("mapping_id")
+  noticeId   BigInt?            @map("notice_id")
+  productId  BigInt?            @map("product_id")
+  documentId BigInt             @map("document_id")
+  targetType DocumentTargetType @map("target_type")
+  isRequired Boolean            @default(true) @map("is_required")
 
   document RequiredDocument @relation(fields: [documentId], references: [documentId], map: "FK_required_documents_TO_document_mappings_1")
   notice   Notice?          @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_document_mappings_1")

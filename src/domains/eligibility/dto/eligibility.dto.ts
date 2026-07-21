@@ -1,32 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  EligibilityConditionCode,
+  EligibilityConditionResultStatus,
+  EligibilityResultLevel,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
-export enum EligibilityResultLevel {
-  HIGH = 'HIGH',
-  MEDIUM = 'MEDIUM',
-  LOW = 'LOW',
-  NOT_ELIGIBLE = 'NOT_ELIGIBLE',
-  NEED_CHECK = 'NEED_CHECK',
-}
-
-export enum EligibilityConditionCode {
-  INCOME = 'INCOME',
-  ASSET = 'ASSET',
-  CASH = 'CASH',
-  HOMELESS = 'HOMELESS',
-  RENT_BURDEN = 'RENT_BURDEN',
-  DEBT = 'DEBT',
-  REGION = 'REGION',
-}
-
-export enum EligibilityConditionResultStatus {
-  PASS = 'PASS',
-  FAIL = 'FAIL',
-  NEED_CHECK = 'NEED_CHECK',
-}
+export { EligibilityConditionCode, EligibilityConditionResultStatus, EligibilityResultLevel };
 
 export class EligibilityConditionResultDto {
   @ApiProperty({

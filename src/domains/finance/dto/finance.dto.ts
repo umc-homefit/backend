@@ -1,37 +1,38 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  DocumentIssueMethod,
+  GuideAnnouncementType,
+  GuideContentType,
+  LoanProviderType,
+  ProductCategory,
+  RequiredDocumentType,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
-export enum LoanProviderType {
-  POLICY = 'POLICY',
-  BANK = 'BANK',
-}
+export {
+  DocumentIssueMethod,
+  GuideAnnouncementType,
+  GuideContentType,
+  LoanProviderType,
+  ProductCategory,
+  RequiredDocumentType,
+};
 
-export enum DocumentIssueMethod {
-  ONLINE = 'ONLINE',
-  OFFLINE = 'OFFLINE',
-  BOTH = 'BOTH',
-}
-
-export enum GuideContentType {
-  TEXT = 'TEXT',
-  IMAGE = 'IMAGE',
-  CHECKLIST = 'CHECKLIST',
-}
-
-export enum GuideAnnouncementType {
-  COMMON = 'COMMON',
-  YOUTH_SAFE_HOUSE = 'YOUTH_SAFE_HOUSE',
-  ADDITIONAL_RECRUIT = 'ADDITIONAL_RECRUIT',
+export enum LoanProductSort {
+  RECOMMENDED = 'RECOMMENDED',
+  LATEST = 'LATEST',
+  RATE_ASC = 'RATE_ASC',
+  LIMIT_DESC = 'LIMIT_DESC',
 }
 
 export class MatchLoanProductsQueryDto {
   @ApiPropertyOptional({ description: '매칭 기준 공고 ID', example: 22 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'noticeId는 정수여야 합니다.' })
   noticeId?: number;
 
   @ApiPropertyOptional({
@@ -40,7 +41,9 @@ export class MatchLoanProductsQueryDto {
     example: LoanProviderType.POLICY,
   })
   @IsOptional()
-  @IsEnum(LoanProviderType)
+  @IsEnum(LoanProviderType, {
+    message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
+  })
   providerType?: LoanProviderType;
 }
 
@@ -58,11 +61,29 @@ export class MatchedLoanProductDto {
   })
   providerType: LoanProviderType;
 
+  @ApiPropertyOptional({
+    description: '상품 카테고리',
+    enum: ProductCategory,
+    example: ProductCategory.JEONSE_LOAN,
+    nullable: true,
+  })
+  productCategory: ProductCategory | null;
+
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;
+
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
+  maxIncome: number | null;
+
+  @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
+  firstTimeBuyerOnly: boolean | null;
 
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
@@ -75,6 +96,20 @@ export class MatchLoanProductsResultDto {
   @ApiProperty({ description: '매칭된 상품 수', example: 2 })
   matchedCount: number;
 
+  @ApiPropertyOptional({
+    description: '매칭 상품 중 최저 금리',
+    example: '1.2%',
+    nullable: true,
+  })
+  minRate: string | null;
+
+  @ApiPropertyOptional({
+    description: '매칭 상품 중 최대 한도 (원 단위)',
+    example: 200000000,
+    nullable: true,
+  })
+  maxLimitAmount: number | null;
+
   @ApiProperty({ description: '매칭 상품 목록', type: [MatchedLoanProductDto] })
   products: MatchedLoanProductDto[];
 }
@@ -82,21 +117,48 @@ export class MatchLoanProductsResultDto {
 export class GetLoanProductsQueryDto {
   @ApiPropertyOptional({ description: '상품 제공 유형', enum: LoanProviderType })
   @IsOptional()
-  @IsEnum(LoanProviderType)
+  @IsEnum(LoanProviderType, {
+    message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
+  })
   providerType?: LoanProviderType;
+
+  @ApiPropertyOptional({ description: '상품 카테고리', enum: ProductCategory })
+  @IsOptional()
+  @IsEnum(ProductCategory, {
+    message:
+      'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+  })
+  productCategory?: ProductCategory;
+
+  @ApiPropertyOptional({ description: '상품명/취급기관명 검색어 (부분 검색)', example: '버팀목' })
+  @IsOptional()
+  @IsString({ message: 'keyword는 문자열이어야 합니다.' })
+  keyword?: string;
+
+  @ApiPropertyOptional({
+    description: '정렬 기준',
+    enum: LoanProductSort,
+    default: LoanProductSort.RECOMMENDED,
+    example: LoanProductSort.RECOMMENDED,
+  })
+  @IsOptional()
+  @IsEnum(LoanProductSort, {
+    message: 'sort는 반드시 다음 중 하나여야합니다 : RECOMMENDED, LATEST, RATE_ASC, LIMIT_DESC',
+  })
+  sort?: LoanProductSort = LoanProductSort.RECOMMENDED;
 
   @ApiPropertyOptional({ description: '페이지 번호 (0부터 시작)', default: 0, example: 0 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(0)
+  @IsInt({ message: 'page는 정수여야 합니다.' })
+  @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
   @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'size는 정수여야 합니다.' })
+  @Min(1, { message: 'size는 1 이상이어야 합니다.' })
   size?: number = 20;
 }
 
@@ -110,11 +172,32 @@ export class LoanProductListItemDto {
   @ApiProperty({ description: '제공 유형', enum: LoanProviderType, example: LoanProviderType.BANK })
   providerType: LoanProviderType;
 
+  @ApiPropertyOptional({
+    description: '상품 카테고리',
+    enum: ProductCategory,
+    example: ProductCategory.JEONSE_LOAN,
+    nullable: true,
+  })
+  productCategory: ProductCategory | null;
+
   @ApiProperty({ description: '제공 기관명', example: '하나은행' })
   providerName: string;
 
   @ApiPropertyOptional({ description: '금리 범위', example: '3.2% ~ 4.5%', nullable: true })
   rateRange: string | null;
+
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
+  maxIncome: number | null;
+
+  @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
+  firstTimeBuyerOnly: boolean | null;
+
+  @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
+  maxLimitAmount: number | null;
 }
 
 export class LoanProductListResultDto {
@@ -153,20 +236,80 @@ export class LoanProductDetailResultDto {
   })
   providerType: LoanProviderType;
 
+  @ApiPropertyOptional({
+    description: '상품 카테고리',
+    enum: ProductCategory,
+    example: ProductCategory.JEONSE_LOAN,
+    nullable: true,
+  })
+  productCategory: ProductCategory | null;
+
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;
 
+  @ApiPropertyOptional({
+    description: '연소득 조건 상한 (원 단위)',
+    example: 60000000,
+    nullable: true,
+  })
+  maxIncome: number | null;
+
+  @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
+  firstTimeBuyerOnly: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
+    description: 'LTV 한도(담보가치 대비 대출 비율, %). 대출 상품 전용',
+    example: 70,
+    nullable: true,
+  })
+  ltvRatio: number | null;
+
+  @ApiPropertyOptional({
+    description: 'DTI 한도(소득 대비 원리금 상환 비율, %). 대출 상품 전용',
+    example: 60,
+    nullable: true,
+  })
+  dtiRatio: number | null;
+
+  @ApiPropertyOptional({ description: '대출 기간 최소(년)', example: 10, nullable: true })
+  loanTermMinYears: number | null;
+
+  @ApiPropertyOptional({ description: '대출 기간 최대(년)', example: 30, nullable: true })
+  loanTermMaxYears: number | null;
+
+  @ApiPropertyOptional({
+    description: '우대금리 최대 할인폭(%p)',
+    example: 0.5,
+    nullable: true,
+  })
+  preferentialRateDiscount: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최소 납입액 (원 단위). 청약저축 전용',
+    example: 20000,
+    nullable: true,
+  })
+  minMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최대 납입액 (원 단위). 청약저축 전용',
+    example: 500000,
+    nullable: true,
+  })
+  maxMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
     description: '공식 안내 URL (상세에만 포함)',
     example: 'https://nhuf.molit.go.kr',
+    nullable: true,
   })
-  officialUrl: string;
+  officialUrl: string | null;
 
   @ApiPropertyOptional({
     description: '상품 설명',
@@ -177,10 +320,10 @@ export class LoanProductDetailResultDto {
 }
 
 export class GetFinanceTermsQueryDto {
-  @ApiPropertyOptional({ description: '부분 검색 키워드', example: 'DSR' })
-  @IsOptional()
-  @IsString()
-  term?: string;
+  @ApiProperty({ description: '정확히 일치하는 용어명 (필수, 부분검색 아님)', example: 'DSR' })
+  @IsNotEmpty({ message: 'term은 비어있을 수 없습니다.' })
+  @IsString({ message: 'term은 문자열이어야 합니다.' })
+  term: string;
 }
 
 export class FinanceTermItemDto {
@@ -213,6 +356,13 @@ export class RequiredDocumentItemDto {
   })
   issueMethod: DocumentIssueMethod;
 
+  @ApiProperty({
+    description: '서류 구분',
+    enum: RequiredDocumentType,
+    example: RequiredDocumentType.COMMON,
+  })
+  documentType: RequiredDocumentType;
+
   @ApiProperty({ description: '필수 서류 여부', example: true })
   isRequired: boolean;
 }
@@ -232,7 +382,7 @@ export class GetGuidesQueryDto {
   @ApiPropertyOptional({ description: '가이드 카테고리 ID', example: 1 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'categoryId는 정수여야 합니다.' })
   categoryId?: number;
 
   @ApiPropertyOptional({
@@ -241,30 +391,30 @@ export class GetGuidesQueryDto {
     example: GuideAnnouncementType.COMMON,
   })
   @IsOptional()
-  @IsEnum(GuideAnnouncementType)
+  @IsEnum(GuideAnnouncementType, {
+    message:
+      'announcementType은 반드시 다음 중 하나여야합니다 : COMMON, YOUTH_SAFE_HOUSE, ADDITIONAL_RECRUIT',
+  })
   announcementType?: GuideAnnouncementType;
 
   @ApiPropertyOptional({ description: '페이지 번호 (0부터 시작)', default: 0, example: 0 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(0)
+  @IsInt({ message: 'page는 정수여야 합니다.' })
+  @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
   @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'size는 정수여야 합니다.' })
+  @Min(1, { message: 'size는 1 이상이어야 합니다.' })
   size?: number = 20;
 }
 
 export class GuideListItemDto {
   @ApiProperty({ description: '가이드 ID', example: 10 })
   guideId: number;
-
-  @ApiProperty({ description: '카테고리 ID', example: 1 })
-  categoryId: number;
 
   @ApiProperty({ description: '가이드 제목', example: '추가모집 신청 절차 안내' })
   title: string;
@@ -276,13 +426,19 @@ export class GuideListItemDto {
   })
   contentType: GuideContentType;
 
-  @ApiProperty({ description: '표시 순서', example: 1 })
-  displayOrder: number;
+  @ApiProperty({
+    description: '콘텐츠 본문 (TEXT=문단, IMAGE=img src URL, CHECKLIST=체크리스트 텍스트)',
+    example: '1. 공고 확인\n2. 서류 준비\n3. 온라인 신청',
+  })
+  contentBody: string;
+
+  @ApiProperty({ description: '최종 수정 일시', example: '2026-06-01T00:00:00Z' })
+  updatedAt: string;
 }
 
 export class GuideListResultDto {
-  @ApiProperty({ description: '전체 가이드 수', example: 9 })
-  totalCount: number;
+  @ApiProperty({ description: '페이지 정보', type: PageInfoDto })
+  pageInfo: PageInfoDto;
 
   @ApiProperty({ description: '가이드 목록', type: [GuideListItemDto] })
   guides: GuideListItemDto[];

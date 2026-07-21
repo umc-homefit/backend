@@ -11,6 +11,7 @@
 - 모든 API는 `Authorization: Bearer <accessToken>` 인증이 필요하다.
 - 응답 envelope는 `{ isSuccess, code, message, result }` 형식을 사용한다.
 - 응답 code 접두사는 `NOTI`를 사용한다.
+- 디바이스/알림 리소스는 본인 소유인 경우에만 조회/삭제/수정 가능하며, 그 외에는 404로 응답한다 (403이 아님 — 리소스 존재 여부를 노출하지 않기 위함).
 
 ## ERD/API 필드 매핑
 
@@ -21,13 +22,19 @@
 | `alert_settings` | `schedule_alert_enabled` | `scheduleAlertEnabled` | 청약 일정 알림 여부 |
 | `alert_settings` | `finance_alert_enabled` | `financeAlertEnabled` | 금융상품 알림 여부 |
 | `alert_settings` | `interested_region` | `interestedRegion` | 신규 공고 알림 대상 지역 |
+| `user_device` | `device_id` | `deviceId` | 디바이스 고유 ID |
+| `user_device` | `fcm_token` | `deviceToken` | FCM 디바이스 토큰 (필드명 다름 주의) |
+| `user_device` | `device_type` | `deviceType` | ANDROID / IOS |
+| `notification_logs` | `notification_log_id` | `notificationId` | 알림 고유 ID |
+| `notification_logs` | `notification_type` | `type` | 알림 타입 |
+| `notification_logs` | `body` | `content` | 알림 본문 (필드명 다름 주의) |
 | `notification_logs` | `is_read` | `isRead` | 알림 읽음 여부. 기본값 `false` 권장 |
 
 ## 공통 enum
 
 | enum | 값 | 비고 |
 | --- | --- | --- |
-| `deviceType` | `AOS` / `IOS` | FCM 디바이스 OS 타입 |
+| `deviceType` | `ANDROID` / `IOS` | FCM 디바이스 OS 타입 |
 | `type` | `NEW_NOTICE` / `CLOSING_SOON` | 알림 타입. 추후 일정/금융 알림 확장 가능 |
 
 ## API 목록
@@ -55,7 +62,7 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `deviceToken` | string | Y | 푸시 발송용 기기 고유 토큰 |
-| `deviceType` | enum | Y | `AOS` / `IOS` |
+| `deviceType` | enum | Y | `ANDROID` / `IOS` |
 
 ### Response (result)
 
@@ -65,6 +72,10 @@
   "deviceId": 12
 }
 ```
+
+> 동일한 `userId` + `deviceToken` 조합으로 다시 호출하면 새로 생성하지 않고 기존 디바이스의 `deviceType`만 갱신한다 (멱등 동작).
+>
+> `deviceToken`은 전역 UNIQUE로 관리된다. 같은 기기(`deviceToken`)로 로그아웃 후 **다른 계정**으로 다시 로그인해서 이 API를 호출하면, 해당 디바이스 레코드의 소유자가 현재 로그인한 사용자로 자동 재할당된다 (이전 계정에는 더 이상 알림이 발송되지 않는다).
 
 ---
 
@@ -85,9 +96,15 @@
 
 ```json
 {
-  "userId": 1001
+  "userId": 1001,
+  "deviceId": 12
 }
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 삭제 성공 |
+| 404 | 존재하지 않는 디바이스이거나, 본인 소유가 아님 |
 
 ---
 
@@ -97,6 +114,8 @@
 | --- | --- |
 | Method · Endpoint | `GET /users/me/alert-settings` |
 | 설명 | 사용자 알림 설정을 조회한다. 사용자당 1개의 설정을 가진다. |
+
+> 설정을 한 번도 저장한 적 없는 사용자가 조회하면, 서버가 기본값(모든 알림 ON)으로 자동 생성 후 반환한다. 404를 반환하지 않는다.
 
 ### Response (result)
 
@@ -150,7 +169,7 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `page` | number | N | 기본값 0 |
-| `size` | number | N | 기본값 20 |
+| `size` | number | N | 기본값 20, 최대 50 |
 
 ### Response (result)
 
@@ -176,6 +195,8 @@
 }
 ```
 
+> `content`가 DB에 없는 경우(`body`가 null) 빈 문자열(`""`)로 반환한다.
+
 ---
 
 ## 6. 알림 읽음 처리
@@ -197,4 +218,4 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 읽음 처리 성공 |
-| 404 | 알림 없음 |
+| 404 | 알림 없음 (본인 소유가 아닌 경우 포함) |
