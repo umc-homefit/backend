@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, UseGuards  } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -15,11 +15,10 @@ import {
 } from './dto/auth.dto';
 
 /**
- * signup/login은 AuthService를 통해 실제 DB 조회, 비밀번호 해싱/검증, JWT 발급까지 연동되어 있다.
- * [Refresh Token 관련 - 초기 단계 판단으로 의도적 미도입]
- * 추후 도입 시 AuthResultDto에 refreshToken 필드 추가 + AuthService에서 발급/검증/저장 로직 구현 필요.
- * logout()도 그때 실제 무효화 로직(Refresh Token 삭제 또는 Access Token 블랙리스트)이 채워질 예정.
- * social은 아직 mock 구현이다 
+ * signup/login/social 전부 AuthService를 통해 실제 DB 조회, 비밀번호 해싱/검증,
+ * (소셜의 경우) 각 provider 서버 토큰 검증, JWT 발급까지 연동되어 있다.
+ * logout도 Guard/CurrentUser로 실제 인증 검증까지는 되지만, access-only stateless
+ * 구조라 서버 쪽에서 무효화할 대상이 없어 의도적으로 no-op 구현이다 (mock 아님).
  */
 @ApiTags('Auth/User')
 @Controller('auth')
@@ -52,16 +51,11 @@ export class AuthController {
   @HttpCode(200)
   @ApiOperation({
     summary: '소셜 회원가입 및 로그인',
-    description: '소셜 인증 후 회원가입 또는 로그인하고 JWT를 발급한다.',
+    description: '카카오/구글 OAuth 토큰을 검증하고, 신규면 가입, 기존이면 로그인 처리 후 JWT를 발급한다.',
   })
-  @ApiSuccessResponse(AuthResultDto, { description: '기존 소셜 로그인' })
-  socialAuth(@Body() _body: SocialAuthRequestDto): ApiResponse<AuthResultDto> {
-    const result: AuthResultDto = {
-      accessToken: 'eyJhbGci...',
-      isNewUser: false,
-      userId: 1001,
-    };
-
+  @ApiSuccessResponse(AuthResultDto, { description: '소셜 회원가입/로그인 성공' })
+  async socialAuth(@Body() body: SocialAuthRequestDto): Promise<ApiResponse<AuthResultDto>> {
+    const result = await this.authService.socialAuth(body);
     return createSuccessResponse(result, 'AUTH200', '로그인 성공');
   }
 

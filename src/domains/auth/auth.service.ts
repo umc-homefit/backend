@@ -1,9 +1,16 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { UserProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { AuthRepository } from './auth.repository';
-import { AuthResultDto, LoginRequestDto, SignupRequestDto } from './dto/auth.dto';
+import {
+  AuthResultDto,
+  LoginRequestDto,
+  SignupRequestDto,
+  SocialAuthRequestDto,
+} from './dto/auth.dto';
+import { SocialTokenVerifierService } from './services/social-token-verifier.service';
 
 const SALT_ROUNDS = 10;
 
@@ -12,6 +19,7 @@ export class AuthService {
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
+    private readonly socialTokenVerifier: SocialTokenVerifierService,
   ) {}
 
   async signup(dto: SignupRequestDto): Promise<AuthResultDto> {
@@ -52,10 +60,40 @@ export class AuthService {
       userId: Number(user.userId),
     };
   }
-  
+
+  async socialAuth(dto: SocialAuthRequestDto): Promise<AuthResultDto> {
+    if (!dto.oauthToken) {
+      throw new UnauthorizedException('소셜 인증 토큰이 필요합니다.');
+    }
+
+    // 카카오/구글 서버에 실제로 토큰을 검증해서 진짜 providerId를 받아온다.
+    // dto.providerId(로컬 테스트 전용 필드)는 실제 검증 흐름에서는 사용하지 않는다.
+    const verified = await this.socialTokenVerifier.verify(dto.provider, dto.oauthToken);
+
+    // dto.provider(우리가 정의한 SocialProvider enum)와 Prisma의 UserProvider enum은
+    // 값(KAKAO/GOOGLE)은 같지만 TS 타입은 서로 달라서 캐스팅이 필요하다.
+    const provider = dto.provider as unknown as UserProvider;
+
+    let user = await this.authRepository.findUserByProvider(provider, verified.providerId);
+    let isNewUser = false;
+
+    if (!user) {
+      user = await this.authRepository.createSocialUser(
+        provider,
+        verified.providerId,
+        verified.email,
+      );
+      isNewUser = true;
+    }
+
+    return {
+      accessToken: this.issueAccessToken(user.userId, user.email),
+      isNewUser,
+      userId: Number(user.userId),
+    };
+  }
+
   async logout(userId: bigint): Promise<void> {
-    // TODO: 현재는 access token만 발급하는 stateless 구조라 서버에서 무효화할 대상이 없다.
-    // refresh token을 도입하거나 access token 블랙리스트(Redis 등)를 쓰게 되면 여기서 실제 삭제/무효화 처리.
     void userId;
   }
 
