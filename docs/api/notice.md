@@ -115,6 +115,22 @@
 
 `POPULAR` 정렬은 저장 공고 수(`interestedCount`) 기준이며 저장 기능 구현 이후 P1로 처리한다.
 
+#### 면적·보증금 필터 연동 규칙
+
+- `minArea`, `maxArea`, `minDeposit`, `maxDeposit`은 모두 선택 Query Parameter이다.
+- 전달하지 않은 `min` 또는 `max`에는 해당 하한·상한 필터를 적용하지 않는다.
+- 면적 마지막 눈금 `59㎡ 이상` 선택 시 Android는 `maxArea`를 전달하지 않는다.
+- 보증금 마지막 눈금 `1억 원 이상` 선택 시 Android는 `maxDeposit`을 전달하지 않는다.
+- 하한이 0이면 해당 `min` 파라미터를 생략할 수 있다.
+- 전체 범위 선택 시 관련 `min`, `max` 파라미터를 모두 생략한다.
+- 마지막 눈금 미만의 상한을 선택하면 해당 `max` 값을 전달하며 그 값 이하를 포함한다.
+
+예를 들어 `20㎡ 이상`, `5천만 원 이상`이면 아래처럼 하한만 전달한다.
+
+```http
+GET /notices?minArea=20&minDeposit=50000000
+```
+
 ### Response (result)
 
 `result.notices[]` 항목 + `result.pageInfo`.

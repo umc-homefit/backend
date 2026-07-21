@@ -56,27 +56,41 @@ export class GetNoticesQueryDto {
   @IsBoolean()
   isAdditionalRecruitment?: boolean;
 
-  @ApiPropertyOptional({ description: '최소 보증금 (원 단위)', example: 30000000 })
+  @ApiPropertyOptional({
+    description: '최소 보증금 (원 단위). 미전달 시 하한을 적용하지 않는다.',
+    example: 30000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   minDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최대 보증금 (원 단위)', example: 50000000 })
+  @ApiPropertyOptional({
+    description:
+      '최대 보증금 (원 단위, 해당 값 이하 포함). 1억 원 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 50000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   maxDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최소 전용면적 (㎡)', example: 20 })
+  @ApiPropertyOptional({
+    description: '최소 전용면적 (㎡). 미전달 시 하한을 적용하지 않는다.',
+    example: 20,
+  })
   @IsOptional()
   @Type(() => Number)
   @Min(0)
   minArea?: number;
 
-  @ApiPropertyOptional({ description: '최대 전용면적 (㎡)', example: 40 })
+  @ApiPropertyOptional({
+    description:
+      '최대 전용면적 (㎡, 해당 값 이하 포함). 59㎡ 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 40,
+  })
   @IsOptional()
   @Type(() => Number)
   @Min(0)
