@@ -63,8 +63,11 @@ export class SocialTokenVerifierService {
 
     const data = (await response.json()) as GoogleTokenInfoResponse;
 
-    const expectedClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
-    if (expectedClientId && data.aud !== expectedClientId) {
+    // fail-closed: GOOGLE_CLIENT_ID가 설정 안 되어 있으면 aud 검증을 건너뛰지 않고
+    // 즉시 요청을 막는다. 검증을 스킵하면 다른 앱용으로 발급된 ID Token도 통과될 수 있어서
+    // (fail-open) 인증 관련 설정 누락을 절대 조용히 넘어가면 안 된다.
+    const expectedClientId = this.configService.getOrThrow<string>('GOOGLE_CLIENT_ID');
+    if (data.aud !== expectedClientId) {
       throw new UnauthorizedException('구글 인증 토큰의 발급 대상이 우리 앱이 아닙니다.');
     }
 

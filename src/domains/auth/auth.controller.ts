@@ -1,5 +1,6 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, HttpCode, Post, Res, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse as SwaggerApiResponse, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -48,14 +49,29 @@ export class AuthController {
   }
 
   @Post('social')
-  @HttpCode(200)
   @ApiOperation({
     summary: '소셜 회원가입 및 로그인',
-    description: '카카오/구글 OAuth 토큰을 검증하고, 신규면 가입, 기존이면 로그인 처리 후 JWT를 발급한다.',
+    description:
+      '카카오/구글 OAuth 토큰을 검증하고, 신규면 가입(201/AUTH201), 기존이면 로그인(200/AUTH200) 처리 후 JWT를 발급한다.',
   })
-  @ApiSuccessResponse(AuthResultDto, { description: '소셜 회원가입/로그인 성공' })
-  async socialAuth(@Body() body: SocialAuthRequestDto): Promise<ApiResponse<AuthResultDto>> {
+  @ApiSuccessResponse(AuthResultDto, { description: '기존 유저 로그인 성공 (200)' })
+  @SwaggerApiResponse({
+    status: 201,
+    description: '신규 유저 가입 성공 (201) - Notion 명세상 isNewUser=true인 경우',
+  })
+  async socialAuth(
+    @Body() body: SocialAuthRequestDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<ApiResponse<AuthResultDto>> {
     const result = await this.authService.socialAuth(body);
+
+    // Notion 명세: 신규 가입은 201/AUTH201, 기존 로그인은 200/AUTH200으로 구분한다.
+    if (result.isNewUser) {
+      res.status(201);
+      return createSuccessResponse(result, 'AUTH201', '소셜 회원가입 성공');
+    }
+
+    res.status(200);
     return createSuccessResponse(result, 'AUTH200', '로그인 성공');
   }
 
@@ -63,7 +79,11 @@ export class AuthController {
   @HttpCode(200)
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard) // 실제 JWT 검증 가드 적용
-  @ApiOperation({ summary: '로그아웃', description: '현재 Access Token을 무효화한다.' })
+  @ApiOperation({
+    summary: '로그아웃',
+    description:
+      '인증을 확인한 뒤, 클라이언트에서 저장된 Access Token을 삭제하도록 로그아웃 응답을 반환한다. (서버 측 Access Token 무효화는 하지 않는 stateless 정책)',
+  })
   @ApiSuccessResponse(EmptyResultDto, {
     description: '로그아웃 완료',
     nullable: true,

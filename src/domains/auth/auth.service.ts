@@ -62,12 +62,8 @@ export class AuthService {
   }
 
   async socialAuth(dto: SocialAuthRequestDto): Promise<AuthResultDto> {
-    if (!dto.oauthToken) {
-      throw new UnauthorizedException('소셜 인증 토큰이 필요합니다.');
-    }
-
+    // oauthToken 누락/공백은 DTO의 @IsNotEmpty()가 400으로 이미 막아준다(ValidationPipe).
     // 카카오/구글 서버에 실제로 토큰을 검증해서 진짜 providerId를 받아온다.
-    // dto.providerId(로컬 테스트 전용 필드)는 실제 검증 흐름에서는 사용하지 않는다.
     const verified = await this.socialTokenVerifier.verify(dto.provider, dto.oauthToken);
 
     // dto.provider(우리가 정의한 SocialProvider enum)와 Prisma의 UserProvider enum은
@@ -78,12 +74,38 @@ export class AuthService {
     let isNewUser = false;
 
     if (!user) {
-      user = await this.authRepository.createSocialUser(
-        provider,
-        verified.providerId,
-        verified.email,
-      );
-      isNewUser = true;
+      // 정책: 이미 다른 provider(LOCAL 포함)로 같은 이메일이 가입되어 있으면
+      // 별도 계정을 새로 만들지 않고 signup과 동일하게 409로 거부한다.
+      // (계정 연결 기능은 지금 스키마(User당 provider 1개)로는 안전하게 구현할 수 없어서 범위 밖으로 둠)
+      if (verified.email) {
+        const existingByEmail = await this.authRepository.findUserByEmail(verified.email);
+        if (existingByEmail) {
+          throw new ConflictException({
+            code: 'AUTH409',
+            message: '이미 존재하는 이메일 주소입니다.',
+          });
+        }
+      }
+
+      try {
+        user = await this.authRepository.createSocialUser(
+          provider,
+          verified.providerId,
+          verified.email,
+        );
+        isNewUser = true;
+      } catch (error) {
+        // 동시에 같은 provider+providerId로 가입 요청이 들어온 race condition만 구제한다.
+        // (먼저 생성된 유저를 찾아서 로그인 처리로 이어감. 그 외 원인은 그대로 던짐)
+        const existing = await this.authRepository.findUserByProvider(
+          provider,
+          verified.providerId,
+        );
+        if (!existing) {
+          throw error;
+        }
+        user = existing;
+      }
     }
 
     return {

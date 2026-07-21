@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsIn, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsIn, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export class SignupRequestDto {
   @ApiProperty({ description: '가입할 이메일 주소', example: 'user@email.com' })
@@ -47,21 +47,11 @@ export class SocialAuthRequestDto {
   @IsIn(Object.values(SocialProvider))
   provider: SocialProvider;
 
-  @ApiPropertyOptional({
-    description: '소셜 인증 토큰 (필수) - 카카오/구글 서버에 실제로 검증한다.',
+  @ApiProperty({
+    description: '소셜 인증 토큰 - 카카오/구글 서버에 실제로 검증한다.',
     example: 'eyJhbGci...',
-    nullable: true,
   })
-  @IsOptional()
   @IsString()
-  oauthToken?: string;
-
-  @ApiPropertyOptional({
-    description: '소셜 식별자 - 실제 검증 흐름에서는 사용하지 않음 (검증된 토큰에서 추출한 값을 사용)',
-    example: '123456789',
-    nullable: true,
-  })
-  @IsOptional()
-  @IsString()
-  providerId?: string;
+  @IsNotEmpty()
+  oauthToken: string;
 }

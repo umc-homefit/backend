@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, UserProvider } from '@prisma/client';
+import { UserProvider } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -31,19 +31,11 @@ export class AuthRepository {
   }
 
   async createSocialUser(provider: UserProvider, providerId: string, email?: string) {
-    try {
-      return await this.prisma.user.create({
-        data: { provider, providerId, email, status: 'ACTIVE' },
-      });
-    } catch (error) {
-      // email이 이미 다른 계정(로컬 가입 등)에 쓰이고 있으면 UNIQUE 위반 발생.
-      // 이 경우 email 없이 계정만 생성한다 (소셜 로그인 자체는 막지 않음).
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        return this.prisma.user.create({
-          data: { provider, providerId, status: 'ACTIVE' },
-        });
-      }
-      throw error;
-    }
+    // email 중복 체크는 AuthService.socialAuth()에서 생성 전에 이미 처리한다.
+    // 여기서 나는 UNIQUE 위반은 동시 요청으로 인한 race condition 정도이며,
+    // 그 처리도 AuthService 쪽에서 findUserByProvider로 구제한다.
+    return this.prisma.user.create({
+      data: { provider, providerId, email, status: 'ACTIVE' },
+    });
   }
 }
