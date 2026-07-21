@@ -4,9 +4,11 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Guide, LoanProduct, Prisma } from '@prisma/client';
+import { DocumentMapping, Guide, LoanProduct, RequiredDocument, Prisma } from '@prisma/client';
 
 import {
+  DocumentIssueMethod,
+  FinanceTermItemDto,
   GetGuidesQueryDto,
   GetLoanProductsQueryDto,
   GuideCategoryItemDto,
@@ -20,6 +22,8 @@ import {
   LoanProductSort,
   LoanProviderType,
   ProductCategory,
+  RequiredDocumentItemDto,
+  RequiredDocumentType,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
@@ -116,6 +120,43 @@ export class FinanceService {
     }
 
     return this.toDetailResultDto(product);
+  }
+
+  async getLoanProductDocuments(productId: number): Promise<RequiredDocumentItemDto[]> {
+    const mappings = await this.financeRepository.findDocumentMappingsByProductId(
+      BigInt(productId),
+    );
+
+    return mappings.map((mapping) => this.toRequiredDocumentItemDto(mapping));
+  }
+
+  async getNoticeDocuments(noticeId: number): Promise<RequiredDocumentItemDto[]> {
+    const mappings = await this.financeRepository.findDocumentMappingsByNoticeId(BigInt(noticeId));
+
+    return mappings.map((mapping) => this.toRequiredDocumentItemDto(mapping));
+  }
+
+  async getFinanceTerm(term: string): Promise<FinanceTermItemDto> {
+    const financeTerm = await this.financeRepository.findFinanceTermByTerm(term);
+
+    if (!financeTerm) {
+      throw new NotFoundException({ code: 'FINANCE404', message: '존재하지 않는 용어입니다.' });
+    }
+
+    return { term: financeTerm.term, detailDescription: financeTerm.detailDescription };
+  }
+
+  private toRequiredDocumentItemDto(
+    mapping: DocumentMapping & { document: RequiredDocument },
+  ): RequiredDocumentItemDto {
+    return {
+      documentId: Number(mapping.document.documentId),
+      documentName: mapping.document.documentName,
+      issuer: mapping.document.issuer,
+      issueMethod: mapping.document.issueMethod as DocumentIssueMethod,
+      documentType: mapping.document.documentType as RequiredDocumentType,
+      isRequired: mapping.isRequired,
+    };
   }
 
   private buildLoanProductOrderBy(

@@ -1,5 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { ExternalApiCallLog, Guide, GuideCategory, LoanProduct, Prisma } from '@prisma/client';
+import {
+  DocumentMapping,
+  ExternalApiCallLog,
+  FinanceTerm,
+  Guide,
+  GuideCategory,
+  LoanProduct,
+  Prisma,
+  RequiredDocument,
+} from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -116,6 +125,28 @@ export class FinanceRepository {
 
   findGuideById(guideId: bigint): Promise<Guide | null> {
     return this.prisma.guide.findUnique({ where: { guideId } });
+  }
+
+  findFinanceTermByTerm(term: string): Promise<FinanceTerm | null> {
+    return this.prisma.financeTerm.findUnique({ where: { term } });
+  }
+
+  findDocumentMappingsByProductId(
+    productId: bigint,
+  ): Promise<(DocumentMapping & { document: RequiredDocument })[]> {
+    return this.prisma.documentMapping.findMany({
+      where: { productId },
+      include: { document: true },
+    });
+  }
+
+  findDocumentMappingsByNoticeId(
+    noticeId: bigint,
+  ): Promise<(DocumentMapping & { document: RequiredDocument })[]> {
+    return this.prisma.documentMapping.findMany({
+      where: { noticeId },
+      include: { document: true },
+    });
   }
 
   createExternalApiCallLog(input: ExternalApiCallLogInput): Promise<ExternalApiCallLog> {

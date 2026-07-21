@@ -16,7 +16,6 @@ import { ApiSuccessResponse } from '../../common/decorators/api-success-response
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
-  DocumentIssueMethod,
   FinanceTermItemDto,
   GetFinanceTermsQueryDto,
   GetGuidesQueryDto,
@@ -31,14 +30,13 @@ import {
   MatchLoanProductsResultDto,
   ProductCategory,
   RequiredDocumentItemDto,
-  RequiredDocumentType,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceService } from './finance.service';
 
 /**
- * 금융상품 목록/상세 조회, 가이드 카테고리/목록/상세 조회는 FinanceService를 통해 DB에서 조회한다.
- * 그 외 엔드포인트(매칭, 필요서류, 금융용어)는 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
+ * 금융상품 매칭 조회(loan-products/match)만 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
+ * 그 외 엔드포인트는 FinanceService를 통해 DB에서 조회한다.
  */
 @ApiTags('Finance/Guide')
 @Controller()
@@ -146,22 +144,10 @@ export class FinanceController {
     isArray: true,
     description: '필요 서류 조회 성공',
   })
-  getLoanProductDocuments(
+  async getLoanProductDocuments(
     @Param('productId', ParseIntPipe) productId: number,
-  ): ApiResponse<RequiredDocumentItemDto[]> {
-    const result: RequiredDocumentItemDto[] =
-      productId === 101
-        ? [
-            {
-              documentId: 5,
-              documentName: '소득금액증명원',
-              issuer: '국세청',
-              issueMethod: DocumentIssueMethod.ONLINE,
-              documentType: RequiredDocumentType.COMMON,
-              isRequired: true,
-            },
-          ]
-        : [];
+  ): Promise<ApiResponse<RequiredDocumentItemDto[]>> {
+    const result = await this.financeService.getLoanProductDocuments(productId);
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
@@ -174,8 +160,10 @@ export class FinanceController {
     description: '지정한 금융 용어 하나의 상세 설명을 조회한다.',
   })
   @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 상세 조회 성공' })
-  getFinanceTerms(@Query() _query: GetFinanceTermsQueryDto): ApiResponse<FinanceTermItemDto> {
-    const result: FinanceTermItemDto = { term: 'DSR', detailDescription: null };
+  async getFinanceTerms(
+    @Query() query: GetFinanceTermsQueryDto,
+  ): Promise<ApiResponse<FinanceTermItemDto>> {
+    const result = await this.financeService.getFinanceTerm(query.term);
 
     return createSuccessResponse(result, 'FINANCE200', '금융 용어 상세 조회에 성공했습니다.');
   }
@@ -192,22 +180,10 @@ export class FinanceController {
     isArray: true,
     description: '필요 서류 조회 성공',
   })
-  getNoticeDocuments(
+  async getNoticeDocuments(
     @Param('noticeId', ParseIntPipe) noticeId: number,
-  ): ApiResponse<RequiredDocumentItemDto[]> {
-    const result: RequiredDocumentItemDto[] =
-      noticeId === 1
-        ? [
-            {
-              documentId: 5,
-              documentName: '소득금액증명원',
-              issuer: '국세청',
-              issueMethod: DocumentIssueMethod.ONLINE,
-              documentType: RequiredDocumentType.COMMON,
-              isRequired: true,
-            },
-          ]
-        : [];
+  ): Promise<ApiResponse<RequiredDocumentItemDto[]>> {
+    const result = await this.financeService.getNoticeDocuments(noticeId);
 
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
