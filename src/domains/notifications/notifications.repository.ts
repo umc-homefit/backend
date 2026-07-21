@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DeviceType } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateAlertSettingsRequestDto } from './dto/notifications.dto';
@@ -41,7 +42,7 @@ export class NotificationsRepository {
   // upsert는 DB 레벨에서 원자적으로 처리되므로, 동시에 같은 토큰으로 여러 요청이 와도
   // findFirst 후 create/update로 나눠 처리할 때 생기는 레이스 컨디션이 없다.
   // 다른 유저 소유였던 토큰이어도 update 절이 userId를 덮어써서 자동으로 재할당된다.
-  async upsertDeviceByToken(userId: bigint, fcmToken: string, deviceType: string) {
+  async upsertDeviceByToken(userId: bigint, fcmToken: string, deviceType: DeviceType) {
     return this.prisma.userDevice.upsert({
       where: { fcmToken },
       update: { userId, deviceType },

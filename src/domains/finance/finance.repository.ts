@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import {
   DocumentMapping,
   ExternalApiCallLog,
+  ExternalApiErrorType,
   FinanceTerm,
   Guide,
   GuideCategory,
   LoanProduct,
+  LoanProviderType,
   Prisma,
+  ProductCategory,
   RequiredDocument,
 } from '@prisma/client';
 
@@ -14,8 +17,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 export interface LoanProductRateUpsertInput {
   productName: string;
-  providerType: string;
-  productCategory: string;
+  providerType: LoanProviderType;
+  productCategory: ProductCategory;
   providerName: string;
   guaranteeRatio: number;
   minRate: number;
@@ -26,7 +29,7 @@ export interface LoanProductRateUpsertInput {
 
 export interface ExternalApiCallLogInput {
   apiName: string;
-  errorType: string;
+  errorType: ExternalApiErrorType;
   httpStatusCode: number | null;
   requestUrl: string | null;
   errorMessage: string;
@@ -153,7 +156,6 @@ export class FinanceRepository {
     return this.prisma.externalApiCallLog.create({
       data: {
         apiName: input.apiName,
-        status: 'FAILED',
         errorType: input.errorType,
         httpStatusCode: input.httpStatusCode,
         requestUrl: input.requestUrl,

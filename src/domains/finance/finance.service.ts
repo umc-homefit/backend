@@ -4,7 +4,14 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { DocumentMapping, Guide, LoanProduct, RequiredDocument, Prisma } from '@prisma/client';
+import {
+  DocumentMapping,
+  ExternalApiErrorType,
+  Guide,
+  LoanProduct,
+  Prisma,
+  RequiredDocument,
+} from '@prisma/client';
 
 import {
   DocumentIssueMethod,
@@ -39,12 +46,7 @@ const EXTERNAL_API_NAME = {
   LOAN_GUARANTEE_INFO_API: 'LOAN_GUARANTEE_INFO_API',
 } as const;
 
-const EXTERNAL_API_ERROR_TYPE = {
-  HTTP_ERROR: 'HTTP_ERROR',
-  RESULT_CODE_ERROR: 'RESULT_CODE_ERROR',
-  INVALID_RESPONSE: 'INVALID_RESPONSE',
-  NETWORK_ERROR: 'NETWORK_ERROR',
-} as const;
+const EXTERNAL_API_ERROR_TYPE = ExternalApiErrorType;
 
 interface RentLoanRateApiItem {
   organId: string;
@@ -378,10 +380,11 @@ export class FinanceService {
     const startedAt = new Date();
     const apiName = EXTERNAL_API_NAME.LOAN_RATE_API;
 
-    const response = await this.executeExternalApiCall(
-      () => fetch(url.toString()),
-      { apiName, requestUrl, startedAt },
-    );
+    const response = await this.executeExternalApiCall(() => fetch(url.toString()), {
+      apiName,
+      requestUrl,
+      startedAt,
+    });
 
     if (!response.ok) {
       const message = `전세자금대출 금리 API 호출에 실패했습니다. (status: ${response.status})`;
@@ -439,10 +442,11 @@ export class FinanceService {
     const startedAt = new Date();
     const apiName = EXTERNAL_API_NAME.LOAN_GUARANTEE_INFO_API;
 
-    const response = await this.executeExternalApiCall(
-      () => fetch(url.toString()),
-      { apiName, requestUrl, startedAt },
-    );
+    const response = await this.executeExternalApiCall(() => fetch(url.toString()), {
+      apiName,
+      requestUrl,
+      startedAt,
+    });
 
     if (!response.ok) {
       const message = `전세자금보증상품 상세정보 API 호출에 실패했습니다. (status: ${response.status})`;
@@ -517,7 +521,9 @@ export class FinanceService {
         errorMessage: message,
         startedAt: context.startedAt,
       });
-      throw new InternalServerErrorException(`외부 API 호출 중 네트워크 오류가 발생했습니다: ${message}`);
+      throw new InternalServerErrorException(
+        `외부 API 호출 중 네트워크 오류가 발생했습니다: ${message}`,
+      );
     }
   }
 
@@ -569,7 +575,7 @@ export class FinanceService {
 
   private async logExternalApiFailure(params: {
     apiName: string;
-    errorType: string;
+    errorType: ExternalApiErrorType;
     httpStatusCode: number | null;
     requestUrl: string;
     errorMessage: string;
