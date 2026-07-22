@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserProvider } from '@prisma/client';
+import { Prisma, UserProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { AuthRepository } from './auth.repository';
@@ -95,16 +95,36 @@ export class AuthService {
         );
         isNewUser = true;
       } catch (error) {
-        // 동시에 같은 provider+providerId로 가입 요청이 들어온 race condition만 구제한다.
-        // (먼저 생성된 유저를 찾아서 로그인 처리로 이어감. 그 외 원인은 그대로 던짐)
-        const existing = await this.authRepository.findUserByProvider(
-          provider,
-          verified.providerId,
-        );
-        if (!existing) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          const target = error.meta?.target;
+          const isEmailConflict = Array.isArray(target)
+            ? target.includes('email')
+            : typeof target === 'string' && target.includes('email');
+
+          if (isEmailConflict) {
+            // 동시에 같은 이메일로 가입 요청이 들어온 race condition.
+            // 위에서 findUserByEmail로는 못 걸렀지만(동시 요청이라 그 시점엔 없었음),
+            // DB의 UNIQUE 제약이 최종적으로 막아준 것이므로 signup과 동일하게 409로 응답한다.
+            throw new ConflictException({
+              code: 'AUTH409',
+              message: '이미 존재하는 이메일 주소입니다.',
+            });
+          }
+
+          // 동시에 같은 provider+providerId로 가입 요청이 들어온 race condition은 구제한다.
+          // (먼저 생성된 유저를 찾아서 로그인 처리로 이어감)
+          const existing = await this.authRepository.findUserByProvider(
+            provider,
+            verified.providerId,
+          );
+          if (existing) {
+            user = existing;
+          } else {
+            throw error;
+          }
+        } else {
           throw error;
         }
-        user = existing;
       }
     }
 
