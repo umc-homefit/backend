@@ -16,8 +16,8 @@
 
 | enum | 값 | 비고 |
 | --- | --- | --- |
-| `provider` | `LOCAL` / `KAKAO` / `GOOGLE` | `POST /auth/social` 요청은 `KAKAO`, `GOOGLE` |
-| `status` | `ACTIVE` / `INACTIVE` / `DELETED` | 계정 상태. 회원가입/로그인 여부는 `isNewUser`로 판단 |
+| `provider` | `LOCAL` / `KAKAO` / `GOOGLE` | `POST /auth/social` 요청은 `KAKAO`, `GOOGLE`. `APPLE`은 미지원으로 제외됨 |
+| `status` | `ACTIVE` / `INACTIVE` | 계정 상태. 회원가입/로그인 여부는 `isNewUser`로 판단 |
 | `housingOwnershipStatus` | `HOMELESS` / `FAMILY_OWNED` / `UNKNOWN` | ERD 기준. MVP에서는 `HOMELESS` 우선 사용 |
 
 ## 1차 구현 범위
@@ -29,7 +29,7 @@
 | P0 | `GET` | `/users/me/condition-profile` | 사용자 조건 프로필 조회 |
 | P0 | `PUT` | `/users/me/condition-profile` | 사용자 조건 프로필 생성/수정 |
 
-소셜 로그인, 로그아웃, 기본 정보/프로필 조회·수정은 Swagger에 명세하되 1차 구현에서는 P1로 본다.
+소셜 로그인, 로그아웃, 기본 정보/프로필 조회·수정은 Swagger에 명세하되 1차 구현 이후 순서로 진행했다.
 
 ---
 
@@ -45,8 +45,8 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `email` | string | Y | 가입할 이메일 주소 |
-| `password` | string | Y | 가입할 비밀번호 |
+| `email` | string | Y | 가입할 이메일 주소 (이메일 형식 검증) |
+| `password` | string | Y | 가입할 비밀번호. **8자 이상**이며 **영문·숫자·특수문자를 각각 1개 이상** 포함해야 한다 |
 
 ### Response (result)
 
@@ -61,6 +61,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 201 | 회원가입 성공 |
+| 400 | 이메일 형식 오류 또는 비밀번호 조건(8자 이상, 영문·숫자·특수문자 조합) 미충족 |
 | 409 | 이미 존재하는 이메일 |
 
 ---
@@ -90,6 +91,11 @@
 }
 ```
 
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 로그인 성공 |
+| 401 | 이메일 또는 비밀번호가 올바르지 않음 (해당 이메일이 `LOCAL` 계정이 아닌 경우 포함) |
+
 ---
 
 ## 3. 소셜 회원가입 및 로그인
@@ -97,7 +103,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `POST /auth/social` |
-| 설명 | 소셜 인증 후 회원가입 또는 로그인하고 Access Token을 발급한다. |
+| 설명 | 카카오/구글 OAuth 토큰을 각 provider 서버에 실제로 검증하고, 신규면 가입, 기존이면 로그인 처리 후 Access Token을 발급한다. |
 | 인증 | 불필요 |
 
 ### Request Body
@@ -105,12 +111,31 @@
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `provider` | enum | Y | `KAKAO` / `GOOGLE` |
-| `oauthToken` | string | N | 운영 환경의 소셜 인증 토큰 |
-| `providerId` | string | N | 로컬 테스트용 소셜 식별자 |
+| `oauthToken` | string | **Y** | 소셜 인증 토큰. 카카오는 Access Token, 구글은 ID Token(JWT) 기준이며 서버가 각 provider 서버에 실제로 검증한다 |
+
+> ⚠️ **변경**: `providerId` 필드는 제거되었다. 실제 인증 흐름에서 클라이언트가 보낸 `providerId`를 신뢰하지 않고, 검증된 토큰에서 추출한 값만 사용하기 때문에 요청 필드에서 뺐다.
 
 ### Response (result)
 
-`POST /auth/login`과 동일하다. 기존 회원/신규 회원 구분은 `isNewUser`로 판단한다.
+`POST /auth/login`과 동일한 필드 구조다. 단, **신규 가입과 기존 로그인의 상태 코드가 다르다.**
+
+```json
+{
+  "accessToken": "eyJhbGci...",
+  "isNewUser": true,
+  "userId": 1001
+}
+```
+
+| 상태 | 설명 |
+| --- | --- |
+| 201 | 신규 소셜 회원가입 성공 (`AUTH201`, `isNewUser: true`) |
+| 200 | 기존 소셜 계정 로그인 성공 (`AUTH200`, `isNewUser: false`) |
+| 400 | `oauthToken` 누락 또는 빈 문자열 |
+| 401 | `oauthToken`이 유효하지 않거나 만료됨, 또는 토큰의 발급 대상(`aud`)이 우리 앱이 아님(구글) |
+| 409 | 이미 다른 방식(`LOCAL` 포함)으로 가입된 이메일로 소셜 로그인을 시도한 경우 (`AUTH409`) |
+
+> **정책**: 소셜 인증 이메일이 이미 다른 계정(예: 이메일 회원가입으로 가입된 `LOCAL` 계정)에서 쓰이고 있으면, 별도 계정을 새로 만들지 않고 `409`로 거부한다. 계정 연결(하나의 유저가 여러 provider를 갖는 것) 기능은 현재 스키마(`User`당 `provider` 1개)로는 안전하게 구현할 수 없어 범위 밖으로 둔다.
 
 ---
 
@@ -119,8 +144,10 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `POST /auth/logout` |
-| 설명 | 현재 Access Token을 무효화한다. |
+| 설명 | 인증을 확인한 뒤, 클라이언트에서 저장된 Access Token을 삭제하도록 로그아웃 응답을 반환한다. |
 | 인증 | **필수** |
+
+> ⚠️ **변경**: 서버는 Access Token만 발급하는 stateless 구조라, 서버 측에서 실제로 토큰을 무효화하지는 않는다. 로그아웃 API는 인증된 요청인지 확인만 하고, 실질적인 로그아웃 처리는 클라이언트가 저장된 토큰을 삭제하는 방식으로 이루어진다. 즉 로그아웃 이후에도 이미 발급된 Access Token은 만료 시각(현재 1시간)까지는 여전히 유효하다.
 
 ### Response
 
@@ -132,6 +159,11 @@
   "result": null
 }
 ```
+
+| 상태 | 설명 |
+| --- | --- |
+| 200 | 로그아웃 처리(클라이언트 토큰 삭제 안내) 성공 |
+| 401 | Access Token이 없거나 유효하지 않음 |
 
 ---
 
