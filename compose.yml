@@ -49,7 +49,7 @@ services:
       LOAN_RATE_API_SERVICE_KEY: ${LOAN_RATE_API_SERVICE_KEY:-}
       LOAN_GUARANTEE_INFO_API_BASE_URL: ${LOAN_GUARANTEE_INFO_API_BASE_URL:-}
     ports:
-      - '${PORT:-3000}:3000'
+      - '${API_HOST_PORT:-3000}:3000'
     depends_on:
       migrate:
         condition: service_completed_successfully

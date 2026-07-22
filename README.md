@@ -70,6 +70,7 @@ docker compose up --build
 ```
 
 Compose는 DB 준비 확인 → `prisma migrate deploy` → API 시작 순서로 실행하며, PostgreSQL 데이터는 Docker volume에 유지된다.
+호스트에서 공개할 API 포트는 `.env`의 `API_HOST_PORT`로 변경할 수 있고, 컨테이너 내부 API 포트는 `3000`으로 유지한다.
 
 - Health Check: `GET http://localhost:3000/api/health`
 - Swagger: `http://localhost:3000/api/docs`
