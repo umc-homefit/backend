@@ -573,5 +573,8 @@ model DocumentMapping {
   notice   Notice?          @relation(fields: [noticeId], references: [noticeId], map: "FK_notices_TO_document_mappings_1")
   product  LoanProduct?     @relation(fields: [productId], references: [productId], map: "FK_loan_products_TO_document_mappings_1")
 
+  // 두 unique 제약이 (product_id, document_id)/(notice_id, document_id) 조회의 인덱스 역할도 겸한다 — 별도 @@index 불필요.
+  @@unique([productId, documentId], map: "UK_DOCUMENT_MAPPINGS_PRODUCT_DOCUMENT")
+  @@unique([noticeId, documentId], map: "UK_DOCUMENT_MAPPINGS_NOTICE_DOCUMENT")
   @@map("document_mappings")
 }

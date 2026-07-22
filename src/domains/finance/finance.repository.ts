@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   DocumentMapping,
+  DocumentTargetType,
   ExternalApiCallLog,
   ExternalApiErrorType,
   FinanceTerm,
@@ -138,8 +139,9 @@ export class FinanceRepository {
     productId: bigint,
   ): Promise<(DocumentMapping & { document: RequiredDocument })[]> {
     return this.prisma.documentMapping.findMany({
-      where: { productId },
+      where: { productId, targetType: DocumentTargetType.PRODUCT },
       include: { document: true },
+      orderBy: { mappingId: 'asc' },
     });
   }
 
@@ -147,8 +149,9 @@ export class FinanceRepository {
     noticeId: bigint,
   ): Promise<(DocumentMapping & { document: RequiredDocument })[]> {
     return this.prisma.documentMapping.findMany({
-      where: { noticeId },
+      where: { noticeId, targetType: DocumentTargetType.ANNOUNCEMENT },
       include: { document: true },
+      orderBy: { mappingId: 'asc' },
     });
   }
 
