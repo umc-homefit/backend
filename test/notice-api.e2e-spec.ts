@@ -142,6 +142,29 @@ describe('Notice API contract (e2e)', () => {
     expect(noticeIds).not.toContain(fixture.smallNoticeId);
   });
 
+  it('59㎡·1억 원 이상 마지막 눈금은 각각 상한 없이 조회한다', async () => {
+    const areaResponse = await getNotices().query({ minArea: 59, sort: 'LATEST' }).expect(200);
+    const areaNoticeIds = areaResponse.body.result.notices.map(
+      (notice: { noticeId: number }) => notice.noticeId,
+    );
+
+    expect(areaNoticeIds).toEqual(
+      expect.arrayContaining([fixture.boundaryNoticeId, fixture.largeNoticeId]),
+    );
+    expect(areaNoticeIds).not.toContain(fixture.smallNoticeId);
+
+    const depositResponse = await getNotices()
+      .query({ minDeposit: 100000000, sort: 'LATEST' })
+      .expect(200);
+    const depositNoticeIds = depositResponse.body.result.notices.map(
+      (notice: { noticeId: number }) => notice.noticeId,
+    );
+
+    expect(depositNoticeIds).toContain(fixture.largeNoticeId);
+    expect(depositNoticeIds).not.toContain(fixture.boundaryNoticeId);
+    expect(depositNoticeIds).not.toContain(fixture.smallNoticeId);
+  });
+
   it('지역·상태·추가모집·페이지네이션 계약을 함께 적용한다', async () => {
     const response = await getNotices()
       .query({
