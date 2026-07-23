@@ -214,9 +214,7 @@ export class FinanceService {
       loanTermMinYears: product.loanTermMinYears,
       loanTermMaxYears: product.loanTermMaxYears,
       preferentialRateDiscount:
-        product.preferentialRateDiscount === null
-          ? null
-          : Number(product.preferentialRateDiscount),
+        product.preferentialRateDiscount === null ? null : Number(product.preferentialRateDiscount),
       minMonthlyDeposit:
         product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
       maxMonthlyDeposit:
@@ -467,16 +465,13 @@ export class FinanceService {
       throw new InternalServerErrorException(message);
     }
 
-    const data = await this.parseExternalApiResponse<LoanGuaranteeDetailInfoApiResponse>(
-      response,
-      {
-        apiName,
-        requestUrl,
-        startedAt,
-        validate: (parsed) => Boolean(parsed?.header) && Boolean(parsed?.body),
-        invalidMessage: '전세자금보증상품 상세정보 API 응답에 header 또는 body가 없습니다.',
-      },
-    );
+    const data = await this.parseExternalApiResponse<LoanGuaranteeDetailInfoApiResponse>(response, {
+      apiName,
+      requestUrl,
+      startedAt,
+      validate: (parsed) => Boolean(parsed?.header) && Boolean(parsed?.body),
+      invalidMessage: '전세자금보증상품 상세정보 API 응답에 header 또는 body가 없습니다.',
+    });
     if (data.header.resultCode !== '00') {
       const message = `전세자금보증상품 상세정보 API 오류: ${data.header.resultMsg}`;
       await this.logExternalApiFailure({
