@@ -54,6 +54,8 @@ export class AuthService {
       throw new UnauthorizedException('이메일 또는 비밀번호가 올바르지 않습니다.');
     }
 
+    this.assertActiveStatus(user.status);
+
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
       isNewUser: false,
@@ -128,11 +130,21 @@ export class AuthService {
       }
     }
 
+    this.assertActiveStatus(user.status);
+
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
       isNewUser,
       userId: Number(user.userId),
     };
+  }
+
+  // login/socialAuth 공통: 탈퇴 등으로 INACTIVE 처리된 계정은 토큰 발급을 거부한다.
+  // (소셜 로그인으로 재조회했을 때 status 확인 없이 우회 로그인되는 것을 막기 위함)
+  private assertActiveStatus(status: string): void {
+    if (status !== 'ACTIVE') {
+      throw new UnauthorizedException('탈퇴했거나 비활성화된 계정입니다.');
+    }
   }
 
   async logout(userId: bigint): Promise<void> {
