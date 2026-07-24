@@ -561,6 +561,9 @@ model RequiredDocument {
   @@map("required_documents")
 }
 
+// DB에 CK_DOCUMENT_MAPPINGS_TARGET_TYPE_CONSISTENCY CHECK 제약이 있음 (targetType=PRODUCT면 productId만,
+// ANNOUNCEMENT면 noticeId만 채워지도록 강제). Prisma 스키마 문법엔 CHECK 제약 선언 방법이 없어서
+// migration.sql에 직접 SQL로 작성돼 있고, 이 파일에는 표현이 안 됨 — 마이그레이션 폴더에서 직접 확인할 것.
 model DocumentMapping {
   mappingId  BigInt             @id(map: "PK_DOCUMENT_MAPPINGS") @default(autoincrement()) @map("mapping_id")
   noticeId   BigInt?            @map("notice_id")
