@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, Post, Res, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse as SwaggerApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -55,9 +55,9 @@ export class AuthController {
       '카카오/구글 OAuth 토큰을 검증하고, 신규면 가입(201/AUTH201), 기존이면 로그인(200/AUTH200) 처리 후 JWT를 발급한다.',
   })
   @ApiSuccessResponse(AuthResultDto, { description: '기존 유저 로그인 성공 (200)' })
-  @SwaggerApiResponse({
+  @ApiSuccessResponse(AuthResultDto, {
     status: 201,
-    description: '신규 유저 가입 성공 (201) - Notion 명세상 isNewUser=true인 경우',
+    description: '신규 유저 가입 성공 (201) - isNewUser: true인 경우',
   })
   async socialAuth(
     @Body() body: SocialAuthRequestDto,
