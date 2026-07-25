@@ -19,6 +19,8 @@ interface KakaoUserResponse {
   id: number;
   kakao_account?: {
     email?: string;
+    is_email_valid?: boolean;
+    is_email_verified?: boolean;
   };
 }
 
@@ -65,9 +67,15 @@ export class SocialTokenVerifierService {
 
     const data = (await response.json()) as KakaoUserResponse;
 
+    // 이메일은 존재 여부만이 아니라 "실제로 유효하고 검증됐는지"까지 확인한 경우에만 신뢰한다.
+    // 그렇지 않으면 검증 안 된 이메일 때문에 다른 유저의 정상 가입이 엉뚱하게 409로 막힐 수 있다.
+    const isEmailTrustworthy =
+      data.kakao_account?.is_email_valid === true &&
+      data.kakao_account?.is_email_verified === true;
+
     return {
       providerId: String(data.id),
-      email: data.kakao_account?.email,
+      email: isEmailTrustworthy ? data.kakao_account?.email : undefined,
     };
   }
 
@@ -92,9 +100,11 @@ export class SocialTokenVerifierService {
       throw new UnauthorizedException('구글 인증 토큰이 유효하지 않습니다.');
     }
 
+    // email_verified가 true인 경우에만 이메일을 신뢰한다 (검증 안 된 이메일로 인한
+    // 오탐 409 방지).
     return {
       providerId: payload.sub,
-      email: payload.email,
+      email: payload.email_verified === true ? payload.email : undefined,
     };
   }
 }

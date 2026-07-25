@@ -98,31 +98,25 @@ export class AuthService {
         isNewUser = true;
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          const target = error.meta?.target;
-          const isEmailConflict = Array.isArray(target)
-            ? target.includes('email')
-            : typeof target === 'string' && target.includes('email');
-
-          if (isEmailConflict) {
-            // 동시에 같은 이메일로 가입 요청이 들어온 race condition.
-            // 위에서 findUserByEmail로는 못 걸렀지만(동시 요청이라 그 시점엔 없었음),
-            // DB의 UNIQUE 제약이 최종적으로 막아준 것이므로 signup과 동일하게 409로 응답한다.
-            throw new ConflictException({
-              code: 'AUTH409',
-              message: '이미 존재하는 이메일 주소입니다.',
-            });
-          }
-
-          // 동시에 같은 provider+providerId로 가입 요청이 들어온 race condition은 구제한다.
-          // (먼저 생성된 유저를 찾아서 로그인 처리로 이어감)
+          // DB가 email과 (provider, providerId) 중 어떤 UNIQUE 제약을 먼저 보고했는지는
+          // 신뢰하지 않는다. 동시에 같은 소셜 계정으로 두 요청이 들어오면, 어느 쪽 제약이
+          // 먼저 걸리는지는 타이밍에 따라 달라질 수 있어 결과가 들쭉날쭉해질 수 있기 때문이다.
+          //
+          // 대신 항상 먼저 "나(provider+providerId) 자신이 이미 생성됐는지"부터 확인한다.
+          // 이미 있다면 동시 요청 중 하나가 먼저 성공한 것뿐이므로 그 유저로 정상 로그인
+          // 처리한다. 없다면 그제서야 "다른 유저가 이 이메일을 쓰고 있다"는 뜻이므로 409.
           const existing = await this.authRepository.findUserByProvider(
             provider,
             verified.providerId,
           );
+
           if (existing) {
             user = existing;
           } else {
-            throw error;
+            throw new ConflictException({
+              code: 'AUTH409',
+              message: '이미 존재하는 이메일 주소입니다.',
+            });
           }
         } else {
           throw error;

@@ -6,11 +6,11 @@ export class SignupRequestDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합, 최소 8자)', example: 'fitpass123!' })
+  @ApiProperty({ description: '가입할 비밀번호 (영문, 숫자, 특수문자 조합, 최소 8자, 공백 불가)', example: 'fitpass123!' })
   @IsString()
   @MinLength(8)
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).+$/, {
-    message: '비밀번호는 영문, 숫자, 특수문자를 각각 최소 1개 이상 포함해야 합니다.',
+  @Matches(/^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S+$/, {
+    message: '비밀번호는 공백 없이 영문, 숫자, 특수문자를 각각 최소 1개 이상 포함해야 합니다.',
   })
   password: string;
 }

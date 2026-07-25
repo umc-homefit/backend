@@ -2,6 +2,7 @@ import { Body, Controller, HttpCode, Post, Res, UseGuards } from '@nestjs/common
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 
+import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { EmptyResultDto } from '../../common/dto/api-response.dto';
@@ -59,6 +60,25 @@ export class AuthController {
     status: 201,
     description: '신규 유저 가입 성공 (201) - isNewUser: true인 경우',
   })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'oauthToken이 누락되었거나 빈 문자열입니다.' },
+    { status: 401, code: 'AUTH401', message: '카카오 인증 토큰이 유효하지 않습니다.' },
+    {
+      status: 401,
+      code: 'AUTH401',
+      message: '카카오 인증 토큰의 발급 대상이 우리 앱이 아닙니다.',
+    },
+    {
+      status: 401,
+      code: 'AUTH401',
+      message: '구글 인증 토큰이 유효하지 않거나 발급 대상이 우리 앱이 아닙니다.',
+    },
+    {
+      status: 409,
+      code: 'AUTH409',
+      message: '이미 존재하는 이메일 주소입니다.',
+    },
+  ])
   async socialAuth(
     @Body() body: SocialAuthRequestDto,
     @Res({ passthrough: true }) res: Response,
