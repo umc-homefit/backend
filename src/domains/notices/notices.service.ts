@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { PageInfoDto } from '../../common/dto/page-info.dto';
@@ -78,6 +78,8 @@ export class NoticesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getNotices(userId: bigint, query: GetNoticesQueryDto): Promise<NoticeListResultDto> {
+    this.validateNoticeRange(query);
+
     const page = query.page ?? 0;
     const size = Math.min(query.size ?? 10, this.maxPageSize);
     const currentKstDateTime = this.toCurrentKstDateTime();
@@ -120,6 +122,24 @@ export class NoticesService {
       notices: notices.map((notice) => this.toNoticeListItem(notice, currentKstDateTime)),
       pageInfo,
     };
+  }
+
+  private validateNoticeRange(query: GetNoticesQueryDto): void {
+    if (
+      query.minArea !== undefined &&
+      query.maxArea !== undefined &&
+      query.minArea > query.maxArea
+    ) {
+      throw new BadRequestException('minArea는 maxArea보다 클 수 없습니다.');
+    }
+
+    if (
+      query.minDeposit !== undefined &&
+      query.maxDeposit !== undefined &&
+      query.minDeposit > query.maxDeposit
+    ) {
+      throw new BadRequestException('minDeposit은 maxDeposit보다 클 수 없습니다.');
+    }
   }
 
   async getSavedNotices(

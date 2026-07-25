@@ -195,8 +195,21 @@ describe('Notice API contract (e2e)', () => {
     });
   });
 
-  it('잘못된 공고 목록 Query Parameter는 COMMON400을 반환한다', async () => {
-    const response = await getNotices().query({ maxArea: 'invalid' }).expect(400);
+  it.each([
+    { caseName: '숫자가 아닌 면적', query: { maxArea: 'invalid' } },
+    { caseName: '유한하지 않은 면적', query: { maxArea: '1e309' } },
+    {
+      caseName: 'boolean이 아닌 추가모집 여부',
+      query: { isAdditionalRecruitment: 'invalid' },
+    },
+    { caseName: '최솟값이 최댓값보다 큰 면적 범위', query: { minArea: 60, maxArea: 59 } },
+    {
+      caseName: '최솟값이 최댓값보다 큰 보증금 범위',
+      query: { minDeposit: 100000001, maxDeposit: 100000000 },
+    },
+    { caseName: '최대 크기를 초과한 페이지', query: { size: 51 } },
+  ])('$caseName 요청은 COMMON400을 반환한다', async ({ query }) => {
+    const response = await getNotices().query(query).expect(400);
 
     expect(response.body).toMatchObject({
       isSuccess: false,

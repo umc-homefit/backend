@@ -1,7 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { NoticeConditionTargetType, NoticeFileType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -52,7 +61,17 @@ export class GetNoticesQueryDto {
 
   @ApiPropertyOptional({ description: '추가모집 여부', example: true })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) {
+      return true;
+    }
+
+    if (value === 'false' || value === false) {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   isAdditionalRecruitment?: boolean;
 
@@ -83,6 +102,7 @@ export class GetNoticesQueryDto {
   })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   minArea?: number;
 
@@ -93,6 +113,7 @@ export class GetNoticesQueryDto {
   })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   maxArea?: number;
 
@@ -109,14 +130,16 @@ export class GetNoticesQueryDto {
   page?: number = 0;
 
   @ApiPropertyOptional({
-    description: '페이지 크기 (기본 10, 최대 50 권장)',
+    description: '페이지 크기 (기본 10, 최대 50)',
     default: 10,
+    maximum: 50,
     example: 10,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
