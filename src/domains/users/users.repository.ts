@@ -75,6 +75,8 @@ export class UsersRepository {
       hasRecentNewborn: dto.hasRecentNewborn,
       newbornBirthDate: dto.newbornBirthDate ? new Date(dto.newbornBirthDate) : undefined,
       householdHeadStatus: dto.householdHeadStatus,
+      isFirstTimeBuyer: dto.isFirstTimeBuyer,
+      employmentStatus: dto.employmentStatus,
     };
 
     return await this.prisma.userConditionProfile.upsert({

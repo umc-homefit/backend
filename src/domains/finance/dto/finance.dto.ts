@@ -105,6 +105,21 @@ export class MatchedLoanProductDto {
     example: false,
   })
   newbornCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '생애최초 구입자 조건 검사 스킵 여부. 생애최초 전용 상품인데 사용자가 이 값을 입력하지 않아 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  firstTimeBuyerCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '자격 미충족 사유 코드 배열. isEligible=true면 빈 배열. 가능한 값: AGE, INCOME, ASSET, HOMELESS, HOUSEHOLD_HEAD, FIRST_TIME_BUYER, MARRIED, NEWBORN',
+    example: [],
+    type: [String],
+  })
+  ineligibleReasons: string[];
 }
 
 export class MatchLoanProductsResultDto {

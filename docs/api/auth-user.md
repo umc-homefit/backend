@@ -203,11 +203,13 @@
 | `isHomeless` | boolean | 무주택 여부 |
 | `residenceRegionCode` | string \| null | 거주 지역 코드 |
 | `workplaceRegionCode` | string \| null | 직장/학교 지역 코드 |
-| `maritalStatus` | enum | 혼인 상태: `UNKNOWN`/`SINGLE`/`MARRIED`/`PLANNING_MARRIAGE`(예비신혼) |
+| `maritalStatus` | string(VARCHAR+주석, 네이티브 enum 아님) | 혼인 상태: `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`(예비신혼, ERD상 3개월 이내 결혼예정) |
 | `marriageDate` | string \| null | 혼인일자 (YYYY-MM-DD) |
 | `hasRecentNewborn` | boolean | 최근 출산 여부 |
 | `newbornBirthDate` | string \| null | 출산일자 (YYYY-MM-DD) |
-| `householdHeadStatus` | enum | 세대주 여부: `UNKNOWN`/`HEAD`/`PROSPECTIVE_HEAD`(예비세대주)/`MEMBER` |
+| `householdHeadStatus` | string(VARCHAR+주석, 네이티브 enum 아님) | 세대주 여부: `UNKNOWN`/`HEAD`/`HEAD_EXPECTED`(예비세대주)/`RECOGNIZED`(세대주 인정자)/`MEMBER` |
+| `isFirstTimeBuyer` | boolean \| null | 생애최초 주택 구입자 여부 |
+| `employmentStatus` | string \| null | 직업 상태 (값 컨벤션 기획 확인 중, 아직 미확정) |
 | `createdAt` | string | 최초 저장 일시 |
 | `updatedAt` | string | 최종 수정 일시 |
 
@@ -234,11 +236,13 @@
 | `housingOwnershipStatus` | string | Y | 주택 소유 상태 |
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
-| `maritalStatus` | enum | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`PLANNING_MARRIAGE`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
+| `maritalStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
 | `marriageDate` | string | N | 혼인일자 (YYYY-MM-DD) |
 | `hasRecentNewborn` | boolean | N | 최근 출산 여부. 미입력 시 기존값 보존 |
 | `newbornBirthDate` | string | N | 출산일자 (YYYY-MM-DD) |
-| `householdHeadStatus` | enum | N | `UNKNOWN`/`HEAD`/`PROSPECTIVE_HEAD`/`MEMBER`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
+| `householdHeadStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
+| `isFirstTimeBuyer` | boolean | N | 생애최초 주택 구입자 여부 |
+| `employmentStatus` | string | N | 직업 상태 (값 컨벤션 기획 확인 필요, 실제 사용처 미정) |
 
 ### Response (result)
 

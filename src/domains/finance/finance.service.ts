@@ -9,14 +9,13 @@ import {
   DocumentMapping,
   ExternalApiErrorType,
   Guide,
-  HouseholdHeadStatus,
   LoanProduct,
-  MaritalStatus,
   Prisma,
   RequiredDocument,
   UserConditionProfile,
 } from '@prisma/client';
 
+import { HouseholdHeadStatus, MaritalStatus } from '../users/dto/users.dto';
 import {
   FinanceTermItemDto,
   GetGuidesQueryDto,
@@ -39,12 +38,17 @@ import {
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
 
-/** requireMarried 상품에서 "기혼으로 간주"할 상태. 예비신혼(결혼예정)도 신혼부부 상품 대상이라 포함한다. */
-const MARRIED_ELIGIBLE_STATUSES: MaritalStatus[] = [MaritalStatus.MARRIED, MaritalStatus.PLANNING_MARRIAGE];
-/** requireHouseholdHead 상품에서 "세대주로 간주"할 상태. 예비세대주도 대상에 포함한다. */
-const HOUSEHOLD_HEAD_ELIGIBLE_STATUSES: HouseholdHeadStatus[] = [
+/**
+ * user_condition_profiles.marital_status/household_head_status는 ERD상 VARCHAR + 주석 컨벤션이라
+ * Prisma 필드 타입이 순수 string이다 — 그래서 아래 배열도 string[]로 선언한다 (enum 리터럴 값만 채워서 사용).
+ */
+/** requireMarried 상품에서 "기혼으로 간주"할 상태. 예비신혼(결혼예정, ERD 기준 3개월 이내)도 신혼부부 상품 대상이라 포함한다. */
+const MARRIED_ELIGIBLE_STATUSES: string[] = [MaritalStatus.MARRIED, MaritalStatus.MARRIAGE_EXPECTED];
+/** requireHouseholdHead 상품에서 "세대주로 간주"할 상태. 예비세대주/세대주 인정자도 포함한다. */
+const HOUSEHOLD_HEAD_ELIGIBLE_STATUSES: string[] = [
   HouseholdHeadStatus.HEAD,
-  HouseholdHeadStatus.PROSPECTIVE_HEAD,
+  HouseholdHeadStatus.HEAD_EXPECTED,
+  HouseholdHeadStatus.RECOGNIZED,
 ];
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
@@ -163,6 +167,11 @@ export class FinanceService {
     const passesHouseholdHead = this.evaluateHouseholdHeadCondition(product, profile);
     const married = this.evaluateMarriedCondition(product, profile);
     const newborn = this.evaluateNewbornCondition(product, profile);
+    // isFirstTimeBuyer가 null(미입력)이면 나이와 동일하게 관대하게 통과시키고 스킵 플래그로 알린다.
+    const firstTimeBuyerCheckSkipped =
+      product.firstTimeBuyerOnly === true && profile.isFirstTimeBuyer === null;
+    const passesFirstTimeBuyer =
+      !product.firstTimeBuyerOnly || profile.isFirstTimeBuyer !== false;
 
     const isEligible =
       passesAge &&
@@ -170,8 +179,20 @@ export class FinanceService {
       passesAsset &&
       passesHomeless &&
       passesHouseholdHead &&
+      passesFirstTimeBuyer &&
       married.passed &&
       newborn.passed;
+
+    const ineligibleReasons = this.collectIneligibleReasons({
+      passesAge,
+      passesIncome,
+      passesAsset,
+      passesHomeless,
+      passesHouseholdHead,
+      passesFirstTimeBuyer,
+      passesMarried: married.passed,
+      passesNewborn: newborn.passed,
+    });
 
     return {
       productId: Number(product.productId),
@@ -187,7 +208,32 @@ export class FinanceService {
       ageCheckSkipped,
       marriedCheckSkipped: married.skipped,
       newbornCheckSkipped: newborn.skipped,
+      firstTimeBuyerCheckSkipped,
+      ineligibleReasons,
     };
+  }
+
+  /** isEligible=false일 때 어떤 조건에서 떨어졌는지 코드 배열로 모은다. 전부 통과하면 빈 배열. */
+  private collectIneligibleReasons(passed: {
+    passesAge: boolean;
+    passesIncome: boolean;
+    passesAsset: boolean;
+    passesHomeless: boolean;
+    passesHouseholdHead: boolean;
+    passesFirstTimeBuyer: boolean;
+    passesMarried: boolean;
+    passesNewborn: boolean;
+  }): string[] {
+    const reasons: string[] = [];
+    if (!passed.passesAge) reasons.push('AGE');
+    if (!passed.passesIncome) reasons.push('INCOME');
+    if (!passed.passesAsset) reasons.push('ASSET');
+    if (!passed.passesHomeless) reasons.push('HOMELESS');
+    if (!passed.passesHouseholdHead) reasons.push('HOUSEHOLD_HEAD');
+    if (!passed.passesFirstTimeBuyer) reasons.push('FIRST_TIME_BUYER');
+    if (!passed.passesMarried) reasons.push('MARRIED');
+    if (!passed.passesNewborn) reasons.push('NEWBORN');
+    return reasons;
   }
 
   /** min/max 둘 다 null이면 조건 없음으로 간주해 통과시킨다. */

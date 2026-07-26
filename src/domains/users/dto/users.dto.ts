@@ -1,5 +1,4 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { HouseholdHeadStatus, MaritalStatus } from '@prisma/client';
 import {
   IsBoolean,
   IsEnum,
@@ -11,7 +10,25 @@ import {
   IsDateString
 } from 'class-validator';
 
-export { HouseholdHeadStatus, MaritalStatus };
+/**
+ * user_condition_profiles.marital_status는 ERD상 VARCHAR + 주석 컨벤션(네이티브 DB enum 아님).
+ * 값 목록만 TS enum으로 관리해 class-validator/Swagger에서 타입 안정성을 준다.
+ */
+export enum MaritalStatus {
+  UNKNOWN = 'UNKNOWN',
+  SINGLE = 'SINGLE',
+  MARRIED = 'MARRIED',
+  MARRIAGE_EXPECTED = 'MARRIAGE_EXPECTED', // 3개월 이내 결혼예정 (ERD 기준)
+}
+
+/** user_condition_profiles.household_head_status도 동일하게 VARCHAR + 주석 컨벤션. */
+export enum HouseholdHeadStatus {
+  UNKNOWN = 'UNKNOWN',
+  HEAD = 'HEAD',
+  HEAD_EXPECTED = 'HEAD_EXPECTED', // 예비세대주
+  RECOGNIZED = 'RECOGNIZED', // 세대주 인정자
+  MEMBER = 'MEMBER',
+}
 
 // 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
@@ -101,7 +118,7 @@ export class UpdateConditionProfileRequestDto {
   })
   @IsOptional()
   @IsEnum(MaritalStatus, {
-    message: 'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, PLANNING_MARRIAGE',
+    message: 'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, MARRIAGE_EXPECTED',
   })
   maritalStatus?: MaritalStatus;
 
@@ -128,9 +145,23 @@ export class UpdateConditionProfileRequestDto {
   @IsOptional()
   @IsEnum(HouseholdHeadStatus, {
     message:
-      'householdHeadStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HEAD, PROSPECTIVE_HEAD, MEMBER',
+      'householdHeadStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HEAD, HEAD_EXPECTED, RECOGNIZED, MEMBER',
   })
   householdHeadStatus?: HouseholdHeadStatus;
+
+  @ApiPropertyOptional({ description: '생애최초 주택 구입자 여부', example: false })
+  @IsOptional()
+  @IsBoolean()
+  isFirstTimeBuyer?: boolean;
+
+  @ApiPropertyOptional({
+    description: '직업 상태 (값 컨벤션 기획 확인 중, 아직 미확정)',
+    example: 'EMPLOYED',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  employmentStatus?: string;
 }
 
 // 4. 조건 프로필 수정 결과 DTO
@@ -231,6 +262,16 @@ export class ConditionProfileResultDto {
     example: HouseholdHeadStatus.HEAD,
   })
   householdHeadStatus: HouseholdHeadStatus;
+
+  @ApiPropertyOptional({ description: '생애최초 주택 구입자 여부', example: false, nullable: true })
+  isFirstTimeBuyer: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '직업 상태 (값 컨벤션 기획 확인 중)',
+    example: 'EMPLOYED',
+    nullable: true,
+  })
+  employmentStatus: string | null;
 
   @ApiProperty({ description: '최초 저장 일시', example: '2026-07-01T09:00:00Z' })
   createdAt: string;

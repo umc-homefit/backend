@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
-import { 
-  UpdateConditionProfileRequestDto, 
-  UpdateProfileRequestDto 
+import {
+  HouseholdHeadStatus,
+  MaritalStatus,
+  UpdateConditionProfileRequestDto,
+  UpdateProfileRequestDto
 } from './dto/users.dto';
 
 @Injectable()
@@ -67,13 +69,15 @@ export class UsersService {
       isHomeless: condition.isHomeless,
       residenceRegionCode: condition.residenceRegionCode,
       workplaceRegionCode: condition.workplaceRegionCode,
-      maritalStatus: condition.maritalStatus,
+      maritalStatus: condition.maritalStatus as MaritalStatus,
       marriageDate: condition.marriageDate ? condition.marriageDate.toISOString().split('T')[0] : null,
       hasRecentNewborn: condition.hasRecentNewborn,
       newbornBirthDate: condition.newbornBirthDate
         ? condition.newbornBirthDate.toISOString().split('T')[0]
         : null,
-      householdHeadStatus: condition.householdHeadStatus,
+      householdHeadStatus: condition.householdHeadStatus as HouseholdHeadStatus,
+      isFirstTimeBuyer: condition.isFirstTimeBuyer,
+      employmentStatus: condition.employmentStatus,
       createdAt: condition.createdAt.toISOString(),
       updatedAt: condition.updatedAt.toISOString(),
     };
