@@ -33,6 +33,15 @@ export class AuthController {
     description: '이메일/비밀번호로 회원가입한다.',
   })
   @ApiSuccessResponse(AuthResultDto, { status: 201, description: '이메일 회원가입 성공' })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: '이메일 형식이 올바르지 않습니다.' },
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: '비밀번호는 공백 없이 영문, 숫자, 특수문자를 각각 최소 1개 이상 포함해야 합니다.',
+    },
+    { status: 409, code: 'AUTH409', message: '이미 존재하는 이메일 주소입니다.' },
+  ])
   async signup(@Body() body: SignupRequestDto): Promise<ApiResponse<AuthResultDto>> {
     const result = await this.authService.signup(body);
     return createSuccessResponse(result, 'AUTH201', '이메일 회원가입 성공');
@@ -44,6 +53,11 @@ export class AuthController {
     description: '이메일/비밀번호로 로그인하고 Access Token을 발급한다.',
   })
   @ApiSuccessResponse(AuthResultDto, { description: '로그인 완료' })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: '이메일 형식이 올바르지 않습니다.' },
+    { status: 401, code: 'AUTH401', message: '이메일 또는 비밀번호가 올바르지 않습니다.' },
+    { status: 401, code: 'AUTH401', message: '비활성화된 계정입니다.' },
+  ])
   async login(@Body() body: LoginRequestDto): Promise<ApiResponse<AuthResultDto>> {
     const result = await this.authService.login(body);
     return createSuccessResponse(result, 'AUTH200', '로그인 성공');
@@ -103,6 +117,11 @@ export class AuthController {
     summary: '로그아웃',
     description:
       '인증을 확인한 뒤, 클라이언트에서 저장된 Access Token을 삭제하도록 로그아웃 응답을 반환한다. (서버 측 Access Token 무효화는 하지 않는 stateless 정책)',
+  })
+  @ApiErrorResponse({
+    status: 401,
+    code: 'AUTH401',
+    message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.',
   })
   @ApiSuccessResponse(EmptyResultDto, {
     description: '로그아웃 완료',

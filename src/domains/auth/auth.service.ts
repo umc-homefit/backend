@@ -137,7 +137,7 @@ export class AuthService {
   // (소셜 로그인으로 재조회했을 때 status 확인 없이 우회 로그인되는 것을 막기 위함)
   private assertActiveStatus(status: string): void {
     if (status !== 'ACTIVE') {
-      throw new UnauthorizedException('탈퇴했거나 비활성화된 계정입니다.');
+      throw new UnauthorizedException('비활성화된 계정입니다.');
     }
   }
 

@@ -53,5 +53,6 @@ export class SocialAuthRequestDto {
   })
   @IsString()
   @IsNotEmpty()
+  @Matches(/^\S+$/, { message: 'oauthToken은 공백만으로 구성될 수 없습니다.' })
   oauthToken: string;
 }
