@@ -203,6 +203,11 @@
 | `isHomeless` | boolean | 무주택 여부 |
 | `residenceRegionCode` | string \| null | 거주 지역 코드 |
 | `workplaceRegionCode` | string \| null | 직장/학교 지역 코드 |
+| `maritalStatus` | enum | 혼인 상태: `UNKNOWN`/`SINGLE`/`MARRIED`/`PLANNING_MARRIAGE`(예비신혼) |
+| `marriageDate` | string \| null | 혼인일자 (YYYY-MM-DD) |
+| `hasRecentNewborn` | boolean | 최근 출산 여부 |
+| `newbornBirthDate` | string \| null | 출산일자 (YYYY-MM-DD) |
+| `householdHeadStatus` | enum | 세대주 여부: `UNKNOWN`/`HEAD`/`PROSPECTIVE_HEAD`(예비세대주)/`MEMBER` |
 | `createdAt` | string | 최초 저장 일시 |
 | `updatedAt` | string | 최종 수정 일시 |
 
@@ -229,6 +234,11 @@
 | `housingOwnershipStatus` | string | Y | 주택 소유 상태 |
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
+| `maritalStatus` | enum | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`PLANNING_MARRIAGE`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
+| `marriageDate` | string | N | 혼인일자 (YYYY-MM-DD) |
+| `hasRecentNewborn` | boolean | N | 최근 출산 여부. 미입력 시 기존값 보존 |
+| `newbornBirthDate` | string | N | 출산일자 (YYYY-MM-DD) |
+| `householdHeadStatus` | enum | N | `UNKNOWN`/`HEAD`/`PROSPECTIVE_HEAD`/`MEMBER`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
 
 ### Response (result)
 

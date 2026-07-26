@@ -1,13 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { 
-  IsBoolean, 
-  IsNumber, 
-  IsOptional, 
-  IsString, 
-  IsInt, 
-  Min, 
-  IsDateString 
+import { HouseholdHeadStatus, MaritalStatus } from '@prisma/client';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  IsDateString
 } from 'class-validator';
+
+export { HouseholdHeadStatus, MaritalStatus };
 
 // 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
@@ -89,6 +93,44 @@ export class UpdateConditionProfileRequestDto {
   @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
   @IsString()
   housingOwnershipStatus: string;
+
+  @ApiPropertyOptional({
+    description: '혼인 상태',
+    enum: MaritalStatus,
+    example: MaritalStatus.SINGLE,
+  })
+  @IsOptional()
+  @IsEnum(MaritalStatus, {
+    message: 'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, PLANNING_MARRIAGE',
+  })
+  maritalStatus?: MaritalStatus;
+
+  @ApiPropertyOptional({ description: '혼인일자 (YYYY-MM-DD)', example: '2025-05-01', nullable: true })
+  @IsOptional()
+  @IsDateString()
+  marriageDate?: string;
+
+  @ApiPropertyOptional({ description: '최근 출산 여부', example: false })
+  @IsOptional()
+  @IsBoolean()
+  hasRecentNewborn?: boolean;
+
+  @ApiPropertyOptional({ description: '출산일자 (YYYY-MM-DD)', example: '2026-03-01', nullable: true })
+  @IsOptional()
+  @IsDateString()
+  newbornBirthDate?: string;
+
+  @ApiPropertyOptional({
+    description: '세대주 여부',
+    enum: HouseholdHeadStatus,
+    example: HouseholdHeadStatus.HEAD,
+  })
+  @IsOptional()
+  @IsEnum(HouseholdHeadStatus, {
+    message:
+      'householdHeadStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HEAD, PROSPECTIVE_HEAD, MEMBER',
+  })
+  householdHeadStatus?: HouseholdHeadStatus;
 }
 
 // 4. 조건 프로필 수정 결과 DTO
@@ -170,6 +212,25 @@ export class ConditionProfileResultDto {
 
   @ApiPropertyOptional({ description: '직장/학교 지역 코드', example: '11680', nullable: true })
   workplaceRegionCode: string | null;
+
+  @ApiProperty({ description: '혼인 상태', enum: MaritalStatus, example: MaritalStatus.SINGLE })
+  maritalStatus: MaritalStatus;
+
+  @ApiPropertyOptional({ description: '혼인일자', example: '2025-05-01', nullable: true })
+  marriageDate: string | null;
+
+  @ApiProperty({ description: '최근 출산 여부', example: false })
+  hasRecentNewborn: boolean;
+
+  @ApiPropertyOptional({ description: '출산일자', example: '2026-03-01', nullable: true })
+  newbornBirthDate: string | null;
+
+  @ApiProperty({
+    description: '세대주 여부',
+    enum: HouseholdHeadStatus,
+    example: HouseholdHeadStatus.HEAD,
+  })
+  householdHeadStatus: HouseholdHeadStatus;
 
   @ApiProperty({ description: '최초 저장 일시', example: '2026-07-01T09:00:00Z' })
   createdAt: string;

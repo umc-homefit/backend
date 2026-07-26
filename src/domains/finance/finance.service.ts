@@ -9,7 +9,9 @@ import {
   DocumentMapping,
   ExternalApiErrorType,
   Guide,
+  HouseholdHeadStatus,
   LoanProduct,
+  MaritalStatus,
   Prisma,
   RequiredDocument,
   UserConditionProfile,
@@ -37,8 +39,13 @@ import {
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
 
-/** 사용자 조건 프로필의 결혼 상태를 나타내는 문자열 값. User 도메인이 실제로 저장하는 값 컨벤션과 반드시 맞춰야 한다 (확인 필요). */
-const MARRIED_STATUS_VALUE = 'MARRIED';
+/** requireMarried 상품에서 "기혼으로 간주"할 상태. 예비신혼(결혼예정)도 신혼부부 상품 대상이라 포함한다. */
+const MARRIED_ELIGIBLE_STATUSES: MaritalStatus[] = [MaritalStatus.MARRIED, MaritalStatus.PLANNING_MARRIAGE];
+/** requireHouseholdHead 상품에서 "세대주로 간주"할 상태. 예비세대주도 대상에 포함한다. */
+const HOUSEHOLD_HEAD_ELIGIBLE_STATUSES: HouseholdHeadStatus[] = [
+  HouseholdHeadStatus.HEAD,
+  HouseholdHeadStatus.PROSPECTIVE_HEAD,
+];
 const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 /**
@@ -153,6 +160,7 @@ export class FinanceService {
       product.maxAsset === null ? null : Number(product.maxAsset),
     );
     const passesHomeless = !product.requireNoHouse || profile.isHomeless;
+    const passesHouseholdHead = this.evaluateHouseholdHeadCondition(product, profile);
     const married = this.evaluateMarriedCondition(product, profile);
     const newborn = this.evaluateNewbornCondition(product, profile);
 
@@ -161,6 +169,7 @@ export class FinanceService {
       passesIncome &&
       passesAsset &&
       passesHomeless &&
+      passesHouseholdHead &&
       married.passed &&
       newborn.passed;
 
@@ -192,9 +201,20 @@ export class FinanceService {
     return true;
   }
 
+  /** requireHouseholdHead=true인 상품(세대주 전용) 매칭. 세대주/예비세대주만 통과한다. */
+  private evaluateHouseholdHeadCondition(
+    product: LoanProduct,
+    profile: UserConditionProfile,
+  ): boolean {
+    if (!product.requireHouseholdHead) {
+      return true;
+    }
+    return HOUSEHOLD_HEAD_ELIGIBLE_STATUSES.includes(profile.householdHeadStatus);
+  }
+
   /**
-   * requireMarried=true인 상품(신혼부부 전용) 매칭. maritalStatus 문자열 값 컨벤션은
-   * User 도메인과 별도 확인이 필요하다 (지금은 'MARRIED' 정확히 일치만 기혼으로 처리).
+   * requireMarried=true인 상품(신혼부부 전용) 매칭. 기혼(MARRIED)뿐 아니라 예비신혼
+   * (PLANNING_MARRIAGE)도 신혼부부 상품 대상이라 함께 통과시킨다.
    * 기혼 자체는 확인됐지만 marriageDate가 없어 혼인기간(maxMarriageYears) 조건을 검증하지
    * 못한 경우는 skipped=true로 표시한다 — ageCheckSkipped와 동일한 패턴.
    */
@@ -205,7 +225,7 @@ export class FinanceService {
     if (!product.requireMarried) {
       return { passed: true, skipped: false };
     }
-    if (profile.maritalStatus !== MARRIED_STATUS_VALUE) {
+    if (!MARRIED_ELIGIBLE_STATUSES.includes(profile.maritalStatus)) {
       return { passed: false, skipped: false };
     }
     if (product.maxMarriageYears === null) {

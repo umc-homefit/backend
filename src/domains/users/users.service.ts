@@ -67,6 +67,13 @@ export class UsersService {
       isHomeless: condition.isHomeless,
       residenceRegionCode: condition.residenceRegionCode,
       workplaceRegionCode: condition.workplaceRegionCode,
+      maritalStatus: condition.maritalStatus,
+      marriageDate: condition.marriageDate ? condition.marriageDate.toISOString().split('T')[0] : null,
+      hasRecentNewborn: condition.hasRecentNewborn,
+      newbornBirthDate: condition.newbornBirthDate
+        ? condition.newbornBirthDate.toISOString().split('T')[0]
+        : null,
+      householdHeadStatus: condition.householdHeadStatus,
       createdAt: condition.createdAt.toISOString(),
       updatedAt: condition.updatedAt.toISOString(),
     };

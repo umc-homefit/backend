@@ -70,6 +70,11 @@ export class UsersRepository {
       residenceRegionCode: dto.residenceRegionCode,
       workplaceRegionCode: dto.workplaceRegionCode,
       housingOwnershipStatus: dto.housingOwnershipStatus,
+      maritalStatus: dto.maritalStatus,
+      marriageDate: dto.marriageDate ? new Date(dto.marriageDate) : undefined,
+      hasRecentNewborn: dto.hasRecentNewborn,
+      newbornBirthDate: dto.newbornBirthDate ? new Date(dto.newbornBirthDate) : undefined,
+      householdHeadStatus: dto.householdHeadStatus,
     };
 
     return await this.prisma.userConditionProfile.upsert({
@@ -78,8 +83,6 @@ export class UsersRepository {
       create: {
         userId,
         ...conditionData,
-        householdHeadStatus: 'UNKNOWN',
-        maritalStatus: 'UNKNOWN',
       },
     });
   }
