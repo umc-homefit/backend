@@ -12,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
+import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -142,8 +143,12 @@ export class FinanceController {
   @ApiParam({ name: 'productId', type: Number, description: '조회할 상품 ID', example: 101 })
   @ApiSuccessResponse(RequiredDocumentItemDto, {
     isArray: true,
-    description: '필요 서류 조회 성공',
+    description: '필요 서류 조회 성공 (0건 포함 — 상품이 존재하지 않거나 등록된 서류가 없어도 빈 배열)',
   })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'productId는 숫자여야 합니다.' },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+  ])
   async getLoanProductDocuments(
     @Param('productId', ParseIntPipe) productId: number,
   ): Promise<ApiResponse<RequiredDocumentItemDto[]>> {
@@ -160,6 +165,11 @@ export class FinanceController {
     description: '지정한 금융 용어 하나의 상세 설명을 조회한다.',
   })
   @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 상세 조회 성공' })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'term은 비어있을 수 없습니다.' },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+    { status: 404, code: 'FINANCE404', message: '존재하지 않는 용어입니다.' },
+  ])
   async getFinanceTerms(
     @Query() query: GetFinanceTermsQueryDto,
   ): Promise<ApiResponse<FinanceTermItemDto>> {
@@ -178,8 +188,12 @@ export class FinanceController {
   @ApiParam({ name: 'noticeId', type: Number, description: '조회할 공고 ID', example: 1 })
   @ApiSuccessResponse(RequiredDocumentItemDto, {
     isArray: true,
-    description: '필요 서류 조회 성공',
+    description: '필요 서류 조회 성공 (0건 포함 — 공고가 존재하지 않거나 등록된 서류가 없어도 빈 배열)',
   })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'noticeId는 숫자여야 합니다.' },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+  ])
   async getNoticeDocuments(
     @Param('noticeId', ParseIntPipe) noticeId: number,
   ): Promise<ApiResponse<RequiredDocumentItemDto[]>> {
