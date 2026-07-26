@@ -4,9 +4,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { ExternalApiErrorType, Guide, LoanProduct, Prisma } from '@prisma/client';
+import {
+  DocumentMapping,
+  ExternalApiErrorType,
+  Guide,
+  LoanProduct,
+  Prisma,
+  RequiredDocument,
+} from '@prisma/client';
 
 import {
+  FinanceTermItemDto,
   GetGuidesQueryDto,
   GetLoanProductsQueryDto,
   GuideCategoryItemDto,
@@ -20,6 +28,7 @@ import {
   LoanProductSort,
   LoanProviderType,
   ProductCategory,
+  RequiredDocumentItemDto,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
@@ -104,13 +113,59 @@ export class FinanceService {
   }
 
   async getLoanProductDetail(productId: number): Promise<LoanProductDetailResultDto> {
-    const product = await this.financeRepository.findLoanProductById(BigInt(productId));
-
-    if (!product) {
-      throw new NotFoundException({ code: 'FINANCE404', message: '존재하지 않는 상품입니다.' });
-    }
+    const product = await this.findOrThrow(
+      () => this.financeRepository.findLoanProductById(BigInt(productId)),
+      '존재하지 않는 상품입니다.',
+    );
 
     return this.toDetailResultDto(product);
+  }
+
+  async getLoanProductDocuments(productId: number): Promise<RequiredDocumentItemDto[]> {
+    const mappings = await this.financeRepository.findDocumentMappingsByProductId(
+      BigInt(productId),
+    );
+
+    return mappings.map((mapping) => this.toRequiredDocumentItemDto(mapping));
+  }
+
+  async getNoticeDocuments(noticeId: number): Promise<RequiredDocumentItemDto[]> {
+    const mappings = await this.financeRepository.findDocumentMappingsByNoticeId(BigInt(noticeId));
+
+    return mappings.map((mapping) => this.toRequiredDocumentItemDto(mapping));
+  }
+
+  async getFinanceTerm(term: string): Promise<FinanceTermItemDto> {
+    const financeTerm = await this.findOrThrow(
+      () => this.financeRepository.findFinanceTermByTerm(term),
+      '존재하지 않는 용어입니다.',
+    );
+
+    return { term: financeTerm.term, detailDescription: financeTerm.detailDescription };
+  }
+
+  /** repo 조회 결과가 없으면 FINANCE404로 통일해서 던진다. (상품/가이드/용어 상세조회가 공유) */
+  private async findOrThrow<T>(finder: () => Promise<T | null>, message: string): Promise<T> {
+    const result = await finder();
+
+    if (!result) {
+      throw new NotFoundException({ code: 'FINANCE404', message });
+    }
+
+    return result;
+  }
+
+  private toRequiredDocumentItemDto(
+    mapping: DocumentMapping & { document: RequiredDocument },
+  ): RequiredDocumentItemDto {
+    return {
+      documentId: Number(mapping.document.documentId),
+      documentName: mapping.document.documentName,
+      issuer: mapping.document.issuer,
+      issueMethod: mapping.document.issueMethod,
+      documentType: mapping.document.documentType,
+      isRequired: mapping.isRequired,
+    };
   }
 
   private buildLoanProductOrderBy(
@@ -217,11 +272,10 @@ export class FinanceService {
   }
 
   async getGuideDetail(guideId: number): Promise<GuideDetailResultDto> {
-    const guide = await this.financeRepository.findGuideById(BigInt(guideId));
-
-    if (!guide) {
-      throw new NotFoundException({ code: 'FINANCE404', message: '존재하지 않는 가이드입니다.' });
-    }
+    const guide = await this.findOrThrow(
+      () => this.financeRepository.findGuideById(BigInt(guideId)),
+      '존재하지 않는 가이드입니다.',
+    );
 
     return this.toGuideDto(guide);
   }
