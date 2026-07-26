@@ -91,6 +91,20 @@ export class MatchedLoanProductDto {
     example: false,
   })
   ageCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '혼인기간 조건 검사 스킵 여부. 신혼부부 전용 상품인데 혼인일자가 등록되지 않아 혼인기간 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  marriedCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '출산 경과기간 조건 검사 스킵 여부. 신생아 특례 상품인데 출산일자가 등록되지 않아 경과기간 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  newbornCheckSkipped: boolean;
 }
 
 export class MatchLoanProductsResultDto {

@@ -114,16 +114,21 @@ export class FinanceService {
     };
 
     const products = await this.financeRepository.findLoanProductsForMatch(where);
-    const matchedProducts = products.map((product) =>
-      this.evaluateProductMatch(product, conditionProfile, age),
-    );
-    const eligibleProducts = products.filter((_, index) => matchedProducts[index].isEligible);
+    // product와 평가 결과(dto)를 한 쌍으로 묶어서 만든다 — 두 배열을 index로 짝짓지 않아
+    // 한쪽만 따로 filter/reorder해도 어긋나지 않는다.
+    const evaluations = products.map((product) => ({
+      product,
+      dto: this.evaluateProductMatch(product, conditionProfile, age),
+    }));
+    const eligibleProducts = evaluations
+      .filter((evaluation) => evaluation.dto.isEligible)
+      .map((evaluation) => evaluation.product);
 
     return {
       matchedCount: eligibleProducts.length,
       minRate: this.pickMinRate(eligibleProducts),
       maxLimitAmount: this.pickMaxLimitAmount(eligibleProducts),
-      products: matchedProducts,
+      products: evaluations.map((evaluation) => evaluation.dto),
     };
   }
 
@@ -148,11 +153,16 @@ export class FinanceService {
       product.maxAsset === null ? null : Number(product.maxAsset),
     );
     const passesHomeless = !product.requireNoHouse || profile.isHomeless;
-    const passesMarried = this.evaluateMarriedCondition(product, profile);
-    const passesNewborn = this.evaluateNewbornCondition(product, profile);
+    const married = this.evaluateMarriedCondition(product, profile);
+    const newborn = this.evaluateNewbornCondition(product, profile);
 
     const isEligible =
-      passesAge && passesIncome && passesAsset && passesHomeless && passesMarried && passesNewborn;
+      passesAge &&
+      passesIncome &&
+      passesAsset &&
+      passesHomeless &&
+      married.passed &&
+      newborn.passed;
 
     return {
       productId: Number(product.productId),
@@ -166,6 +176,8 @@ export class FinanceService {
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
       isEligible,
       ageCheckSkipped,
+      marriedCheckSkipped: married.skipped,
+      newbornCheckSkipped: newborn.skipped,
     };
   }
 
@@ -182,33 +194,56 @@ export class FinanceService {
 
   /**
    * requireMarried=true인 상품(신혼부부 전용) 매칭. maritalStatus 문자열 값 컨벤션은
-   * User 도메인과 별도 확인이 필요하다 (지금은 'MARRIED' 정확히 일치만 통과 처리).
+   * User 도메인과 별도 확인이 필요하다 (지금은 'MARRIED' 정확히 일치만 기혼으로 처리).
+   * 기혼 자체는 확인됐지만 marriageDate가 없어 혼인기간(maxMarriageYears) 조건을 검증하지
+   * 못한 경우는 skipped=true로 표시한다 — ageCheckSkipped와 동일한 패턴.
    */
-  private evaluateMarriedCondition(product: LoanProduct, profile: UserConditionProfile): boolean {
+  private evaluateMarriedCondition(
+    product: LoanProduct,
+    profile: UserConditionProfile,
+  ): { passed: boolean; skipped: boolean } {
     if (!product.requireMarried) {
-      return true;
+      return { passed: true, skipped: false };
     }
     if (profile.maritalStatus !== MARRIED_STATUS_VALUE) {
-      return false;
+      return { passed: false, skipped: false };
     }
-    if (product.maxMarriageYears === null || !profile.marriageDate) {
-      return true;
+    if (product.maxMarriageYears === null) {
+      return { passed: true, skipped: false };
     }
-    return this.yearsSince(profile.marriageDate) <= product.maxMarriageYears;
+    if (!profile.marriageDate) {
+      return { passed: true, skipped: true };
+    }
+    return {
+      passed: this.yearsSince(profile.marriageDate) <= product.maxMarriageYears,
+      skipped: false,
+    };
   }
 
-  /** requireRecentNewborn=true인 상품(신생아 특례) 매칭. */
-  private evaluateNewbornCondition(product: LoanProduct, profile: UserConditionProfile): boolean {
+  /**
+   * requireRecentNewborn=true인 상품(신생아 특례) 매칭. hasRecentNewborn은 확인됐지만
+   * newbornBirthDate가 없어 newbornWithinYears 조건을 검증 못한 경우 skipped=true.
+   */
+  private evaluateNewbornCondition(
+    product: LoanProduct,
+    profile: UserConditionProfile,
+  ): { passed: boolean; skipped: boolean } {
     if (!product.requireRecentNewborn) {
-      return true;
+      return { passed: true, skipped: false };
     }
     if (!profile.hasRecentNewborn) {
-      return false;
+      return { passed: false, skipped: false };
     }
-    if (product.newbornWithinYears === null || !profile.newbornBirthDate) {
-      return true;
+    if (product.newbornWithinYears === null) {
+      return { passed: true, skipped: false };
     }
-    return this.yearsSince(profile.newbornBirthDate) <= product.newbornWithinYears;
+    if (!profile.newbornBirthDate) {
+      return { passed: true, skipped: true };
+    }
+    return {
+      passed: this.yearsSince(profile.newbornBirthDate) <= product.newbornWithinYears,
+      skipped: false,
+    };
   }
 
   private yearsSince(date: Date): number {
