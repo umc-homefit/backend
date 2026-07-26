@@ -502,6 +502,10 @@ model LoanProduct {
   maxAreaM2                Decimal?         @map("max_area_m2") @db.Decimal(6, 2) // 임차 전용면적 상한(㎡). notice_units.exclusive_area_m2와 비교
   officialUrl              String?          @map("official_url") @db.VarChar(500) // 변경: nullable
   description              String?          @db.Text
+  requireMarried           Boolean?         @map("require_married") // 신혼부부 전용 여부. loan-products/match 매칭 조건용
+  maxMarriageYears         Int?             @map("max_marriage_years") // 혼인기간 조건(예: 7년 이내). requireMarried=true일 때만 의미
+  requireRecentNewborn     Boolean?         @map("require_recent_newborn") // 신생아 특례 대상 여부. loan-products/match 매칭 조건용
+  newbornWithinYears       Int?             @map("newborn_within_years") // 출산 후 몇 년 이내 조건. requireRecentNewborn=true일 때만 의미
   createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
   updatedAt                DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 

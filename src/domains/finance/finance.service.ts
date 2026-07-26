@@ -1,5 +1,6 @@
 import {
   BadGatewayException,
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -11,6 +12,7 @@ import {
   LoanProduct,
   Prisma,
   RequiredDocument,
+  UserConditionProfile,
 } from '@prisma/client';
 
 import {
@@ -27,11 +29,17 @@ import {
   LoanProductListResultDto,
   LoanProductSort,
   LoanProviderType,
+  MatchedLoanProductDto,
+  MatchLoanProductsResultDto,
   ProductCategory,
   RequiredDocumentItemDto,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceRepository, LoanProductRateUpsertInput } from './finance.repository';
+
+/** 사용자 조건 프로필의 결혼 상태를 나타내는 문자열 값. User 도메인이 실제로 저장하는 값 컨벤션과 반드시 맞춰야 한다 (확인 필요). */
+const MARRIED_STATUS_VALUE = 'MARRIED';
+const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 /**
  * 은행별 전세자금대출(rent-loan-rate-info)의 90%/100% 두 tier가 모두 해당하는 단일 보증상품(일반전세자금보증)의 보증구분코드.
@@ -71,6 +79,177 @@ interface LoanGuaranteeDetailInfoApiResponse {
 @Injectable()
 export class FinanceService {
   constructor(private readonly financeRepository: FinanceRepository) {}
+
+  /**
+   * 사용자 조건 프로필(나이/소득/자산/무주택/결혼/출산) 기준으로 신청 자격이 되는 금융상품을 매칭한다.
+   * 청약저축(SUBSCRIPTION_SAVINGS)은 보증금 마련 목적이 아니라 별도 안내 대상이라 매칭 후보에서 제외한다.
+   */
+  async matchLoanProducts(
+    userId: bigint,
+    providerType: LoanProviderType | undefined,
+  ): Promise<MatchLoanProductsResultDto> {
+    const [conditionProfile, userProfile] = await Promise.all([
+      this.financeRepository.findUserConditionProfileByUserId(userId),
+      this.financeRepository.findUserProfileByUserId(userId),
+    ]);
+
+    if (!conditionProfile) {
+      throw new BadRequestException({
+        code: 'FINANCE400',
+        message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
+      });
+    }
+
+    const age = this.calculateAge(userProfile?.birthDate ?? null);
+    const where: Prisma.LoanProductWhereInput = {
+      AND: [
+        {
+          OR: [
+            { productCategory: null },
+            { productCategory: { not: ProductCategory.SUBSCRIPTION_SAVINGS } },
+          ],
+        },
+        ...(providerType ? [{ providerType }] : []),
+      ],
+    };
+
+    const products = await this.financeRepository.findLoanProductsForMatch(where);
+    const matchedProducts = products.map((product) =>
+      this.evaluateProductMatch(product, conditionProfile, age),
+    );
+    const eligibleProducts = products.filter((_, index) => matchedProducts[index].isEligible);
+
+    return {
+      matchedCount: eligibleProducts.length,
+      minRate: this.pickMinRate(eligibleProducts),
+      maxLimitAmount: this.pickMaxLimitAmount(eligibleProducts),
+      products: matchedProducts,
+    };
+  }
+
+  private evaluateProductMatch(
+    product: LoanProduct,
+    profile: UserConditionProfile,
+    age: number | null,
+  ): MatchedLoanProductDto {
+    const annualIncome = Number(profile.monthlyIncomeAmount) * 12;
+    const netAsset = Number(profile.totalAssetAmount) - Number(profile.totalDebtAmount);
+    const ageCheckSkipped = age === null && (product.minAge !== null || product.maxAge !== null);
+
+    const passesAge = age === null || this.isWithinRange(age, product.minAge, product.maxAge);
+    const passesIncome = this.isWithinRange(
+      annualIncome,
+      product.minIncome === null ? null : Number(product.minIncome),
+      product.maxIncome === null ? null : Number(product.maxIncome),
+    );
+    const passesAsset = this.isWithinRange(
+      netAsset,
+      product.minAsset === null ? null : Number(product.minAsset),
+      product.maxAsset === null ? null : Number(product.maxAsset),
+    );
+    const passesHomeless = !product.requireNoHouse || profile.isHomeless;
+    const passesMarried = this.evaluateMarriedCondition(product, profile);
+    const passesNewborn = this.evaluateNewbornCondition(product, profile);
+
+    const isEligible =
+      passesAge && passesIncome && passesAsset && passesHomeless && passesMarried && passesNewborn;
+
+    return {
+      productId: Number(product.productId),
+      productName: product.productName,
+      providerType: product.providerType as LoanProviderType,
+      productCategory: product.productCategory as ProductCategory | null,
+      providerName: product.providerName,
+      rateRange: this.formatRateRange(product.minRate, product.maxRate),
+      maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
+      firstTimeBuyerOnly: product.firstTimeBuyerOnly,
+      maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      isEligible,
+      ageCheckSkipped,
+    };
+  }
+
+  /** min/max 둘 다 null이면 조건 없음으로 간주해 통과시킨다. */
+  private isWithinRange(value: number, min: number | null, max: number | null): boolean {
+    if (min !== null && value < min) {
+      return false;
+    }
+    if (max !== null && value > max) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * requireMarried=true인 상품(신혼부부 전용) 매칭. maritalStatus 문자열 값 컨벤션은
+   * User 도메인과 별도 확인이 필요하다 (지금은 'MARRIED' 정확히 일치만 통과 처리).
+   */
+  private evaluateMarriedCondition(product: LoanProduct, profile: UserConditionProfile): boolean {
+    if (!product.requireMarried) {
+      return true;
+    }
+    if (profile.maritalStatus !== MARRIED_STATUS_VALUE) {
+      return false;
+    }
+    if (product.maxMarriageYears === null || !profile.marriageDate) {
+      return true;
+    }
+    return this.yearsSince(profile.marriageDate) <= product.maxMarriageYears;
+  }
+
+  /** requireRecentNewborn=true인 상품(신생아 특례) 매칭. */
+  private evaluateNewbornCondition(product: LoanProduct, profile: UserConditionProfile): boolean {
+    if (!product.requireRecentNewborn) {
+      return true;
+    }
+    if (!profile.hasRecentNewborn) {
+      return false;
+    }
+    if (product.newbornWithinYears === null || !profile.newbornBirthDate) {
+      return true;
+    }
+    return this.yearsSince(profile.newbornBirthDate) <= product.newbornWithinYears;
+  }
+
+  private yearsSince(date: Date): number {
+    return (Date.now() - date.getTime()) / MS_PER_YEAR;
+  }
+
+  /** 생년월일 기준 만 나이. birthDate가 없으면 나이 조건 검사를 스킵할 수 있도록 null을 반환한다. */
+  private calculateAge(birthDate: Date | null): number | null {
+    if (!birthDate) {
+      return null;
+    }
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const hasHadBirthdayThisYear =
+      today.getMonth() > birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    if (!hasHadBirthdayThisYear) {
+      age -= 1;
+    }
+    return age;
+  }
+
+  private pickMinRate(products: LoanProduct[]): string | null {
+    const rates = products.map((product) => product.minRate).filter((rate) => rate !== null);
+    if (rates.length === 0) {
+      return null;
+    }
+    const min = rates.reduce((current, rate) => (rate.lessThan(current) ? rate : current));
+    return `${min.toString()}%`;
+  }
+
+  private pickMaxLimitAmount(products: LoanProduct[]): number | null {
+    const limits = products
+      .map((product) => product.maxLimitAmount)
+      .filter((limit) => limit !== null);
+    if (limits.length === 0) {
+      return null;
+    }
+    const max = limits.reduce((current, limit) => (limit > current ? limit : current));
+    return Number(max);
+  }
 
   async getLoanProducts(query: GetLoanProductsQueryDto): Promise<LoanProductListResultDto> {
     const page = query.page ?? 0;

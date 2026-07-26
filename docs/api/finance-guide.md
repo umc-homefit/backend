@@ -125,22 +125,23 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /loan-products/match` |
-| 설명 | 사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다. |
+| 설명 | 사용자 조건 프로필(나이/소득/자산/무주택/결혼/출산) 기준으로 신청 자격이 되는 금융상품을 조회한다. |
 | 인증 | **필수** · `Authorization: Bearer {accessToken}` |
+
+> `noticeId` 파라미터는 이번 구현 범위에서 제외했다. Notion 원본 명세엔 있었지만 "설명" 필드 자체가 사용자 금융정보 기준 매칭만 언급하고, 공고(호실 타입 단위) 기준 필터링을 뒷받침할 스키마 근거(지역 제한 등)가 없어 제거함. 필요해지면 별도 스키마 확장과 함께 재도입 검토.
 
 ### Query Parameter
 
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
-| `noticeId` | number | N | 매칭 기준 공고 ID |
 | `providerType` | enum | N | `POLICY` / `BANK` |
 
 ### Response (result)
 
 ```json
 {
-  "matchedCount": 2,
-  "minRate": "1.2%",
+  "matchedCount": 1,
+  "minRate": "1.5%",
   "maxLimitAmount": 200000000,
   "products": [
     {
@@ -153,13 +154,17 @@
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 200000000,
-      "isEligible": true
+      "isEligible": true,
+      "ageCheckSkipped": false
     }
   ]
 }
 ```
 
-`minRate`/`maxLimitAmount`(최상위)는 매칭된 상품들 중 최저 금리/최대 한도 집계값이다.
+- `products`는 (청약저축 제외) 조건에 맞는 상품 **전체**를 반환하며, 상품별 `isEligible`로 자격 충족 여부를 표시한다. `matchedCount`/`minRate`/`maxLimitAmount`(최상위)는 그중 `isEligible: true`인 상품만 집계한 값이다.
+- `ageCheckSkipped`: 사용자가 생년월일(`user_profiles.birth_date`)을 등록하지 않아 이 상품의 나이 조건 검사를 건너뛴 경우 `true`. birthDate가 nullable이라 발생할 수 있음 — FE에서 "생년월일 입력 시 더 정확한 매칭 가능" 안내에 활용 권장.
+- `firstTimeBuyerOnly`(생애최초 전용 여부)는 정보성 필드로만 노출되고 `isEligible` 판정에는 반영되지 않는다. 사용자 조건 프로필에 "생애최초 여부"에 대응하는 필드가 없기 때문 (확인 필요 — User 도메인과 협의 대상).
+- 신혼부부 전용(`requireMarried`)/신생아 특례(`requireRecentNewborn`) 조건은 `loan_products`의 신규 컬럼과 `user_condition_profiles.maritalStatus`/`marriageDate`/`hasRecentNewborn`/`newbornBirthDate`를 비교해 판정한다. `maritalStatus` 문자열 값은 현재 `'MARRIED'` 정확히 일치만 기혼으로 처리 — User 도메인이 실제 저장하는 값 컨벤션과 다르면 재확인 필요.
 
 사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
 

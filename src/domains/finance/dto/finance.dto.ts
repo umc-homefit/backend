@@ -29,12 +29,6 @@ export enum LoanProductSort {
 }
 
 export class MatchLoanProductsQueryDto {
-  @ApiPropertyOptional({ description: '매칭 기준 공고 ID', example: 22 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'noticeId는 정수여야 합니다.' })
-  noticeId?: number;
-
   @ApiPropertyOptional({
     description: '상품 제공 유형',
     enum: LoanProviderType,
@@ -90,6 +84,13 @@ export class MatchedLoanProductDto {
 
   @ApiProperty({ description: '사용자 조건 대비 자격 충족 여부', example: true })
   isEligible: boolean;
+
+  @ApiProperty({
+    description:
+      '나이 조건 검사 여부. 사용자 생년월일이 등록되지 않아 이 상품의 나이 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  ageCheckSkipped: boolean;
 }
 
 export class MatchLoanProductsResultDto {
