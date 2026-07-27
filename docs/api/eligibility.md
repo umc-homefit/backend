@@ -26,8 +26,9 @@
 | -------- | ------ | --------------------------------------------------------- | -------------------------- |
 | P0       | `POST` | `/notices/{noticeId}/units/{unitId}/eligibility-analyses` | 입주 가능성 분석 요청      |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}`                      | 입주 가능성 분석 결과 조회 |
+| P0       | `GET`  | `/eligibility-analyses/{analysisId}/conditions`           | 조건별 비교 결과 조회      |
 
-조건별/재정 요약/내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
+재정 요약/내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
 
 ## MVP 계산 기준
 
@@ -126,6 +127,9 @@
 | ----------------- | ------------------------------------------------------------------ |
 | Method · Endpoint | `GET /eligibility-analyses/{analysisId}/conditions`                |
 | 설명              | 소득, 자산, 무주택 여부, 보유 현금 등 조건별 충족 여부를 조회한다. |
+| 인증              | **필수**                                                           |
+
+분석 요청 시 계산해 저장한 조건별 결과를 반환한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
 
 ### Response (result)
 
@@ -143,6 +147,15 @@
   ]
 }
 ```
+
+`conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
+
+| 상태 | 설명                                    |
+| ---- | --------------------------------------- |
+| 200  | 조건별 비교 결과 조회 성공              |
+| 400  | `analysisId`가 양의 safe integer가 아님 |
+| 401  | 인증 필요                               |
+| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
 
 ---
 

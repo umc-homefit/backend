@@ -11,6 +11,7 @@ import {
   EligibilityConditionResultDto,
   EligibilityConditionResultStatus,
   EligibilityAnalysisResultDto,
+  EligibilityConditionsResultDto,
   EligibilityResultLevel,
   RequestEligibilityAnalysisResultDto,
 } from './dto/eligibility.dto';
@@ -209,6 +210,47 @@ export class EligibilityService {
       })),
       // toISOString()은 타임존(Z)과 밀리초가 포함된 ISO 8601 UTC 문자열을 만든다.
       analyzedAt: analysis.analyzedAt.toISOString(),
+    };
+  }
+
+  async getEligibilityConditions(
+    analysisId: number,
+    userId: bigint,
+  ): Promise<EligibilityConditionsResultDto> {
+    // URL ID는 number로 들어오지만 DB의 기본 키는 BigInt이므로, 안전하게 변환 가능한 값만 허용한다.
+    if (!Number.isSafeInteger(analysisId) || analysisId <= 0) {
+      throw new BadRequestException('잘못된 분석 결과 ID입니다.');
+    }
+
+    // 분석 요청 시 계산해 저장한 조건 결과를 다시 계산하지 않고 그대로 읽는다.
+    // 따라서 이후 공고나 사용자 프로필이 바뀌어도, 이 분석을 실행한 당시의 판단 근거를 보여 준다.
+    const analysis = await this.prisma.eligibilityAnalysis.findFirst({
+      where: {
+        eligibilityAnalysisId: BigInt(analysisId),
+        // 분석의 소유자는 연결된 사용자 조건 프로필의 userId로 확인한다.
+        userConditionProfile: { userId },
+      },
+      select: {
+        // API 명세의 응답 순서를 보장한다. ID는 응답에 노출하지 않는다.
+        conditionResults: { orderBy: { eligibilityConditionResultId: 'asc' } },
+      },
+    });
+
+    // 존재하지 않는 결과와 다른 사용자의 결과를 같은 404로 응답해 소유 관계를 숨긴다.
+    if (!analysis) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    return {
+      // DB enum과 nullable 문자열을 DTO 모양으로 옮겨 JSON 응답을 만든다.
+      conditionResults: analysis.conditionResults.map((conditionResult) => ({
+        conditionCode: conditionResult.conditionCode as EligibilityConditionCode,
+        conditionName: conditionResult.conditionName,
+        requiredValue: conditionResult.requiredValue,
+        userValue: conditionResult.userValue,
+        resultStatus: conditionResult.resultStatus as EligibilityConditionResultStatus,
+        failReason: conditionResult.failReason,
+      })),
     };
   }
 

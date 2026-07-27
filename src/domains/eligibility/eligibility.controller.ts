@@ -17,8 +17,6 @@ import { ApiResponse, createSuccessResponse } from '../../common/types/api-respo
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   EligibilityAnalysisResultDto,
-  EligibilityConditionCode,
-  EligibilityConditionResultStatus,
   EligibilityConditionsResultDto,
   EligibilityResultLevel,
   FinancialSummaryResultDto,
@@ -28,37 +26,7 @@ import {
 } from './dto/eligibility.dto';
 import { EligibilityService } from './eligibility.service';
 
-const MOCK_CONDITION_RESULTS = [
-  {
-    conditionCode: EligibilityConditionCode.INCOME,
-    conditionName: '소득 조건',
-    requiredValue: '월소득 350만원 이하',
-    userValue: '월소득 280만원',
-    resultStatus: EligibilityConditionResultStatus.PASS,
-    failReason: null,
-  },
-  {
-    conditionCode: EligibilityConditionCode.CASH,
-    conditionName: '보유 현금',
-    requiredValue: '보증금 1000만원 이상',
-    userValue: '보유 현금 800만원',
-    resultStatus: EligibilityConditionResultStatus.FAIL,
-    failReason: '예상 보증금 대비 보유 현금이 200만원 부족합니다.',
-  },
-  {
-    conditionCode: EligibilityConditionCode.RENT_BURDEN,
-    conditionName: '월세 부담률',
-    requiredValue: '월소득 대비 월 주거비 40% 이하 권장',
-    userValue: '28.57%',
-    resultStatus: EligibilityConditionResultStatus.PASS,
-    failReason: null,
-  },
-];
 
-/**
- * POST 분석 생성은 EligibilityService/DB와 연동되어 있고,
- * 조회 계열 API는 추후 서비스 연동 전까지 명세 예시 응답을 반환한다.
- */
 @ApiTags('Eligibility Analysis')
 @ApiBearerAuth('access-token')
 @Controller()
@@ -152,35 +120,22 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(EligibilityConditionsResultDto, { description: '조건별 비교 결과 조회 성공' })
-  getEligibilityConditions(
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getEligibilityConditions(
+    // JwtAuthGuard가 검증해 둔 사용자 정보를 전달하여 자신의 분석만 조회하게 한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<EligibilityConditionsResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: EligibilityConditionsResultDto = {
-      conditionResults: [
-        ...MOCK_CONDITION_RESULTS,
-        {
-          conditionCode: EligibilityConditionCode.ASSET,
-          conditionName: '자산 조건',
-          requiredValue: '총자산 2억 5천만원 이하',
-          userValue: '총자산 1억 2천만원',
-          resultStatus: EligibilityConditionResultStatus.PASS,
-          failReason: null,
-        },
-        {
-          conditionCode: EligibilityConditionCode.HOMELESS,
-          conditionName: '무주택 여부',
-          requiredValue: '무주택자',
-          userValue: '무주택자',
-          resultStatus: EligibilityConditionResultStatus.PASS,
-          failReason: null,
-        },
-      ],
-    };
-
+  ): Promise<ApiResponse<EligibilityConditionsResultDto>> {
+    const result = await this.eligibilityService.getEligibilityConditions(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '조건별 비교 결과 조회에 성공했습니다.');
   }
 
