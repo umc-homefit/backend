@@ -125,6 +125,9 @@
 - 전체 범위 선택 시 관련 `min`, `max` 파라미터를 모두 생략한다.
 - 마지막 눈금 미만의 상한을 선택하면 해당 `max` 값을 전달하며 그 값 이하를 포함한다.
 - 하한과 상한을 함께 전달하면 `minArea <= maxArea`, `minDeposit <= maxDeposit`이어야 한다.
+- 보증금은 주택형의 선택 가능 구간(`[depositMin, depositMax]`)과 요청 구간(`[minDeposit, maxDeposit]`)이 하나라도 겹치면 포함한다.
+  - `minDeposit` 전달 시 `depositMax >= minDeposit`
+  - `maxDeposit` 전달 시 `depositMin <= maxDeposit`
 
 예를 들어 `20㎡ 이상`, `5천만 원 이상`이면 아래처럼 하한만 전달한다.
 

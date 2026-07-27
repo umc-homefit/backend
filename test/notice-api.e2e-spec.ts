@@ -137,9 +137,41 @@ describe('Notice API contract (e2e)', () => {
     );
 
     expect(noticeIds).toEqual(
-      expect.arrayContaining([fixture.boundaryNoticeId, fixture.largeNoticeId]),
+      expect.arrayContaining([
+        fixture.boundaryNoticeId,
+        fixture.largeNoticeId,
+        fixture.smallNoticeId,
+      ]),
     );
-    expect(noticeIds).not.toContain(fixture.smallNoticeId);
+  });
+
+  it('주택형의 보증금 선택 가능 구간이 요청 범위와 일부 겹치면 포함한다', async () => {
+    const minResponse = await getNotices()
+      .query({ minDeposit: 50000000, sort: 'LATEST' })
+      .expect(200);
+    const minNoticeIds = minResponse.body.result.notices.map(
+      (notice: { noticeId: number }) => notice.noticeId,
+    );
+
+    expect(minNoticeIds).toContain(fixture.smallNoticeId);
+
+    const maxResponse = await getNotices()
+      .query({ maxDeposit: 50000000, sort: 'LATEST' })
+      .expect(200);
+    const maxNoticeIds = maxResponse.body.result.notices.map(
+      (notice: { noticeId: number }) => notice.noticeId,
+    );
+
+    expect(maxNoticeIds).toContain(fixture.smallNoticeId);
+
+    const nonOverlappingResponse = await getNotices()
+      .query({ maxDeposit: 29999999, sort: 'LATEST' })
+      .expect(200);
+    const nonOverlappingNoticeIds = nonOverlappingResponse.body.result.notices.map(
+      (notice: { noticeId: number }) => notice.noticeId,
+    );
+
+    expect(nonOverlappingNoticeIds).not.toContain(fixture.smallNoticeId);
   });
 
   it('59㎡·1억 원 이상 마지막 눈금은 각각 상한 없이 조회한다', async () => {
@@ -161,7 +193,7 @@ describe('Notice API contract (e2e)', () => {
     );
 
     expect(depositNoticeIds).toContain(fixture.largeNoticeId);
-    expect(depositNoticeIds).not.toContain(fixture.boundaryNoticeId);
+    expect(depositNoticeIds).toContain(fixture.boundaryNoticeId);
     expect(depositNoticeIds).not.toContain(fixture.smallNoticeId);
   });
 
@@ -470,8 +502,8 @@ async function seedNoticeFixtures(prisma: PrismaService): Promise<{
           unitName: '20A',
           exclusiveAreaM2: 20,
           supplyAreaM2: 30,
-          depositMin: 10000000,
-          depositMax: 30000000,
+          depositMin: 30000000,
+          depositMax: 90000000,
           monthlyRentMin: 150000,
           monthlyRentMax: 250000,
           supplyCount: 20,

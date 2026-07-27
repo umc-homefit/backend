@@ -327,11 +327,14 @@ export class NoticesService {
     const unitWhere: Prisma.NoticeUnitWhereInput = {};
 
     if (query.minDeposit !== undefined) {
-      unitWhere.depositMin = { gte: query.minDeposit };
+      // 주택형의 선택 가능한 보증금 구간과 요청 구간이 일부라도 겹치면 포함한다.
+      // 요청 하한보다 주택형의 최대 보증금이 크거나 같아야 선택 가능한 금액이 존재한다.
+      unitWhere.depositMax = { gte: query.minDeposit };
     }
 
     if (query.maxDeposit !== undefined) {
-      unitWhere.depositMax = { lte: query.maxDeposit };
+      // 요청 상한보다 주택형의 최소 보증금이 작거나 같아야 선택 가능한 금액이 존재한다.
+      unitWhere.depositMin = { lte: query.maxDeposit };
     }
 
     const areaWhere: Prisma.DecimalNullableFilter = {};
