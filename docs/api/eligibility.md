@@ -175,7 +175,7 @@
 | --------------------------- | -------------- | ---------------- |
 | `expectedDepositAmount`     | number         | 예상 보증금      |
 | `expectedMonthlyRentAmount` | number         | 예상 월세        |
-| `maintenanceFeeAmount`      | number \| null | 예상 관리비      |
+| `maintenanceFeeAmount`      | number         | 예상 관리비      |
 | `userCashAmount`            | number         | 사용자 보유 현금 |
 | `shortageAmount`            | number         | 부족 자금        |
 | `monthlyIncomeAmount`       | number         | 사용자 월소득    |
