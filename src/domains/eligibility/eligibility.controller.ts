@@ -84,7 +84,7 @@ export class EligibilityController {
   })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
   @ApiErrorResponse([
-    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하이거나 safe integer가 아닙니다.' }
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     {
       status: 404,
