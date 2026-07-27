@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { PageInfoDto } from '../../common/dto/page-info.dto';
@@ -78,6 +78,8 @@ export class NoticesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getNotices(userId: bigint, query: GetNoticesQueryDto): Promise<NoticeListResultDto> {
+    this.validateNoticeRange(query);
+
     const page = query.page ?? 0;
     const size = Math.min(query.size ?? 10, this.maxPageSize);
     const currentKstDateTime = this.toCurrentKstDateTime();
@@ -120,6 +122,24 @@ export class NoticesService {
       notices: notices.map((notice) => this.toNoticeListItem(notice, currentKstDateTime)),
       pageInfo,
     };
+  }
+
+  private validateNoticeRange(query: GetNoticesQueryDto): void {
+    if (
+      query.minArea !== undefined &&
+      query.maxArea !== undefined &&
+      query.minArea > query.maxArea
+    ) {
+      throw new BadRequestException('minArea는 maxArea보다 클 수 없습니다.');
+    }
+
+    if (
+      query.minDeposit !== undefined &&
+      query.maxDeposit !== undefined &&
+      query.minDeposit > query.maxDeposit
+    ) {
+      throw new BadRequestException('minDeposit은 maxDeposit보다 클 수 없습니다.');
+    }
   }
 
   async getSavedNotices(
@@ -307,11 +327,14 @@ export class NoticesService {
     const unitWhere: Prisma.NoticeUnitWhereInput = {};
 
     if (query.minDeposit !== undefined) {
-      unitWhere.depositMin = { gte: query.minDeposit };
+      // 주택형의 선택 가능한 보증금 구간과 요청 구간이 일부라도 겹치면 포함한다.
+      // 요청 하한보다 주택형의 최대 보증금이 크거나 같아야 선택 가능한 금액이 존재한다.
+      unitWhere.depositMax = { gte: query.minDeposit };
     }
 
     if (query.maxDeposit !== undefined) {
-      unitWhere.depositMax = { lte: query.maxDeposit };
+      // 요청 상한보다 주택형의 최소 보증금이 작거나 같아야 선택 가능한 금액이 존재한다.
+      unitWhere.depositMin = { lte: query.maxDeposit };
     }
 
     const areaWhere: Prisma.DecimalNullableFilter = {};

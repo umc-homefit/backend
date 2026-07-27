@@ -1,7 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { NoticeConditionTargetType, NoticeFileType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -52,33 +61,59 @@ export class GetNoticesQueryDto {
 
   @ApiPropertyOptional({ description: '추가모집 여부', example: true })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) {
+      return true;
+    }
+
+    if (value === 'false' || value === false) {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   isAdditionalRecruitment?: boolean;
 
-  @ApiPropertyOptional({ description: '최소 보증금 (원 단위)', example: 30000000 })
+  @ApiPropertyOptional({
+    description: '최소 보증금 (원 단위). 미전달 시 하한을 적용하지 않는다.',
+    example: 30000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   minDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최대 보증금 (원 단위)', example: 50000000 })
+  @ApiPropertyOptional({
+    description:
+      '최대 보증금 (원 단위, 해당 값 이하 포함). 1억 원 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 50000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   maxDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최소 전용면적 (㎡)', example: 20 })
+  @ApiPropertyOptional({
+    description: '최소 전용면적 (㎡). 미전달 시 하한을 적용하지 않는다.',
+    example: 20,
+  })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   minArea?: number;
 
-  @ApiPropertyOptional({ description: '최대 전용면적 (㎡)', example: 40 })
+  @ApiPropertyOptional({
+    description:
+      '최대 전용면적 (㎡, 해당 값 이하 포함). 59㎡ 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 40,
+  })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   maxArea?: number;
 
@@ -95,14 +130,16 @@ export class GetNoticesQueryDto {
   page?: number = 0;
 
   @ApiPropertyOptional({
-    description: '페이지 크기 (기본 10, 최대 50 권장)',
+    description: '페이지 크기 (기본 10, 최대 50)',
     default: 10,
+    maximum: 50,
     example: 10,
   })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
