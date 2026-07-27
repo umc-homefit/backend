@@ -26,7 +26,6 @@ import {
 } from './dto/eligibility.dto';
 import { EligibilityService } from './eligibility.service';
 
-
 @ApiTags('Eligibility Analysis')
 @ApiBearerAuth('access-token')
 @Controller()
@@ -152,26 +151,22 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(FinancialSummaryResultDto, { description: '재정 계산 결과 조회 성공' })
-  getFinancialSummary(
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getFinancialSummary(
+    // 인증된 사용자 ID를 전달해 자신의 분석 결과만 조회한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<FinancialSummaryResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: FinancialSummaryResultDto = {
-      expectedDepositAmount: 10000000,
-      expectedMonthlyRentAmount: 350000,
-      maintenanceFeeAmount: 50000,
-      userCashAmount: 8000000,
-      shortageAmount: 2000000,
-      monthlyIncomeAmount: 1400000,
-      monthlyHousingCost: 400000,
-      rentBurdenRate: 28.57,
-      financialMessage:
-        '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
-    };
-
+  ): Promise<ApiResponse<FinancialSummaryResultDto>> {
+    const result = await this.eligibilityService.getFinancialSummary(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '재정 계산 결과 조회에 성공했습니다.');
   }
 

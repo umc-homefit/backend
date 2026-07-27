@@ -13,6 +13,7 @@ import {
   EligibilityAnalysisResultDto,
   EligibilityConditionsResultDto,
   EligibilityResultLevel,
+  FinancialSummaryResultDto,
   RequestEligibilityAnalysisResultDto,
 } from './dto/eligibility.dto';
 
@@ -254,6 +255,67 @@ export class EligibilityService {
     };
   }
 
+  async getFinancialSummary(
+    analysisId: number,
+    userId: bigint,
+  ): Promise<FinancialSummaryResultDto> {
+    // BigInt 기본 키로 안전하게 변환할 수 있는 양의 정수만 분석 ID로 사용한다.
+    if (!Number.isSafeInteger(analysisId) || analysisId <= 0) {
+      throw new BadRequestException('잘못된 분석 결과 ID입니다.');
+    }
+
+    // 분석을 만들 때 저장한 금액·부족 자금·부담률을 조회한다.
+    // 공고나 사용자의 입력값이 이후 바뀌어도 분석 당시의 계산 결과는 analysis 테이블 값을 기준으로 유지한다.
+    const analysis = await this.prisma.eligibilityAnalysis.findFirst({
+      where: {
+        eligibilityAnalysisId: BigInt(analysisId),
+        // 다른 사용자의 분석 결과는 조회하지 않도록 사용자 조건 프로필의 소유자를 함께 확인한다.
+        userConditionProfile: { userId },
+      },
+      select: {
+        expectedDepositAmount: true,
+        expectedMonthlyRentAmount: true,
+        maintenanceFeeAmount: true,
+        shortageAmount: true,
+        rentBurdenRate: true,
+        userConditionProfile: {
+          select: {
+            // 이 두 값은 현재 사용자 조건 프로필에만 저장되어 있어 여기서 함께 조회한다.
+            cashSavings: true,
+            monthlyIncomeAmount: true,
+          },
+        },
+      },
+    });
+
+    if (!analysis) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    // 계산 로직 문서: 월 주거비 = 월세 + 관리비.
+    const monthlyHousingCost =
+      Number(analysis.expectedMonthlyRentAmount) + Number(analysis.maintenanceFeeAmount);
+    const shortageAmount = Number(analysis.shortageAmount);
+    const rentBurdenRate = Number(analysis.rentBurdenRate);
+    const monthlyIncomeAmount = Number(analysis.userConditionProfile.monthlyIncomeAmount);
+
+    return {
+      expectedDepositAmount: Number(analysis.expectedDepositAmount),
+      expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
+      maintenanceFeeAmount: Number(analysis.maintenanceFeeAmount),
+      userCashAmount: Number(analysis.userConditionProfile.cashSavings),
+      shortageAmount,
+      monthlyIncomeAmount,
+      monthlyHousingCost,
+      rentBurdenRate,
+      financialMessage: this.createFinancialSummaryMessage(
+        shortageAmount,
+        rentBurdenRate,
+        monthlyIncomeAmount,
+      ),
+    };
+  }
+
   private buildCashCondition(expectedDepositAmount: number, cashSavings: number): ConditionDraft {
     const shortageAmount = Math.max(expectedDepositAmount - cashSavings, 0);
     const needsCheck = expectedDepositAmount <= 0;
@@ -459,6 +521,34 @@ export class EligibilityService {
     }
 
     return '필요 자금과 월세 부담률이 안정적이며 주요 정책 조건을 충족합니다.';
+  }
+
+  private createFinancialSummaryMessage(
+    shortageAmount: number,
+    rentBurdenRate: number,
+    monthlyIncomeAmount: number,
+  ): string {
+    if (monthlyIncomeAmount <= 0) {
+      const cashMessage =
+        shortageAmount > 0
+          ? `예상 보증금 대비 보유 현금이 ${this.formatKoreanAmount(shortageAmount)} 부족합니다.`
+          : '예상 보증금은 보유 현금으로 충당할 수 있습니다.';
+      return `${cashMessage} 월소득 정보가 없어 월세 부담률은 추가 확인이 필요합니다.`;
+    }
+
+    // 계산 로직 문서의 부담 구간(30% 이하 / 30~40% / 40% 초과)을 안내 문구에 반영한다.
+    const housingCostMessage =
+      rentBurdenRate <= 30
+        ? `월세 부담률은 ${rentBurdenRate}%로 안정적인 편입니다.`
+        : rentBurdenRate <= this.recommendedRentBurdenRate
+          ? `월세 부담률은 ${rentBurdenRate}%로 주의가 필요합니다.`
+          : `월세 부담률은 ${rentBurdenRate}%로 부담이 높은 편입니다.`;
+
+    if (shortageAmount > 0) {
+      return `예상 보증금 대비 보유 현금이 ${this.formatKoreanAmount(shortageAmount)} 부족합니다. ${housingCostMessage}`;
+    }
+
+    return `예상 보증금은 보유 현금으로 충당할 수 있습니다. ${housingCostMessage}`;
   }
 
   private formatKoreanAmount(amount: number): string {

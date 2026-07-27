@@ -27,8 +27,9 @@
 | P0       | `POST` | `/notices/{noticeId}/units/{unitId}/eligibility-analyses` | 입주 가능성 분석 요청      |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}`                      | 입주 가능성 분석 결과 조회 |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}/conditions`           | 조건별 비교 결과 조회      |
+| P0       | `GET`  | `/eligibility-analyses/{analysisId}/financial-summary`    | 재정 계산 결과 조회        |
 
-재정 요약/내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
+내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
 
 ## MVP 계산 기준
 
@@ -165,6 +166,9 @@
 | ----------------- | ------------------------------------------------------------------------------- |
 | Method · Endpoint | `GET /eligibility-analyses/{analysisId}/financial-summary`                      |
 | 설명              | 예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. |
+| 인증              | **필수**                                                                        |
+
+저장된 분석 결과를 기준으로 월 주거비(월세 + 관리비)와 부족 자금을 반환한다. `userCashAmount`, `monthlyIncomeAmount`는 현재 사용자 조건 프로필 값을 사용한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
 
 ### Response (result)
 
@@ -179,6 +183,13 @@
 | `monthlyHousingCost`        | number         | 월 주거비        |
 | `rentBurdenRate`            | number         | 월세 부담률      |
 | `financialMessage`          | string \| null | 재정 분석 문구   |
+
+| 상태 | 설명                                    |
+| ---- | --------------------------------------- |
+| 200  | 재정 계산 결과 조회 성공                |
+| 400  | `analysisId`가 양의 safe integer가 아님 |
+| 401  | 인증 필요                               |
+| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
 
 ---
 
