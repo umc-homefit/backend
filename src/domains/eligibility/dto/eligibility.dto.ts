@@ -77,7 +77,7 @@ export class RequestEligibilityAnalysisResultDto {
   @ApiProperty({ description: '조건별 비교 결과 목록', type: [EligibilityConditionResultDto] })
   conditionResults: EligibilityConditionResultDto[];
 
-  @ApiProperty({ description: '분석 일시', example: '2026-07-01T00:10:00' })
+  @ApiProperty({ description: '분석 일시 (ISO 8601 UTC)', example: '2026-07-01T00:10:00.000Z' })
   analyzedAt: string;
 }
 

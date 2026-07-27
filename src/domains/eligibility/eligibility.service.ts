@@ -40,6 +40,7 @@ export class EligibilityService {
       throw new BadRequestException('잘못된 공고 ID 또는 주택 ID입니다.');
     }
 
+    // 서로 의존하지 않는 조회는 병렬로 수행해 분석 요청의 DB 대기 시간을 줄인다.
     const [notice, unit, userConditionProfile] = await Promise.all([
       this.prisma.notice.findUnique({
         where: { noticeId: BigInt(noticeId) },
@@ -63,6 +64,7 @@ export class EligibilityService {
       throw new ConflictException('사용자 조건 프로필이 입력되지 않았습니다.');
     }
 
+    // 보증금/월세 범위가 있을 때는 사용자가 준비해야 할 최대 금액을 기준으로 계산한다.
     const expectedDepositAmount = Number(unit.depositMax ?? unit.depositMin ?? BigInt(0));
     const expectedMonthlyRentAmount = Number(
       unit.monthlyRentMax ?? unit.monthlyRentMin ?? BigInt(0),
@@ -77,6 +79,7 @@ export class EligibilityService {
         ? this.roundToTwoDecimals((monthlyHousingCost / monthlyIncomeAmount) * 100)
         : 0;
 
+    // 공고에 명시된 조건과 별개로, 현금·월세 부담률은 항상 분석 결과에 포함한다.
     const conditionResults = [
       this.buildCashCondition(expectedDepositAmount, cashSavings),
       this.buildRentBurdenCondition(monthlyHousingCost, monthlyIncomeAmount, rentBurdenRate),
@@ -127,7 +130,10 @@ export class EligibilityService {
           })),
         },
       },
-      include: { conditionResults: true },
+      include: {
+        // API 명세: conditionResults는 생성된 조건 결과 ID의 오름차순으로 반환한다.
+        conditionResults: { orderBy: { eligibilityConditionResultId: 'asc' } },
+      },
     });
 
     return {
@@ -145,7 +151,8 @@ export class EligibilityService {
         resultStatus: conditionResult.resultStatus as EligibilityConditionResultStatus,
         failReason: conditionResult.failReason,
       })),
-      analyzedAt: analysis.analyzedAt.toISOString().replace(/\.\d{3}Z$/, ''),
+      // toISOString()은 UTC임을 나타내는 Z와 밀리초를 함께 보장한다.
+      analyzedAt: analysis.analyzedAt.toISOString(),
     };
   }
 
