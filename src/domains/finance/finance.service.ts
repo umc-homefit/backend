@@ -163,7 +163,7 @@ export class FinanceService {
       product.maxAsset === null ? null : Number(product.maxAsset),
     );
     const passesHomeless = !product.requireNoHouse || profile.isHomeless;
-    const passesHouseholdHead = this.evaluateHouseholdHeadCondition(product, profile);
+    const householdHead = this.evaluateHouseholdHeadCondition(product, profile);
     const married = this.evaluateMarriedCondition(product, profile);
     const newborn = this.evaluateNewbornCondition(product, profile);
     // isFirstTimeBuyer가 null(미입력)이면 나이와 동일하게 관대하게 통과시키고 스킵 플래그로 알린다.
@@ -177,7 +177,7 @@ export class FinanceService {
       passesIncome &&
       passesAsset &&
       passesHomeless &&
-      passesHouseholdHead &&
+      householdHead.passed &&
       passesFirstTimeBuyer &&
       married.passed &&
       newborn.passed;
@@ -187,7 +187,7 @@ export class FinanceService {
       passesIncome,
       passesAsset,
       passesHomeless,
-      passesHouseholdHead,
+      passesHouseholdHead: householdHead.passed,
       passesFirstTimeBuyer,
       passesMarried: married.passed,
       passesNewborn: newborn.passed,
@@ -205,6 +205,7 @@ export class FinanceService {
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
       isEligible,
       ageCheckSkipped,
+      householdHeadCheckSkipped: householdHead.skipped,
       marriedCheckSkipped: married.skipped,
       newbornCheckSkipped: newborn.skipped,
       firstTimeBuyerCheckSkipped,
@@ -246,22 +247,34 @@ export class FinanceService {
     return true;
   }
 
-  /** requireHouseholdHead=true인 상품(세대주 전용) 매칭. 세대주/예비세대주만 통과한다. */
+  /**
+   * requireHouseholdHead=true인 상품(세대주 전용) 매칭. 세대주/예비세대주만 통과한다.
+   * householdHeadStatus가 UNKNOWN(미입력)이면 "세대주가 아님"이 아니라 "아직 모름"이므로
+   * ageCheckSkipped와 동일하게 관대히 통과시키고 skipped=true로 표시한다.
+   */
   private evaluateHouseholdHeadCondition(
     product: LoanProduct,
     profile: UserConditionProfile,
-  ): boolean {
+  ): { passed: boolean; skipped: boolean } {
     if (!product.requireHouseholdHead) {
-      return true;
+      return { passed: true, skipped: false };
     }
-    return HOUSEHOLD_HEAD_ELIGIBLE_STATUSES.includes(profile.householdHeadStatus);
+    if (profile.householdHeadStatus === HouseholdHeadStatus.UNKNOWN) {
+      return { passed: true, skipped: true };
+    }
+    return {
+      passed: HOUSEHOLD_HEAD_ELIGIBLE_STATUSES.includes(profile.householdHeadStatus),
+      skipped: false,
+    };
   }
 
   /**
    * requireMarried=true인 상품(신혼부부 전용) 매칭. 기혼(MARRIED)뿐 아니라 예비신혼
    * (MARRIAGE_EXPECTED)도 신혼부부 상품 대상이라 함께 통과시킨다.
+   * maritalStatus가 UNKNOWN(미입력)인 경우도 "미혼/조건 미충족"이 아니라 "아직 모름"이므로
+   * ageCheckSkipped와 동일하게 관대히 통과시키고 skipped=true로 표시한다.
    * 기혼 자체는 확인됐지만 marriageDate가 없어 혼인기간(maxMarriageYears) 조건을 검증하지
-   * 못한 경우는 skipped=true로 표시한다 — ageCheckSkipped와 동일한 패턴.
+   * 못한 경우도 마찬가지로 skipped=true로 표시한다.
    */
   private evaluateMarriedCondition(
     product: LoanProduct,
@@ -269,6 +282,9 @@ export class FinanceService {
   ): { passed: boolean; skipped: boolean } {
     if (!product.requireMarried) {
       return { passed: true, skipped: false };
+    }
+    if (profile.maritalStatus === MaritalStatus.UNKNOWN) {
+      return { passed: true, skipped: true };
     }
     if (!MARRIED_ELIGIBLE_STATUSES.includes(profile.maritalStatus)) {
       return { passed: false, skipped: false };

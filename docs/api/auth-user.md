@@ -273,9 +273,9 @@
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
 | `maritalStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
-| `marriageDate` | string | N | 혼인일자 (YYYY-MM-DD) |
+| `marriageDate` | string \| null | N | 혼인일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경). `maritalStatus: MARRIAGE_EXPECTED`일 때는 오늘로부터 3개월 이내의 미래 날짜만 허용 — 벗어나면 `COMMON400` |
 | `hasRecentNewborn` | boolean | N | 최근 출산 여부. 미입력 시 기존값 보존 |
-| `newbornBirthDate` | string | N | 출산일자 (YYYY-MM-DD) |
+| `newbornBirthDate` | string \| null | N | 출산일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경) |
 | `householdHeadStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
 | `isFirstTimeBuyer` | boolean | N | 생애최초 주택 구입자 여부 |
 | `employmentStatus` | string | N | 직업 상태 (값 컨벤션 기획 확인 필요, 실제 사용처 미정) |

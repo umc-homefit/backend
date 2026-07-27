@@ -9,7 +9,45 @@ import {
   Min,
   IsDateString,
   ValidateIf,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
 } from 'class-validator';
+
+/**
+ * ERD 기준 MARRIAGE_EXPECTED("3개월 이내 결혼예정")의 정의를 실제로 강제한다.
+ * maritalStatus가 MARRIAGE_EXPECTED가 아니면 통과(다른 상태의 marriageDate는 대상이 아님).
+ */
+@ValidatorConstraint({ name: 'marriageExpectedWithinMonths', async: false })
+class MarriageExpectedWithinMonthsConstraint implements ValidatorConstraintInterface {
+  private readonly withinMonths = 3;
+
+  validate(marriageDate: unknown, args: ValidationArguments): boolean {
+    const dto = args.object as UpdateConditionProfileRequestDto;
+    if (dto.maritalStatus !== MaritalStatus.MARRIAGE_EXPECTED) {
+      return true;
+    }
+    if (typeof marriageDate !== 'string') {
+      return false;
+    }
+    const target = new Date(marriageDate);
+    if (Number.isNaN(target.getTime())) {
+      return false;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
+    cutoff.setMonth(cutoff.getMonth() + this.withinMonths);
+
+    return target >= today && target <= cutoff;
+  }
+
+  defaultMessage(): string {
+    return `maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘로부터 ${this.withinMonths}개월 이내의 미래 날짜여야 합니다.`;
+  }
+}
 
 /**
  * user_condition_profiles.marital_status는 ERD상 VARCHAR + 주석 컨벤션(네이티브 DB enum 아님).
@@ -124,13 +162,16 @@ export class UpdateConditionProfileRequestDto {
   maritalStatus?: MaritalStatus;
 
   @ApiPropertyOptional({
-    description: '혼인일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다.',
+    description:
+      '혼인일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다. ' +
+      'maritalStatus가 MARRIAGE_EXPECTED(결혼예정)인 경우 오늘로부터 3개월 이내의 미래 날짜만 허용된다.',
     example: '2025-05-01',
     nullable: true,
   })
   @IsOptional()
   @ValidateIf((o) => o.marriageDate !== null)
   @IsDateString()
+  @Validate(MarriageExpectedWithinMonthsConstraint)
   marriageDate?: string | null;
 
   @ApiPropertyOptional({ description: '최근 출산 여부', example: false })

@@ -94,7 +94,14 @@ export class MatchedLoanProductDto {
 
   @ApiProperty({
     description:
-      '혼인기간 조건 검사 스킵 여부. 신혼부부 전용 상품인데 혼인일자가 등록되지 않아 혼인기간 조건 검사를 건너뛴 경우 true',
+      '세대주 조건 검사 스킵 여부. 세대주 전용 상품인데 사용자가 세대주 여부를 입력하지 않아(UNKNOWN) 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  householdHeadCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '혼인기간 조건 검사 스킵 여부. 신혼부부 전용 상품인데 혼인 상태를 입력하지 않았거나(UNKNOWN) 혼인일자가 등록되지 않아 혼인기간 조건 검사를 건너뛴 경우 true',
     example: false,
   })
   marriedCheckSkipped: boolean;

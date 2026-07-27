@@ -156,6 +156,7 @@
       "maxLimitAmount": 200000000,
       "isEligible": true,
       "ageCheckSkipped": false,
+      "householdHeadCheckSkipped": false,
       "marriedCheckSkipped": false,
       "newbornCheckSkipped": false,
       "firstTimeBuyerCheckSkipped": false,
@@ -168,12 +169,14 @@
 - `products`는 (청약저축 제외) 조건에 맞는 상품 **전체**를 반환하며, 상품별 `isEligible`로 자격 충족 여부를 표시한다. `matchedCount`/`minRate`/`maxLimitAmount`(최상위)는 그중 `isEligible: true`인 상품만 집계한 값이다.
 - `ineligibleReasons`: `isEligible: false`인 상품에 대해 어떤 조건에서 떨어졌는지 코드 배열로 알려준다. `isEligible: true`면 빈 배열. 가능한 값: `AGE`/`INCOME`/`ASSET`/`HOMELESS`/`HOUSEHOLD_HEAD`/`FIRST_TIME_BUYER`/`MARRIED`/`NEWBORN`. 한 상품이 여러 조건에서 동시에 떨어지면 배열에 여러 개가 담긴다.
 - `ageCheckSkipped`: 사용자가 생년월일(`user_profiles.birth_date`)을 등록하지 않아 이 상품의 나이 조건 검사를 건너뛴 경우 `true`. birthDate가 nullable이라 발생할 수 있음 — FE에서 "생년월일 입력 시 더 정확한 매칭 가능" 안내에 활용 권장.
-- `marriedCheckSkipped`/`newbornCheckSkipped`: 신혼부부 전용/신생아 특례 상품인데 혼인일자(`marriageDate`)·출산일자(`newbornBirthDate`)가 등록되지 않아 기간 조건(혼인기간/출산 경과기간) 검사를 건너뛴 경우 `true`. `ageCheckSkipped`와 동일한 패턴.
+- `marriedCheckSkipped`/`newbornCheckSkipped`: 신혼부부 전용/신생아 특례 상품인데 혼인 상태(`maritalStatus`)·출산 여부가 아직 `UNKNOWN`/미입력이거나, 혼인일자(`marriageDate`)·출산일자(`newbornBirthDate`)가 등록되지 않아 기간 조건(혼인기간/출산 경과기간) 검사를 건너뛴 경우 `true`. `ageCheckSkipped`와 동일한 패턴.
+- `householdHeadCheckSkipped`: 세대주 전용 상품인데 `householdHeadStatus`가 아직 `UNKNOWN`(미입력)이라 세대주 조건 검사를 건너뛴 경우 `true`. 마찬가지로 `ageCheckSkipped`와 동일한 패턴.
 - `firstTimeBuyerOnly`(생애최초 전용 여부)는 이제 `isEligible` 판정에 반영된다 — `user_condition_profiles.is_first_time_buyer`와 비교. 값이 미입력(`null`)이면 관대하게 통과시키고 `firstTimeBuyerCheckSkipped: true`로 표시한다.
 - 신혼부부 전용(`requireMarried`)/신생아 특례(`requireRecentNewborn`)/세대주 전용(`requireHouseholdHead`) 조건은 `loan_products`의 신규 컬럼과 `user_condition_profiles.maritalStatus`/`marriageDate`/`hasRecentNewborn`/`newbornBirthDate`/`householdHeadStatus`를 비교해 판정한다.
-  - `maritalStatus`는 ERD 기준 VARCHAR+주석 컨벤션 문자열(`UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`) — `MARRIED`와 `MARRIAGE_EXPECTED`(예비신혼, ERD상 3개월 이내 결혼예정) 둘 다 기혼으로 간주해 통과시킨다. 네이티브 DB enum이 아니라 값 검증은 API 레이어(class-validator)에서만 한다.
-  - `householdHeadStatus`도 동일한 컨벤션(`UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`) — `HEAD`/`HEAD_EXPECTED`(예비세대주)/`RECOGNIZED`(세대주 인정자) 셋 다 세대주로 간주해 통과시킨다.
+  - `maritalStatus`는 ERD 기준 VARCHAR+주석 컨벤션 문자열(`UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`) — `MARRIED`와 `MARRIAGE_EXPECTED`(예비신혼, ERD상 3개월 이내 결혼예정) 둘 다 기혼으로 간주해 통과시킨다. `UNKNOWN`(미입력)은 "미혼"이 아니라 "아직 모름"이므로 관대하게 통과시키고 `marriedCheckSkipped: true`로 표시한다. 네이티브 DB enum이 아니라 값 검증은 API 레이어(class-validator)에서만 한다.
+  - `householdHeadStatus`도 동일한 컨벤션(`UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`) — `HEAD`/`HEAD_EXPECTED`(예비세대주)/`RECOGNIZED`(세대주 인정자) 셋 다 세대주로 간주해 통과시킨다. `UNKNOWN`도 `maritalStatus`와 동일하게 관대히 통과 + `householdHeadCheckSkipped: true`.
   - `PUT /users/me/condition-profile`에 위 5개 필드(`maritalStatus`/`marriageDate`/`hasRecentNewborn`/`newbornBirthDate`/`householdHeadStatus`)와 `isFirstTimeBuyer`가 모두 optional로 추가되어 있어야 정상 동작한다(User 도메인, 반영 완료).
+  - `maritalStatus: MARRIAGE_EXPECTED`로 저장할 때는 입력 단계(`PUT /users/me/condition-profile`)에서 `marriageDate`가 오늘로부터 3개월 이내의 미래 날짜인지 class-validator 커스텀 검증으로 강제한다. 범위를 벗어나면 `COMMON400`으로 거부된다 (Auth/User 도메인, `docs/api/auth-user.md` 참고).
 
 사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
 
