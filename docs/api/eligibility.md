@@ -28,8 +28,7 @@
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}`                      | 입주 가능성 분석 결과 조회 |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}/conditions`           | 조건별 비교 결과 조회      |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}/financial-summary`    | 재정 계산 결과 조회        |
-
-내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
+| P0       | `GET`  | `/users/me/eligibility-analyses`                          | 내 분석 이력 조회          |
 
 ## MVP 계산 기준
 
@@ -199,6 +198,7 @@
 | ----------------- | --------------------------------------------------- |
 | Method · Endpoint | `GET /users/me/eligibility-analyses`                |
 | 설명              | 로그인한 사용자의 입주 가능성 분석 이력을 조회한다. |
+| 인증              | **필수**                                            |
 
 ### Query Parameter
 
@@ -233,3 +233,12 @@
   }
 }
 ```
+
+분석 일시 최신순으로 반환하며, 같은 시각의 결과는 분석 ID 내림차순으로 정렬한다. 분석 이력이 없으면 `analyses: []`와 `pageInfo`를 함께 반환한다.
+
+| 상태 | 설명                         |
+| ---- | ---------------------------- |
+| 200  | 내 분석 이력 조회 성공       |
+| 400  | `page` 또는 `size` 검증 실패 |
+| 401  | 인증 필요                    |
+| 500  | 서버 내부 오류               |

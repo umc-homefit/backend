@@ -18,7 +18,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   EligibilityAnalysisResultDto,
   EligibilityConditionsResultDto,
-  EligibilityResultLevel,
   FinancialSummaryResultDto,
   GetMyEligibilityAnalysesQueryDto,
   MyEligibilityAnalysesResultDto,
@@ -177,48 +176,23 @@ export class EligibilityController {
     description: '로그인한 사용자가 이전에 실행한 입주 가능성 분석 이력 목록을 조회한다.',
   })
   @ApiSuccessResponse(MyEligibilityAnalysesResultDto, { description: '분석 이력 조회 성공' })
-  getMyEligibilityAnalyses(
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'page 또는 size의 형식이나 범위가 올바르지 않습니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getMyEligibilityAnalyses(
+    // 토큰에서 얻은 사용자 ID로 다른 사용자의 분석 이력이 섞이지 않게 한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Query() query: GetMyEligibilityAnalysesQueryDto,
-  ): ApiResponse<MyEligibilityAnalysesResultDto> {
+  ): Promise<ApiResponse<MyEligibilityAnalysesResultDto>> {
     const page = query.page ?? 0;
     const size = query.size ?? 10;
-    const totalElements = 2;
-    const totalPages = Math.ceil(totalElements / size);
-
-    const result: MyEligibilityAnalysesResultDto = {
-      analyses: [
-        {
-          analysisId: 1,
-          noticeId: 12,
-          unitId: 3,
-          noticeTitle: '어반허브 서울스테이션 추가모집',
-          resultLevel: EligibilityResultLevel.HIGH,
-          eligibilityScore: 82,
-          shortageAmount: 2000000,
-          rentBurdenRate: 28.57,
-          analyzedAt: '2026-07-01T00:10:00',
-        },
-        {
-          analysisId: 2,
-          noticeId: 15,
-          unitId: 5,
-          noticeTitle: '서초 꽃마을 추가모집',
-          resultLevel: EligibilityResultLevel.MEDIUM,
-          eligibilityScore: 65,
-          shortageAmount: 5000000,
-          rentBurdenRate: 37.5,
-          analyzedAt: '2026-06-30T18:10:00',
-        },
-      ],
-      pageInfo: {
-        page,
-        size,
-        totalElements,
-        totalPages,
-        hasNext: page + 1 < totalPages,
-      },
-    };
-
+    const result = await this.eligibilityService.getMyEligibilityAnalyses(user.userId, page, size);
     return createSuccessResponse(result, 'ELIGIBILITY200', '내 분석 이력 조회에 성공했습니다.');
   }
 }

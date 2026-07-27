@@ -14,6 +14,7 @@ import {
   EligibilityConditionsResultDto,
   EligibilityResultLevel,
   FinancialSummaryResultDto,
+  MyEligibilityAnalysesResultDto,
   RequestEligibilityAnalysisResultDto,
 } from './dto/eligibility.dto';
 
@@ -313,6 +314,62 @@ export class EligibilityService {
         rentBurdenRate,
         monthlyIncomeAmount,
       ),
+    };
+  }
+
+  async getMyEligibilityAnalyses(
+    userId: bigint,
+    page: number,
+    size: number,
+  ): Promise<MyEligibilityAnalysesResultDto> {
+    // 분석은 사용자 조건 프로필에 연결되어 있으므로, 프로필의 userId로 본인 이력만 찾는다.
+    const where = { userConditionProfile: { userId } };
+
+    // 목록 데이터와 전체 개수를 동시에 조회해 페이지 정보와 실제 목록의 기준을 맞춘다.
+    const [totalElements, analyses] = await this.prisma.$transaction([
+      this.prisma.eligibilityAnalysis.count({ where }),
+      this.prisma.eligibilityAnalysis.findMany({
+        where,
+        select: {
+          eligibilityAnalysisId: true,
+          noticeId: true,
+          unitId: true,
+          resultLevel: true,
+          eligibilityScore: true,
+          shortageAmount: true,
+          rentBurdenRate: true,
+          analyzedAt: true,
+          // 이력 카드에 공고명을 표시하기 위해 분석이 연결된 공고의 제목만 함께 가져온다.
+          notice: { select: { title: true } },
+        },
+        // 같은 시각에 생성된 결과도 안정적으로 정렬되도록 분석 ID를 두 번째 기준으로 사용한다.
+        orderBy: [{ analyzedAt: 'desc' }, { eligibilityAnalysisId: 'desc' }],
+        skip: page * size,
+        take: size,
+      }),
+    ]);
+    const totalPages = Math.ceil(totalElements / size);
+
+    return {
+      analyses: analyses.map((analysis) => ({
+        // Prisma의 BigInt/Decimal/Date 객체를 API 응답에 맞는 number/ISO 문자열로 바꾼다.
+        analysisId: Number(analysis.eligibilityAnalysisId),
+        noticeId: Number(analysis.noticeId),
+        unitId: Number(analysis.unitId),
+        noticeTitle: analysis.notice.title,
+        resultLevel: analysis.resultLevel as EligibilityResultLevel,
+        eligibilityScore: Number(analysis.eligibilityScore),
+        shortageAmount: Number(analysis.shortageAmount),
+        rentBurdenRate: Number(analysis.rentBurdenRate),
+        analyzedAt: analysis.analyzedAt.toISOString(),
+      })),
+      pageInfo: {
+        page,
+        size,
+        totalElements,
+        totalPages,
+        hasNext: page + 1 < totalPages,
+      },
     };
   }
 
