@@ -76,7 +76,7 @@
       "failReason": null
     }
   ],
-  "analyzedAt": "2026-07-01T00:10:00"
+  "analyzedAt": "2026-07-01T00:10:00.000Z"
 }
 ```
 
@@ -167,7 +167,7 @@
 | 설명              | 예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. |
 | 인증              | **필수**                                                                        |
 
-저장된 분석 결과를 기준으로 월 주거비(월세 + 관리비)와 부족 자금을 반환한다. `userCashAmount`, `monthlyIncomeAmount`는 현재 사용자 조건 프로필 값을 사용한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
+저장된 분석 결과를 기준으로 월 주거비(월세 + 관리비)와 부족 자금을 반환한다. `userCashAmount`, `monthlyIncomeAmount`는 분석 실행 당시 사용자 조건 프로필 값을 스냅샷으로 저장해 반환한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
 
 ### Response (result)
 
@@ -221,7 +221,7 @@
       "eligibilityScore": 82,
       "shortageAmount": 2000000,
       "rentBurdenRate": 28.57,
-      "analyzedAt": "2026-07-01T00:10:00"
+      "analyzedAt": "2026-07-01T00:10:00.000Z"
     }
   ],
   "pageInfo": {

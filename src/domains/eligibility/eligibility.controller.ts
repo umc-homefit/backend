@@ -49,7 +49,7 @@ export class EligibilityController {
       status: 400,
       code: 'COMMON400',
       message:
-        'noticeId/unitId가 정수가 아니거나 0 이하이거나, 주택이 해당 공고에 속하지 않습니다.',
+        'noticeId/unitId가 safe integer가 아니거나 0 이하이거나, 주택이 해당 공고에 속하지 않습니다.',
     },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     { status: 404, code: 'COMMON404', message: '존재하지 않는 공고 또는 주택 정보입니다.' },
@@ -84,7 +84,11 @@ export class EligibilityController {
   })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
   @ApiErrorResponse([
-    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하이거나 safe integer가 아닙니다.' }
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     {
       status: 404,
@@ -119,7 +123,11 @@ export class EligibilityController {
   })
   @ApiSuccessResponse(EligibilityConditionsResultDto, { description: '조건별 비교 결과 조회 성공' })
   @ApiErrorResponse([
-    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     {
       status: 404,
@@ -151,7 +159,11 @@ export class EligibilityController {
   })
   @ApiSuccessResponse(FinancialSummaryResultDto, { description: '재정 계산 결과 조회 성공' })
   @ApiErrorResponse([
-    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     {
       status: 404,

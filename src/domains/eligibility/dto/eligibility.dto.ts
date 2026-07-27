@@ -148,7 +148,7 @@ export class EligibilityAnalysisHistoryItemDto {
   @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
   rentBurdenRate: number;
 
-  @ApiProperty({ description: '분석 일시', example: '2026-07-01T00:10:00' })
+  @ApiProperty({ description: '분석 일시 (ISO 8601 UTC)', example: '2026-07-01T00:10:00.000Z' })
   analyzedAt: string;
 }
 
@@ -159,8 +159,8 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
   expectedMonthlyRentAmount: number;
 
-  @ApiPropertyOptional({ description: '예상 관리비 (원 단위)', example: 50000, nullable: true })
-  maintenanceFeeAmount: number | null;
+  @ApiProperty({ description: '예상 관리비 (원 단위)', example: 50000 })
+  maintenanceFeeAmount: number;
 
   @ApiProperty({ description: '사용자 보유 현금 (원 단위)', example: 8000000 })
   userCashAmount: number;

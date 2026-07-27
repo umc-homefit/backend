@@ -40,7 +40,13 @@ export class EligibilityService {
     unitId: number,
     userId: bigint,
   ): Promise<RequestEligibilityAnalysisResultDto> {
-    if (noticeId <= 0 || unitId <= 0) {
+    // JavaScript number로 받은 ID가 BigInt로 정확히 변환 가능한 양의 정수인지 먼저 확인한다.
+    if (
+      !Number.isSafeInteger(noticeId) ||
+      !Number.isSafeInteger(unitId) ||
+      noticeId <= 0 ||
+      unitId <= 0
+    ) {
       throw new BadRequestException('잘못된 공고 ID 또는 주택 ID입니다.');
     }
 
@@ -119,6 +125,9 @@ export class EligibilityService {
         expectedDepositAmount: BigInt(expectedDepositAmount),
         expectedMonthlyRentAmount: BigInt(expectedMonthlyRentAmount),
         maintenanceFeeAmount: BigInt(maintenanceFeeAmount),
+        // 재정 요약은 분석 실행 당시 상태를 보여주므로, 변경 가능한 프로필 값을 함께 스냅샷으로 남긴다.
+        userCashAmount: BigInt(cashSavings),
+        monthlyIncomeAmount: BigInt(monthlyIncomeAmount),
         shortageAmount: BigInt(shortageAmount),
         rentBurdenRate,
         summaryMessage: this.createSummaryMessage(scoreResult, shortageAmount, rentBurdenRate),
@@ -277,15 +286,10 @@ export class EligibilityService {
         expectedDepositAmount: true,
         expectedMonthlyRentAmount: true,
         maintenanceFeeAmount: true,
+        userCashAmount: true,
+        monthlyIncomeAmount: true,
         shortageAmount: true,
         rentBurdenRate: true,
-        userConditionProfile: {
-          select: {
-            // 이 두 값은 현재 사용자 조건 프로필에만 저장되어 있어 여기서 함께 조회한다.
-            cashSavings: true,
-            monthlyIncomeAmount: true,
-          },
-        },
       },
     });
 
@@ -298,13 +302,13 @@ export class EligibilityService {
       Number(analysis.expectedMonthlyRentAmount) + Number(analysis.maintenanceFeeAmount);
     const shortageAmount = Number(analysis.shortageAmount);
     const rentBurdenRate = Number(analysis.rentBurdenRate);
-    const monthlyIncomeAmount = Number(analysis.userConditionProfile.monthlyIncomeAmount);
+    const monthlyIncomeAmount = Number(analysis.monthlyIncomeAmount);
 
     return {
       expectedDepositAmount: Number(analysis.expectedDepositAmount),
       expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
       maintenanceFeeAmount: Number(analysis.maintenanceFeeAmount),
-      userCashAmount: Number(analysis.userConditionProfile.cashSavings),
+      userCashAmount: Number(analysis.userCashAmount),
       shortageAmount,
       monthlyIncomeAmount,
       monthlyHousingCost,

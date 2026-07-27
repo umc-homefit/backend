@@ -442,6 +442,8 @@ model EligibilityAnalysis {
   expectedDepositAmount     BigInt                 @map("expected_deposit_amount")
   expectedMonthlyRentAmount BigInt                 @map("expected_monthly_rent_amount")
   maintenanceFeeAmount      BigInt                 @default(0) @map("maintenance_fee_amount")
+  userCashAmount            BigInt                 @default(0) @map("user_cash_amount")
+  monthlyIncomeAmount       BigInt                 @default(0) @map("monthly_income_amount")
   shortageAmount            BigInt                 @map("shortage_amount")
   rentBurdenRate            Decimal                @map("rent_burden_rate") @db.Decimal(5, 2)
   summaryMessage            String?                @map("summary_message") @db.VarChar(500)
