@@ -50,7 +50,6 @@ const HOUSEHOLD_HEAD_ELIGIBLE_STATUSES: string[] = [
   HouseholdHeadStatus.HEAD_EXPECTED,
   HouseholdHeadStatus.RECOGNIZED,
 ];
-const MS_PER_YEAR = 365.25 * 24 * 60 * 60 * 1000;
 
 /**
  * 은행별 전세자금대출(rent-loan-rate-info)의 90%/100% 두 tier가 모두 해당하는 단일 보증상품(일반전세자금보증)의 보증구분코드.
@@ -260,7 +259,7 @@ export class FinanceService {
 
   /**
    * requireMarried=true인 상품(신혼부부 전용) 매칭. 기혼(MARRIED)뿐 아니라 예비신혼
-   * (PLANNING_MARRIAGE)도 신혼부부 상품 대상이라 함께 통과시킨다.
+   * (MARRIAGE_EXPECTED)도 신혼부부 상품 대상이라 함께 통과시킨다.
    * 기혼 자체는 확인됐지만 marriageDate가 없어 혼인기간(maxMarriageYears) 조건을 검증하지
    * 못한 경우는 skipped=true로 표시한다 — ageCheckSkipped와 동일한 패턴.
    */
@@ -281,7 +280,7 @@ export class FinanceService {
       return { passed: true, skipped: true };
     }
     return {
-      passed: this.yearsSince(profile.marriageDate) <= product.maxMarriageYears,
+      passed: this.isWithinYears(profile.marriageDate, product.maxMarriageYears),
       skipped: false,
     };
   }
@@ -307,13 +306,16 @@ export class FinanceService {
       return { passed: true, skipped: true };
     }
     return {
-      passed: this.yearsSince(profile.newbornBirthDate) <= product.newbornWithinYears,
+      passed: this.isWithinYears(profile.newbornBirthDate, product.newbornWithinYears),
       skipped: false,
     };
   }
 
-  private yearsSince(date: Date): number {
-    return (Date.now() - date.getTime()) / MS_PER_YEAR;
+  /** date가 오늘로부터 최대 years년 이내인지 달력 기준으로 정확히 판정한다 (365.25일 근사 대신 실제 날짜 연산). */
+  private isWithinYears(date: Date, years: number): boolean {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - years);
+    return date >= cutoff;
   }
 
   /** 생년월일 기준 만 나이. birthDate가 없으면 나이 조건 검사를 스킵할 수 있도록 null을 반환한다. */

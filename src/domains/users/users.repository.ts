@@ -71,9 +71,9 @@ export class UsersRepository {
       workplaceRegionCode: dto.workplaceRegionCode,
       housingOwnershipStatus: dto.housingOwnershipStatus,
       maritalStatus: dto.maritalStatus,
-      marriageDate: dto.marriageDate ? new Date(dto.marriageDate) : undefined,
+      marriageDate: this.toNullableDate(dto.marriageDate),
       hasRecentNewborn: dto.hasRecentNewborn,
-      newbornBirthDate: dto.newbornBirthDate ? new Date(dto.newbornBirthDate) : undefined,
+      newbornBirthDate: this.toNullableDate(dto.newbornBirthDate),
       householdHeadStatus: dto.householdHeadStatus,
       isFirstTimeBuyer: dto.isFirstTimeBuyer,
       employmentStatus: dto.employmentStatus,
@@ -87,5 +87,12 @@ export class UsersRepository {
         ...conditionData,
       },
     });
+  }
+
+  /** undefined(필드 생략 → 기존 값 유지)와 null(명시적 초기화)을 구분해 Prisma에 그대로 전달한다. */
+  private toNullableDate(value: string | null | undefined): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    return new Date(value);
   }
 }

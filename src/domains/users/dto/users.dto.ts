@@ -7,7 +7,8 @@ import {
   IsString,
   IsInt,
   Min,
-  IsDateString
+  IsDateString,
+  ValidateIf,
 } from 'class-validator';
 
 /**
@@ -122,20 +123,30 @@ export class UpdateConditionProfileRequestDto {
   })
   maritalStatus?: MaritalStatus;
 
-  @ApiPropertyOptional({ description: '혼인일자 (YYYY-MM-DD)', example: '2025-05-01', nullable: true })
+  @ApiPropertyOptional({
+    description: '혼인일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다.',
+    example: '2025-05-01',
+    nullable: true,
+  })
   @IsOptional()
+  @ValidateIf((o) => o.marriageDate !== null)
   @IsDateString()
-  marriageDate?: string;
+  marriageDate?: string | null;
 
   @ApiPropertyOptional({ description: '최근 출산 여부', example: false })
   @IsOptional()
   @IsBoolean()
   hasRecentNewborn?: boolean;
 
-  @ApiPropertyOptional({ description: '출산일자 (YYYY-MM-DD)', example: '2026-03-01', nullable: true })
+  @ApiPropertyOptional({
+    description: '출산일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다.',
+    example: '2026-03-01',
+    nullable: true,
+  })
   @IsOptional()
+  @ValidateIf((o) => o.newbornBirthDate !== null)
   @IsDateString()
-  newbornBirthDate?: string;
+  newbornBirthDate?: string | null;
 
   @ApiPropertyOptional({
     description: '세대주 여부',
