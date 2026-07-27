@@ -82,7 +82,8 @@ export class EligibilityController {
     {
       status: 400,
       code: 'COMMON400',
-      message: 'noticeId/unitId가 정수가 아니거나 0 이하이거나, 주택이 해당 공고에 속하지 않습니다.',
+      message:
+        'noticeId/unitId가 정수가 아니거나 0 이하이거나, 주택이 해당 공고에 속하지 않습니다.',
     },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     { status: 404, code: 'COMMON404', message: '존재하지 않는 공고 또는 주택 정보입니다.' },
@@ -116,30 +117,24 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
-  getEligibilityAnalysis(
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'analysisId가 정수가 아니거나 0 이하입니다.' },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getEligibilityAnalysis(
+    // JwtAuthGuard가 토큰을 검증한 뒤 요청 객체에 넣어 둔 로그인 사용자 정보다.
+    @CurrentUser() user: CurrentUserPayload,
+    // URL의 문자열 ID를 number로 바꾸고, 숫자가 아니면 Nest가 400을 반환한다.
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<EligibilityAnalysisResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: EligibilityAnalysisResultDto = {
-      analysisId: 1,
-      noticeId: 12,
-      unitId: 3,
-      resultLevel: EligibilityResultLevel.HIGH,
-      eligibilityScore: 82,
-      expectedDepositAmount: 10000000,
-      expectedMonthlyRentAmount: 350000,
-      maintenanceFeeAmount: 50000,
-      shortageAmount: 2000000,
-      rentBurdenRate: 28.57,
-      summaryMessage:
-        '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
-      conditionResults: MOCK_CONDITION_RESULTS,
-      analyzedAt: '2026-07-01T00:10:00',
-    };
-
+  ): Promise<ApiResponse<EligibilityAnalysisResultDto>> {
+    // 서비스에는 분석 ID뿐 아니라 "누가 조회하는가"도 전달해 소유권을 확인한다.
+    const result = await this.eligibilityService.getEligibilityAnalysis(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '분석 결과 조회에 성공했습니다.');
   }
 

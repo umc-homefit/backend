@@ -10,6 +10,7 @@ import {
   EligibilityConditionCode,
   EligibilityConditionResultDto,
   EligibilityConditionResultStatus,
+  EligibilityAnalysisResultDto,
   EligibilityResultLevel,
   RequestEligibilityAnalysisResultDto,
 } from './dto/eligibility.dto';
@@ -152,6 +153,61 @@ export class EligibilityService {
         failReason: conditionResult.failReason,
       })),
       // toISOString()은 UTC임을 나타내는 Z와 밀리초를 함께 보장한다.
+      analyzedAt: analysis.analyzedAt.toISOString(),
+    };
+  }
+
+  async getEligibilityAnalysis(
+    analysisId: number,
+    userId: bigint,
+  ): Promise<EligibilityAnalysisResultDto> {
+    // DB의 BigInt ID로 변환하기 전에, JavaScript number가 ID를 정확히 표현할 수 있는지 확인한다.
+    if (!Number.isSafeInteger(analysisId) || analysisId <= 0) {
+      throw new BadRequestException('잘못된 분석 결과 ID입니다.');
+    }
+
+    // 한 번의 조회에서 "해당 분석 ID"와 "로그인 사용자의 조건 프로필"을 모두 만족해야 한다.
+    // 그래서 다른 사용자의 ID를 요청해도 결과를 찾지 못한 것처럼 404로 처리할 수 있다.
+    const analysis = await this.prisma.eligibilityAnalysis.findFirst({
+      where: {
+        // Prisma의 BigInt 컬럼에는 JavaScript bigint 값을 전달한다.
+        eligibilityAnalysisId: BigInt(analysisId),
+        // 분석은 사용자 조건 프로필에 연결되어 있으므로, 프로필의 userId로 소유자를 확인한다.
+        userConditionProfile: { userId },
+      },
+      include: {
+        // API 명세: 조건 결과는 생성 ID 오름차순으로 반환한다.
+        conditionResults: { orderBy: { eligibilityConditionResultId: 'asc' } },
+      },
+    });
+
+    if (!analysis) {
+      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
+    }
+
+    return {
+      // Prisma의 BigInt/Decimal은 JSON으로 바로 보낼 수 없으므로 API 명세의 number로 변환한다.
+      analysisId: Number(analysis.eligibilityAnalysisId),
+      noticeId: Number(analysis.noticeId),
+      unitId: Number(analysis.unitId),
+      resultLevel: analysis.resultLevel as EligibilityResultLevel,
+      eligibilityScore: Number(analysis.eligibilityScore),
+      expectedDepositAmount: Number(analysis.expectedDepositAmount),
+      expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
+      maintenanceFeeAmount: Number(analysis.maintenanceFeeAmount),
+      shortageAmount: Number(analysis.shortageAmount),
+      rentBurdenRate: Number(analysis.rentBurdenRate),
+      summaryMessage: analysis.summaryMessage,
+      // DB enum 값을 DTO enum으로 표현하고, 필요한 공개 필드만 골라 응답에 담는다.
+      conditionResults: analysis.conditionResults.map((conditionResult) => ({
+        conditionCode: conditionResult.conditionCode as EligibilityConditionCode,
+        conditionName: conditionResult.conditionName,
+        requiredValue: conditionResult.requiredValue,
+        userValue: conditionResult.userValue,
+        resultStatus: conditionResult.resultStatus as EligibilityConditionResultStatus,
+        failReason: conditionResult.failReason,
+      })),
+      // toISOString()은 타임존(Z)과 밀리초가 포함된 ISO 8601 UTC 문자열을 만든다.
       analyzedAt: analysis.analyzedAt.toISOString(),
     };
   }

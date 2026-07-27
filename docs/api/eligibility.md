@@ -14,19 +14,20 @@
 
 ## 공통 enum
 
-| enum | 값 |
-| --- | --- |
-| `resultLevel` | `HIGH` / `MEDIUM` / `LOW` / `NOT_ELIGIBLE` / `NEED_CHECK` |
+| enum            | 값                                                                           |
+| --------------- | ---------------------------------------------------------------------------- |
+| `resultLevel`   | `HIGH` / `MEDIUM` / `LOW` / `NOT_ELIGIBLE` / `NEED_CHECK`                    |
 | `conditionCode` | `INCOME` / `ASSET` / `CASH` / `HOMELESS` / `RENT_BURDEN` / `DEBT` / `REGION` |
-| `resultStatus` | `PASS` / `FAIL` / `NEED_CHECK` |
+| `resultStatus`  | `PASS` / `FAIL` / `NEED_CHECK`                                               |
 
 ## 1차 구현 범위
 
-| 우선순위 | Method | Endpoint | 설명 |
-| --- | --- | --- | --- |
-| P0 | `POST` | `/notices/{noticeId}/units/{unitId}/eligibility-analyses` | 입주 가능성 분석 요청 |
+| 우선순위 | Method | Endpoint                                                  | 설명                       |
+| -------- | ------ | --------------------------------------------------------- | -------------------------- |
+| P0       | `POST` | `/notices/{noticeId}/units/{unitId}/eligibility-analyses` | 입주 가능성 분석 요청      |
+| P0       | `GET`  | `/eligibility-analyses/{analysisId}`                      | 입주 가능성 분석 결과 조회 |
 
-분석 결과 상세/조건별/재정 요약/내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
+조건별/재정 요약/내 분석 이력 조회는 Swagger에 명세하되 1차 구현에서는 P1로 본다.
 
 ## MVP 계산 기준
 
@@ -41,18 +42,18 @@
 
 ## 1. 입주 가능성 분석 요청
 
-| 항목 | 내용 |
-| --- | --- |
-| Method · Endpoint | `POST /notices/{noticeId}/units/{unitId}/eligibility-analyses` |
-| 설명 | 사용자 조건 프로필과 공고/주택 조건을 비교하여 점수, 등급, 부족 자금, 월세 부담률을 계산하고 저장한다. |
-| 인증 | **필수** |
+| 항목              | 내용                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| Method · Endpoint | `POST /notices/{noticeId}/units/{unitId}/eligibility-analyses`                                         |
+| 설명              | 사용자 조건 프로필과 공고/주택 조건을 비교하여 점수, 등급, 부족 자금, 월세 부담률을 계산하고 저장한다. |
+| 인증              | **필수**                                                                                               |
 
 ### Path Variable
 
-| 이름 | 타입 | 설명 |
-| --- | --- | --- |
-| `noticeId` | number | 분석할 공고 ID |
-| `unitId` | number | 분석할 주택형 ID |
+| 이름       | 타입   | 설명             |
+| ---------- | ------ | ---------------- |
+| `noticeId` | number | 분석할 공고 ID   |
+| `unitId`   | number | 분석할 주택형 ID |
 
 ### Response (result)
 
@@ -78,41 +79,53 @@
 }
 ```
 
-| 상태 | 설명 |
-| --- | --- |
-| 201 | 분석 생성 성공 |
-| 401 | 인증 필요 |
-| 404 | 공고 또는 주택형 없음 |
+| 상태 | 설명                  |
+| ---- | --------------------- |
+| 201  | 분석 생성 성공        |
+| 401  | 인증 필요             |
+| 404  | 공고 또는 주택형 없음 |
 
 ---
 
 ## 2. 분석 결과 조회
 
-| 항목 | 내용 |
-| --- | --- |
-| Method · Endpoint | `GET /eligibility-analyses/{analysisId}` |
-| 설명 | 분석 결과 ID 기준으로 분석 상세를 조회한다. |
+| 항목              | 내용                                        |
+| ----------------- | ------------------------------------------- |
+| Method · Endpoint | `GET /eligibility-analyses/{analysisId}`    |
+| 설명              | 분석 결과 ID 기준으로 분석 상세를 조회한다. |
+| 인증              | **필수**                                    |
+
+다른 사용자의 분석 결과는 존재 여부를 노출하지 않고 `404`로 응답한다.
 
 ### Response (result)
 
 `POST /notices/{noticeId}/units/{unitId}/eligibility-analyses` 응답에 아래 필드를 추가해 반환한다.
 
-| 필드 | 타입 | 설명 |
-| --- | --- | --- |
-| `noticeId` | number | 공고 ID |
-| `unitId` | number | 주택형 ID |
-| `expectedDepositAmount` | number | 예상 보증금 |
-| `expectedMonthlyRentAmount` | number | 예상 월세 |
-| `maintenanceFeeAmount` | number | 예상 관리비 |
+| 필드                        | 타입   | 설명        |
+| --------------------------- | ------ | ----------- |
+| `noticeId`                  | number | 공고 ID     |
+| `unitId`                    | number | 주택형 ID   |
+| `expectedDepositAmount`     | number | 예상 보증금 |
+| `expectedMonthlyRentAmount` | number | 예상 월세   |
+| `maintenanceFeeAmount`      | number | 예상 관리비 |
+
+`conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
+
+| 상태 | 설명                                    |
+| ---- | --------------------------------------- |
+| 200  | 분석 결과 조회 성공                     |
+| 400  | `analysisId`가 양의 safe integer가 아님 |
+| 401  | 인증 필요                               |
+| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
 
 ---
 
 ## 3. 조건별 비교 결과 조회
 
-| 항목 | 내용 |
-| --- | --- |
-| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/conditions` |
-| 설명 | 소득, 자산, 무주택 여부, 보유 현금 등 조건별 충족 여부를 조회한다. |
+| 항목              | 내용                                                               |
+| ----------------- | ------------------------------------------------------------------ |
+| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/conditions`                |
+| 설명              | 소득, 자산, 무주택 여부, 보유 현금 등 조건별 충족 여부를 조회한다. |
 
 ### Response (result)
 
@@ -135,40 +148,40 @@
 
 ## 4. 재정 계산 결과 조회
 
-| 항목 | 내용 |
-| --- | --- |
-| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/financial-summary` |
-| 설명 | 예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. |
+| 항목              | 내용                                                                            |
+| ----------------- | ------------------------------------------------------------------------------- |
+| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/financial-summary`                      |
+| 설명              | 예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. |
 
 ### Response (result)
 
-| 필드 | 타입 | 설명 |
-| --- | --- | --- |
-| `expectedDepositAmount` | number | 예상 보증금 |
-| `expectedMonthlyRentAmount` | number | 예상 월세 |
-| `maintenanceFeeAmount` | number \| null | 예상 관리비 |
-| `userCashAmount` | number | 사용자 보유 현금 |
-| `shortageAmount` | number | 부족 자금 |
-| `monthlyIncomeAmount` | number | 사용자 월소득 |
-| `monthlyHousingCost` | number | 월 주거비 |
-| `rentBurdenRate` | number | 월세 부담률 |
-| `financialMessage` | string \| null | 재정 분석 문구 |
+| 필드                        | 타입           | 설명             |
+| --------------------------- | -------------- | ---------------- |
+| `expectedDepositAmount`     | number         | 예상 보증금      |
+| `expectedMonthlyRentAmount` | number         | 예상 월세        |
+| `maintenanceFeeAmount`      | number \| null | 예상 관리비      |
+| `userCashAmount`            | number         | 사용자 보유 현금 |
+| `shortageAmount`            | number         | 부족 자금        |
+| `monthlyIncomeAmount`       | number         | 사용자 월소득    |
+| `monthlyHousingCost`        | number         | 월 주거비        |
+| `rentBurdenRate`            | number         | 월세 부담률      |
+| `financialMessage`          | string \| null | 재정 분석 문구   |
 
 ---
 
 ## 5. 내 분석 이력 조회
 
-| 항목 | 내용 |
-| --- | --- |
-| Method · Endpoint | `GET /users/me/eligibility-analyses` |
-| 설명 | 로그인한 사용자의 입주 가능성 분석 이력을 조회한다. |
+| 항목              | 내용                                                |
+| ----------------- | --------------------------------------------------- |
+| Method · Endpoint | `GET /users/me/eligibility-analyses`                |
+| 설명              | 로그인한 사용자의 입주 가능성 분석 이력을 조회한다. |
 
 ### Query Parameter
 
-| 이름 | 타입 | 필수 | 설명 |
-| --- | --- | --- | --- |
-| `page` | number | N | 기본값 0 |
-| `size` | number | N | 기본값 10 |
+| 이름   | 타입   | 필수 | 설명      |
+| ------ | ------ | ---- | --------- |
+| `page` | number | N    | 기본값 0  |
+| `size` | number | N    | 기본값 10 |
 
 ### Response (result)
 
