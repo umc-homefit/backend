@@ -327,9 +327,15 @@ export class FinanceService {
     };
   }
 
-  /** date가 오늘로부터 최대 years년 이내인지 달력 기준으로 정확히 판정한다 (365.25일 근사 대신 실제 날짜 연산). */
+  /**
+   * date가 오늘로부터 최대 years년 이내인지 달력 기준으로 정확히 판정한다 (365.25일 근사 대신 실제 날짜 연산).
+   * marriageDate/newbornBirthDate는 Prisma에서 시간 정보 없는 DATE(자정 UTC)로 들어오므로,
+   * cutoff도 자정으로 맞춰야 정확히 N년 전 같은 날짜가 시:분:초 차이로 탈락하지 않는다.
+   */
   private isWithinYears(date: Date, years: number): boolean {
-    const cutoff = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date(today);
     cutoff.setFullYear(cutoff.getFullYear() - years);
     return date >= cutoff;
   }

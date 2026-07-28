@@ -168,9 +168,14 @@ export class UpdateConditionProfileRequestDto {
     example: '2025-05-01',
     nullable: true,
   })
-  @IsOptional()
-  @ValidateIf((o) => o.marriageDate !== null)
-  @IsDateString()
+  // maritalStatus가 MARRIAGE_EXPECTED면 marriageDate 생략/null도 검증 대상에 포함시켜 필수로 만든다.
+  // (다른 상태에서는 기존처럼 생략=미변경, null=초기화를 그대로 허용)
+  @ValidateIf(
+    (o) =>
+      o.maritalStatus === MaritalStatus.MARRIAGE_EXPECTED ||
+      (o.marriageDate !== undefined && o.marriageDate !== null),
+  )
+  @IsDateString({}, { message: 'marriageDate는 YYYY-MM-DD 형식의 날짜여야 합니다 (MARRIAGE_EXPECTED 선택 시 필수).' })
   @Validate(MarriageExpectedWithinMonthsConstraint)
   marriageDate?: string | null;
 
@@ -201,19 +206,24 @@ export class UpdateConditionProfileRequestDto {
   })
   householdHeadStatus?: HouseholdHeadStatus;
 
-  @ApiPropertyOptional({ description: '생애최초 주택 구입자 여부', example: false })
+  @ApiPropertyOptional({
+    description: '생애최초 주택 구입자 여부. null을 명시적으로 보내면 기존 값을 지운다(미입력 상태로 되돌림).',
+    example: false,
+    nullable: true,
+  })
   @IsOptional()
   @IsBoolean()
-  isFirstTimeBuyer?: boolean;
+  isFirstTimeBuyer?: boolean | null;
 
   @ApiPropertyOptional({
-    description: '직업 상태 (값 컨벤션 기획 확인 중, 아직 미확정)',
+    description:
+      '직업 상태 (값 컨벤션 기획 확인 중, 아직 미확정). null을 명시적으로 보내면 기존 값을 지운다.',
     example: 'EMPLOYED',
     nullable: true,
   })
   @IsOptional()
   @IsString()
-  employmentStatus?: string;
+  employmentStatus?: string | null;
 }
 
 // 4. 조건 프로필 수정 결과 DTO

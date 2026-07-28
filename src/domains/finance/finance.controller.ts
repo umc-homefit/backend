@@ -51,6 +51,15 @@ export class FinanceController {
       '사용자 조건 프로필(나이/소득/자산/무주택/결혼/출산) 기준으로 신청 자격이 되는 금융상품을 조회한다.',
   })
   @ApiSuccessResponse(MatchLoanProductsResultDto, { description: '금융상품 매칭 조회 성공' })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'providerType은 POLICY 또는 BANK여야 합니다.' },
+    {
+      status: 400,
+      code: 'FINANCE400',
+      message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+  ])
   async matchLoanProducts(
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: MatchLoanProductsQueryDto,
