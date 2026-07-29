@@ -138,6 +138,10 @@ enum EligibilityConditionCode {
   RENT_BURDEN
   DEBT
   REGION
+  AGE
+  HOUSEHOLD
+  SUBSCRIPTION
+  OTHER
 
   @@map("eligibility_condition_code")
 }

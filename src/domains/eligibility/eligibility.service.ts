@@ -59,6 +59,8 @@ export class EligibilityService {
       this.prisma.noticeUnit.findUnique({ where: { unitId: BigInt(unitId) } }),
       this.prisma.userConditionProfile.findUnique({
         where: { userId },
+        // 나이 조건은 사용자 프로필의 생년월일을 기준으로 자동 판정한다.
+        include: { user: { select: { profile: { select: { birthDate: true } } } } },
       }),
     ]);
 
@@ -97,6 +99,9 @@ export class EligibilityService {
         monthlyIncomeAmount,
         totalAssetAmount: Number(userConditionProfile.totalAssetAmount),
         isHomeless: userConditionProfile.isHomeless,
+        birthDate: userConditionProfile.user.profile?.birthDate ?? null,
+        residenceRegionCode: userConditionProfile.residenceRegionCode,
+        householdHeadStatus: userConditionProfile.householdHeadStatus,
       }),
     ];
     const scoreResult = this.calculateScore({
@@ -104,14 +109,15 @@ export class EligibilityService {
       cashSavings,
       monthlyIncomeAmount,
       rentBurdenRate,
-      policyConditions: conditionResults.filter((conditionResult) =>
-        (
-          [
-            EligibilityConditionCode.INCOME,
-            EligibilityConditionCode.ASSET,
-            EligibilityConditionCode.HOMELESS,
-          ] as EligibilityConditionCode[]
-        ).includes(conditionResult.conditionCode),
+      // 현금·월세 부담률은 별도 배점으로 계산한다. 나머지 공고 정책 조건은 모두 등급 판단에 반영한다.
+      policyConditions: conditionResults.filter(
+        (conditionResult) =>
+          !(
+            [
+              EligibilityConditionCode.CASH,
+              EligibilityConditionCode.RENT_BURDEN,
+            ] as EligibilityConditionCode[]
+          ).includes(conditionResult.conditionCode),
       ),
     });
 
@@ -438,11 +444,20 @@ export class EligibilityService {
       assetLimitText: string | null;
       requiresHomeless: boolean | null;
       housingOwnershipRequirement: string | null;
+      minAge: number | null;
+      maxAge: number | null;
+      residenceRequirement: string | null;
+      householdRequirement: string | null;
+      subscriptionRequirement: string | null;
+      rawConditionText: string | null;
     }>,
     userCondition: {
       monthlyIncomeAmount: number;
       totalAssetAmount: number;
       isHomeless: boolean;
+      birthDate: Date | null;
+      residenceRegionCode: string | null;
+      householdHeadStatus: string;
     },
   ): ConditionDraft[] {
     return noticeConditions.flatMap((noticeCondition) => {
@@ -499,8 +514,121 @@ export class EligibilityService {
         });
       }
 
+      // 생년월일이 있으면 나이 기준은 자동 비교한다. 없으면 판단에 필요한 사용자 정보가 부족하다.
+      if (noticeCondition.minAge !== null || noticeCondition.maxAge !== null) {
+        const age = userCondition.birthDate ? this.calculateAge(userCondition.birthDate) : null;
+        const isPassed =
+          age !== null &&
+          (noticeCondition.minAge === null || age >= noticeCondition.minAge) &&
+          (noticeCondition.maxAge === null || age <= noticeCondition.maxAge);
+        const requiredValue = this.formatAgeRequirement(
+          noticeCondition.minAge,
+          noticeCondition.maxAge,
+        );
+        results.push({
+          conditionId: noticeCondition.conditionId,
+          conditionCode: EligibilityConditionCode.AGE,
+          conditionName: '나이 조건',
+          requiredValue,
+          userValue: age === null ? null : `만 ${age}세`,
+          resultStatus:
+            age === null
+              ? EligibilityConditionResultStatus.NEED_CHECK
+              : isPassed
+                ? EligibilityConditionResultStatus.PASS
+                : EligibilityConditionResultStatus.FAIL,
+          failReason:
+            age === null
+              ? '생년월일 정보가 없어 나이 조건 확인이 필요합니다.'
+              : isPassed
+                ? null
+                : '공고 나이 기준을 충족하지 못했습니다.',
+        });
+      }
+
+      // 아래 조건들은 공고에 사람이 읽는 원문으로 저장된다. 의미를 임의로 해석하지 않고 NEED_CHECK으로 남긴다.
+      if (noticeCondition.residenceRequirement !== null) {
+        results.push(
+          this.createNeedCheckCondition({
+            conditionId: noticeCondition.conditionId,
+            conditionCode: EligibilityConditionCode.REGION,
+            conditionName: '거주지 조건',
+            requiredValue: noticeCondition.residenceRequirement,
+            userValue: userCondition.residenceRegionCode,
+            failReason: '공고 거주지 조건의 세부 기준 확인이 필요합니다.',
+          }),
+        );
+      }
+
+      if (noticeCondition.householdRequirement !== null) {
+        results.push(
+          this.createNeedCheckCondition({
+            conditionId: noticeCondition.conditionId,
+            conditionCode: EligibilityConditionCode.HOUSEHOLD,
+            conditionName: '세대 조건',
+            requiredValue: noticeCondition.householdRequirement,
+            userValue: userCondition.householdHeadStatus,
+            failReason: '공고 세대 조건의 세부 기준 확인이 필요합니다.',
+          }),
+        );
+      }
+
+      if (noticeCondition.subscriptionRequirement !== null) {
+        results.push(
+          this.createNeedCheckCondition({
+            conditionId: noticeCondition.conditionId,
+            conditionCode: EligibilityConditionCode.SUBSCRIPTION,
+            conditionName: '청약 조건',
+            requiredValue: noticeCondition.subscriptionRequirement,
+            userValue: null,
+            failReason: '청약 조건을 비교할 사용자 정보 또는 세부 기준 확인이 필요합니다.',
+          }),
+        );
+      }
+
+      if (noticeCondition.rawConditionText !== null) {
+        results.push(
+          this.createNeedCheckCondition({
+            conditionId: noticeCondition.conditionId,
+            conditionCode: EligibilityConditionCode.OTHER,
+            conditionName: '기타 공고 조건',
+            requiredValue: noticeCondition.rawConditionText,
+            userValue: null,
+            failReason: '원문 공고 조건의 추가 확인이 필요합니다.',
+          }),
+        );
+      }
+
       return results;
     });
+  }
+
+  private createNeedCheckCondition(params: {
+    conditionId: bigint;
+    conditionCode: EligibilityConditionCode;
+    conditionName: string;
+    requiredValue: string;
+    userValue: string | null;
+    failReason: string;
+  }): ConditionDraft {
+    return { ...params, resultStatus: EligibilityConditionResultStatus.NEED_CHECK };
+  }
+
+  private calculateAge(birthDate: Date): number {
+    const today = new Date();
+    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
+    const hasNotHadBirthdayYet =
+      today.getUTCMonth() < birthDate.getUTCMonth() ||
+      (today.getUTCMonth() === birthDate.getUTCMonth() &&
+        today.getUTCDate() < birthDate.getUTCDate());
+    if (hasNotHadBirthdayYet) age -= 1;
+    return age;
+  }
+
+  private formatAgeRequirement(minAge: number | null, maxAge: number | null): string {
+    if (minAge !== null && maxAge !== null) return `만 ${minAge}세 이상 ${maxAge}세 이하`;
+    if (minAge !== null) return `만 ${minAge}세 이상`;
+    return `만 ${maxAge}세 이하`;
   }
 
   private calculateScore(params: {
@@ -521,11 +649,18 @@ export class EligibilityService {
     const hasPolicyFail = params.policyConditions.some(
       (conditionResult) => conditionResult.resultStatus === EligibilityConditionResultStatus.FAIL,
     );
-    const policyScore = params.policyConditions.length > 0 && !hasPolicyFail ? 20 : 0;
+    const hasPolicyNeedCheck = params.policyConditions.some(
+      (conditionResult) =>
+        conditionResult.resultStatus === EligibilityConditionResultStatus.NEED_CHECK,
+    );
+    // 자동 판정하지 못한 공고 조건이 있으면 정책 충족 점수를 주지 않는다.
+    const policyScore =
+      params.policyConditions.length > 0 && !hasPolicyFail && !hasPolicyNeedCheck ? 20 : 0;
     const needsCheck =
       params.expectedDepositAmount <= 0 ||
       params.monthlyIncomeAmount <= 0 ||
-      params.policyConditions.length === 0;
+      params.policyConditions.length === 0 ||
+      hasPolicyNeedCheck;
     const eligibilityScore = Math.round(cashScore + rentScore + policyScore);
 
     return {

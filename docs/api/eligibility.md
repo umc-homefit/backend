@@ -14,11 +14,11 @@
 
 ## 공통 enum
 
-| enum            | 값                                                                           |
-| --------------- | ---------------------------------------------------------------------------- |
-| `resultLevel`   | `HIGH` / `MEDIUM` / `LOW` / `NOT_ELIGIBLE` / `NEED_CHECK`                    |
-| `conditionCode` | `INCOME` / `ASSET` / `CASH` / `HOMELESS` / `RENT_BURDEN` / `DEBT` / `REGION` |
-| `resultStatus`  | `PASS` / `FAIL` / `NEED_CHECK`                                               |
+| enum            | 값                                                                                                                            |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `resultLevel`   | `HIGH` / `MEDIUM` / `LOW` / `NOT_ELIGIBLE` / `NEED_CHECK`                                                                     |
+| `conditionCode` | `INCOME` / `ASSET` / `CASH` / `HOMELESS` / `RENT_BURDEN` / `DEBT` / `REGION` / `AGE` / `HOUSEHOLD` / `SUBSCRIPTION` / `OTHER` |
+| `resultStatus`  | `PASS` / `FAIL` / `NEED_CHECK`                                                                                                |
 
 ## 1차 구현 범위
 
@@ -37,7 +37,10 @@
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + maintenanceFeeAmount`
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100`
-- 조건별 비교는 자동 판정 가능한 항목은 `PASS`/`FAIL`, 원문 해석이 필요한 항목은 `NEED_CHECK` 사용
+- 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
+- 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
+- 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않고 최종 등급은 `NEED_CHECK`로 반환한다.
+- 자동 판정한 필수 정책 조건 중 하나라도 `FAIL`이면 최종 등급은 `NOT_ELIGIBLE`이다.
 
 ---
 
@@ -123,11 +126,11 @@
 
 ## 3. 조건별 비교 결과 조회
 
-| 항목              | 내용                                                               |
-| ----------------- | ------------------------------------------------------------------ |
-| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/conditions`                |
-| 설명              | 소득, 자산, 무주택 여부, 보유 현금 등 조건별 충족 여부를 조회한다. |
-| 인증              | **필수**                                                           |
+| 항목              | 내용                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| Method · Endpoint | `GET /eligibility-analyses/{analysisId}/conditions`                                     |
+| 설명              | 소득, 자산, 무주택, 나이, 거주지, 세대, 청약, 보유 현금 등 조건별 충족 여부를 조회한다. |
+| 인증              | **필수**                                                                                |
 
 분석 요청 시 계산해 저장한 조건별 결과를 반환한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
 
