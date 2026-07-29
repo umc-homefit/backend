@@ -155,7 +155,8 @@ export class UpdateConditionProfileRequestDto {
     enum: MaritalStatus,
     example: MaritalStatus.SINGLE,
   })
-  @IsOptional()
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(UNKNOWN이 이미 "미입력" 상태를 표현) → 검증에 걸려 400.
+  @ValidateIf((o) => o.maritalStatus !== undefined)
   @IsEnum(MaritalStatus, {
     message: 'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, MARRIAGE_EXPECTED',
   })
@@ -180,7 +181,8 @@ export class UpdateConditionProfileRequestDto {
   marriageDate?: string | null;
 
   @ApiPropertyOptional({ description: '최근 출산 여부', example: false })
-  @IsOptional()
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(false가 이미 기본값) → 검증에 걸려 400.
+  @ValidateIf((o) => o.hasRecentNewborn !== undefined)
   @IsBoolean()
   hasRecentNewborn?: boolean;
 
@@ -199,7 +201,8 @@ export class UpdateConditionProfileRequestDto {
     enum: HouseholdHeadStatus,
     example: HouseholdHeadStatus.HEAD,
   })
-  @IsOptional()
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(UNKNOWN이 이미 "미입력" 상태를 표현) → 검증에 걸려 400.
+  @ValidateIf((o) => o.householdHeadStatus !== undefined)
   @IsEnum(HouseholdHeadStatus, {
     message:
       'householdHeadStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HEAD, HEAD_EXPECTED, RECOGNIZED, MEMBER',
