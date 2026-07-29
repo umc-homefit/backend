@@ -192,7 +192,7 @@ export class EligibilityController {
     {
       status: 400,
       code: 'COMMON400',
-      message: 'page 또는 size의 형식이나 범위가 올바르지 않습니다.',
+      message: 'page는 0 이상, size는 1 이상 50 이하의 정수여야 합니다.',
     },
     { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
     { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },

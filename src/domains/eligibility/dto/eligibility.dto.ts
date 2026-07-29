@@ -5,7 +5,7 @@ import {
   EligibilityResultLevel,
 } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -112,11 +112,17 @@ export class GetMyEligibilityAnalysesQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기', default: 10, example: 10 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 10, 최대 50)',
+    default: 10,
+    maximum: 50,
+    example: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
