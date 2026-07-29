@@ -28,7 +28,7 @@
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}`                      | 입주 가능성 분석 결과 조회 |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}/conditions`           | 조건별 비교 결과 조회      |
 | P0       | `GET`  | `/eligibility-analyses/{analysisId}/financial-summary`    | 재정 계산 결과 조회        |
-| P0       | `GET`  | `/users/me/eligibility-analyses`                          | 내 분석 이력 조회          |
+| P1       | `GET`  | `/users/me/eligibility-analyses`                          | 내 분석 이력 조회          |
 
 ## MVP 계산 기준
 
