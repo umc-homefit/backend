@@ -119,12 +119,13 @@
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
 
-| 상태 | 설명                                    |
-| ---- | --------------------------------------- |
-| 200  | 분석 결과 조회 성공                     |
-| 400  | `analysisId`가 양의 safe integer가 아님 |
-| 401  | 인증 필요                               |
-| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
+| 상태 | 코드           | 설명                                                                  |
+| ---- | -------------- | --------------------------------------------------------------------- |
+| 200  | ELIGIBILITY200 | 분석 결과 조회 성공                                                   |
+| 400  | COMMON400      | `analysisId`가 정수가 아니거나 0 이하 또는 safe integer 범위를 벗어남 |
+| 401  | AUTH401        | 인증 토큰이 없거나 만료됨                                             |
+| 404  | COMMON404      | 분석 결과가 없거나 다른 사용자의 분석 결과인 경우                     |
+| 500  | COMMON500      | 서버 내부 오류                                                        |
 
 ---
 
@@ -144,25 +145,75 @@
 {
   "conditionResults": [
     {
+      "conditionCode": "INCOME",
+      "conditionName": "소득 조건",
+      "requiredValue": "월소득 350만원 이하",
+      "userValue": "월소득 280만원",
+      "resultStatus": "PASS",
+      "failReason": null
+    },
+    {
+      "conditionCode": "ASSET",
+      "conditionName": "자산 조건",
+      "requiredValue": "총자산 2억 5천만원 이하",
+      "userValue": "총자산 1억 2천만원",
+      "resultStatus": "PASS",
+      "failReason": null
+    },
+    {
+      "conditionCode": "HOMELESS",
+      "conditionName": "무주택 여부",
+      "requiredValue": "무주택자",
+      "userValue": "무주택자",
+      "resultStatus": "PASS",
+      "failReason": null
+    },
+    {
+      "conditionCode": "AGE",
+      "conditionName": "나이 조건",
+      "requiredValue": "만 19세 이상 39세 이하",
+      "userValue": "만 28세",
+      "resultStatus": "PASS",
+      "failReason": null
+    },
+    {
+      "conditionCode": "REGION",
+      "conditionName": "거주지 조건",
+      "requiredValue": "서울특별시 거주자",
+      "userValue": "서울특별시",
+      "resultStatus": "NEED_CHECK",
+      "failReason": "공고 거주지 조건의 세부 기준 확인이 필요합니다."
+    },
+    {
       "conditionCode": "CASH",
       "conditionName": "보유 현금",
       "requiredValue": "보증금 1000만원 이상",
       "userValue": "보유 현금 800만원",
       "resultStatus": "FAIL",
       "failReason": "예상 보증금 대비 보유 현금이 200만원 부족합니다."
+    },
+    {
+      "conditionCode": "RENT_BURDEN",
+      "conditionName": "월세 부담률",
+      "requiredValue": "월소득 대비 월 주거비 40% 이하 권장",
+      "userValue": "28.57%",
+      "resultStatus": "PASS",
+      "failReason": null
     }
   ]
 }
 ```
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
+공고에 저장된 조건만 결과에 포함되며, 거주지·세대·청약·기타 원문 조건은 현재 `NEED_CHECK`으로 반환한다.
 
-| 상태 | 설명                                    |
-| ---- | --------------------------------------- |
-| 200  | 조건별 비교 결과 조회 성공              |
-| 400  | `analysisId`가 양의 safe integer가 아님 |
-| 401  | 인증 필요                               |
-| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
+| 상태 | 코드           | 설명                                                                  |
+| ---- | -------------- | --------------------------------------------------------------------- |
+| 200  | ELIGIBILITY200 | 조건별 비교 결과 조회 성공                                            |
+| 400  | COMMON400      | `analysisId`가 정수가 아니거나 0 이하 또는 safe integer 범위를 벗어남 |
+| 401  | AUTH401        | 인증 토큰이 없거나 만료됨                                             |
+| 404  | COMMON404      | 분석 결과가 없거나 다른 사용자의 분석 결과인 경우                     |
+| 500  | COMMON500      | 서버 내부 오류                                                        |
 
 ---
 
@@ -190,12 +241,13 @@
 | `rentBurdenRate`            | number         | 월세 부담률      |
 | `financialMessage`          | string \| null | 재정 분석 문구   |
 
-| 상태 | 설명                                    |
-| ---- | --------------------------------------- |
-| 200  | 재정 계산 결과 조회 성공                |
-| 400  | `analysisId`가 양의 safe integer가 아님 |
-| 401  | 인증 필요                               |
-| 404  | 분석 결과가 없거나 다른 사용자의 결과   |
+| 상태 | 코드           | 설명                                                                  |
+| ---- | -------------- | --------------------------------------------------------------------- |
+| 200  | ELIGIBILITY200 | 재정 계산 결과 조회 성공                                              |
+| 400  | COMMON400      | `analysisId`가 정수가 아니거나 0 이하 또는 safe integer 범위를 벗어남 |
+| 401  | AUTH401        | 인증 토큰이 없거나 만료됨                                             |
+| 404  | COMMON404      | 분석 결과가 없거나 다른 사용자의 분석 결과인 경우                     |
+| 500  | COMMON500      | 서버 내부 오류                                                        |
 
 ---
 
@@ -243,9 +295,9 @@
 
 분석 일시 최신순으로 반환하며, 같은 시각의 결과는 분석 ID 내림차순으로 정렬한다. 분석 이력이 없으면 `analyses: []`와 `pageInfo`를 함께 반환한다.
 
-| 상태 | 설명                                                   |
-| ---- | ------------------------------------------------------ |
-| 200  | 내 분석 이력 조회 성공                                 |
-| 400  | `page`는 0 이상, `size`는 1 이상 50 이하의 정수가 아님 |
-| 401  | 인증 필요                                              |
-| 500  | 서버 내부 오류                                         |
+| 상태 | 코드           | 설명                                                                   |
+| ---- | -------------- | ---------------------------------------------------------------------- |
+| 200  | ELIGIBILITY200 | 내 분석 이력 조회 성공. 결과가 없으면 `analyses: []`와 `pageInfo` 반환 |
+| 400  | COMMON400      | `page` 또는 `size` 형식·범위 오류                                      |
+| 401  | AUTH401        | 인증 토큰이 없거나 만료됨                                              |
+| 500  | COMMON500      | 서버 내부 오류                                                         |
