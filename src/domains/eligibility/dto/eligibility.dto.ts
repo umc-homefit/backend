@@ -68,8 +68,9 @@ export class RequestEligibilityAnalysisResultDto {
   rentBurdenRate: number;
 
   @ApiPropertyOptional({
-    description: '분석 요약 문구',
-    example: '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
+    description: '최종 입주 가능성 등급과 재정 상태를 함께 안내하는 종합 분석 문구',
+    example:
+      '입주 가능성이 높은 편입니다. 예상 보증금 대비 보유 현금이 200만원 부족합니다. 월세 부담률은 28.57%로 안정적인 편입니다.',
     nullable: true,
   })
   summaryMessage: string | null;

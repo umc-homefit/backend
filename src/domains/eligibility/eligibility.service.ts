@@ -136,7 +136,12 @@ export class EligibilityService {
         monthlyIncomeAmount: BigInt(monthlyIncomeAmount),
         shortageAmount: BigInt(shortageAmount),
         rentBurdenRate,
-        summaryMessage: this.createSummaryMessage(scoreResult, shortageAmount, rentBurdenRate),
+        summaryMessage: this.createSummaryMessage(
+          scoreResult,
+          shortageAmount,
+          rentBurdenRate,
+          monthlyIncomeAmount,
+        ),
         conditionResults: {
           create: conditionResults.map((conditionResult) => ({
             conditionId: conditionResult.conditionId,
@@ -699,24 +704,30 @@ export class EligibilityService {
     scoreResult: ScoreResult,
     shortageAmount: number,
     rentBurdenRate: number,
+    monthlyIncomeAmount: number,
   ): string {
-    if (scoreResult.resultLevel === EligibilityResultLevel.NOT_ELIGIBLE) {
-      return '필수 정책 조건을 충족하지 못했습니다.';
-    }
+    // 종합 문구의 첫 문장은 반드시 최종 등급을 설명한다.
+    // 재정 상태는 그 등급의 근거로 뒤에 덧붙여, 점수와 안내 문구가 엇갈리지 않게 한다.
+    const financialMessage = this.createFinancialSummaryMessage(
+      shortageAmount,
+      rentBurdenRate,
+      monthlyIncomeAmount,
+    );
 
-    if (scoreResult.resultLevel === EligibilityResultLevel.NEED_CHECK) {
-      return '사용자 조건 또는 공고 조건 정보가 부족하여 추가 확인이 필요합니다.';
+    switch (scoreResult.resultLevel) {
+      case EligibilityResultLevel.NOT_ELIGIBLE:
+        return `필수 정책 조건을 충족하지 못해 입주 가능성이 낮습니다. ${financialMessage}`;
+      case EligibilityResultLevel.NEED_CHECK:
+        return `사용자 조건 또는 공고 조건 정보가 부족하여 추가 확인이 필요합니다. ${financialMessage}`;
+      case EligibilityResultLevel.HIGH:
+        return `입주 가능성이 높은 편입니다. ${financialMessage}`;
+      case EligibilityResultLevel.MEDIUM:
+        return `입주 가능성은 보통입니다. ${financialMessage}`;
+      case EligibilityResultLevel.LOW:
+        return `입주 가능성이 낮은 편입니다. ${financialMessage}`;
+      default:
+        return financialMessage;
     }
-
-    if (shortageAmount > 0 && rentBurdenRate <= this.recommendedRentBurdenRate) {
-      return '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.';
-    }
-
-    if (shortageAmount > 0) {
-      return '예상 보증금 대비 보유 현금이 부족하여 추가 자금 계획이 필요합니다.';
-    }
-
-    return '필요 자금과 월세 부담률이 안정적이며 주요 정책 조건을 충족합니다.';
   }
 
   private createFinancialSummaryMessage(

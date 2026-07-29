@@ -41,6 +41,7 @@
 - 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
 - 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않고 최종 등급은 `NEED_CHECK`로 반환한다.
 - 자동 판정한 필수 정책 조건 중 하나라도 `FAIL`이면 최종 등급은 `NOT_ELIGIBLE`이다.
+- `summaryMessage`는 최종 `resultLevel`을 먼저 안내하고, 부족 자금·월세 부담률을 근거로 덧붙이는 종합 분석 문구다.
 
 ---
 
@@ -68,7 +69,7 @@
   "eligibilityScore": 82,
   "shortageAmount": 2000000,
   "rentBurdenRate": 28.57,
-  "summaryMessage": "보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.",
+  "summaryMessage": "입주 가능성이 높은 편입니다. 예상 보증금 대비 보유 현금이 200만원 부족합니다. 월세 부담률은 28.57%로 안정적인 편입니다.",
   "conditionResults": [
     {
       "conditionCode": "INCOME",
