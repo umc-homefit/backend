@@ -334,18 +334,19 @@ export class FinanceService {
   /**
    * date가 오늘로부터 최대 years년 이내인지 달력 기준으로 정확히 판정한다 (365.25일 근사 대신 실제 날짜 연산).
    * marriageDate/newbornBirthDate는 Prisma에서 시간 정보 없는 DATE(자정 UTC)로 들어오므로,
-   * cutoff도 자정으로 맞춰야 정확히 N년 전 같은 날짜가 시:분:초 차이로 탈락하지 않는다.
+   * today/cutoff도 로컬 타임존이 아닌 UTC 자정 기준으로 맞춰야 서버 실행 환경(로컬 Asia/Seoul vs 배포 UTC)에
+   * 따라 경계일 판정이 최대 하루 어긋나는 것을 방지할 수 있다.
    * allowFuture=false(기본)면 미래 날짜는 무조건 탈락시킨다 — 혼인/출산은 이미 발생한 사실이어야 하므로.
    * MARRIAGE_EXPECTED처럼 아직 발생하지 않은 미래 혼인일을 다루는 호출에서만 true로 넘긴다.
    */
   private isWithinYears(date: Date, years: number, allowFuture = false): boolean {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     if (!allowFuture && date > today) {
       return false;
     }
     const cutoff = new Date(today);
-    cutoff.setFullYear(cutoff.getFullYear() - years);
+    cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
     return date >= cutoff;
   }
 

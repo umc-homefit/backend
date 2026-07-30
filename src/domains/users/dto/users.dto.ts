@@ -18,6 +18,9 @@ import {
 /**
  * ERD 기준 MARRIAGE_EXPECTED("3개월 이내 결혼예정")의 정의를 실제로 강제한다.
  * maritalStatus가 MARRIAGE_EXPECTED가 아니면 통과(다른 상태의 marriageDate는 대상이 아님).
+ * today/cutoff는 로컬 타임존이 아닌 UTC 자정 기준으로 계산한다 — marriageDate(YYYY-MM-DD)는
+ * ISO 날짜 문자열이라 UTC 자정으로 파싱되므로, 서버 실행 환경(로컬 Asia/Seoul vs 배포 UTC)에 따라
+ * 경계일 판정이 최대 하루 어긋나는 것을 방지한다.
  */
 @ValidatorConstraint({ name: 'marriageExpectedWithinMonths', async: false })
 class MarriageExpectedWithinMonthsConstraint implements ValidatorConstraintInterface {
@@ -37,9 +40,9 @@ class MarriageExpectedWithinMonthsConstraint implements ValidatorConstraintInter
     }
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const cutoff = new Date(today);
-    cutoff.setMonth(cutoff.getMonth() + this.withinMonths);
+    cutoff.setUTCMonth(cutoff.getUTCMonth() + this.withinMonths);
 
     return target >= today && target <= cutoff;
   }
