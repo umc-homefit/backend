@@ -35,7 +35,8 @@
 1차 MVP에서는 복잡한 정책 판정 전체 자동화보다 최소 계산 버전을 우선한다.
 
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
-- `monthlyHousingCost` = `expectedMonthlyRentAmount + maintenanceFeeAmount`
+- `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
+- 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100`
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
 - 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
@@ -115,7 +116,7 @@
 | `unitId`                    | number | 주택형 ID   |
 | `expectedDepositAmount`     | number | 예상 보증금 |
 | `expectedMonthlyRentAmount` | number | 예상 월세   |
-| `maintenanceFeeAmount`      | number | 예상 관리비 |
+| `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null) |
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
 
@@ -225,7 +226,7 @@
 | 설명              | 예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. |
 | 인증              | **필수**                                                                        |
 
-저장된 분석 결과를 기준으로 월 주거비(월세 + 관리비)와 부족 자금을 반환한다. `userCashAmount`, `monthlyIncomeAmount`는 분석 실행 당시 사용자 조건 프로필 값을 스냅샷으로 저장해 반환한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
+저장된 분석 결과를 기준으로 월 주거비(월세 + 관리비)와 부족 자금을 반환한다. 현재 크롤링 데이터에서 관리비 원본을 수집하지 않으므로 `maintenanceFeeAmount`는 `null`로 반환한다. 이 경우 월 주거비와 월세 부담률은 월세 기준으로 계산하며, 재정 분석 문구에 그 제한을 함께 안내한다. `userCashAmount`, `monthlyIncomeAmount`는 분석 실행 당시 사용자 조건 프로필 값을 스냅샷으로 저장해 반환한다. 다른 사용자의 분석 결과는 `404`로 응답한다.
 
 ### Response (result)
 
@@ -233,12 +234,12 @@
 | --------------------------- | -------------- | ---------------- |
 | `expectedDepositAmount`     | number         | 예상 보증금      |
 | `expectedMonthlyRentAmount` | number         | 예상 월세        |
-| `maintenanceFeeAmount`      | number         | 예상 관리비      |
+| `maintenanceFeeAmount`      | number \| null  | 예상 관리비(현재 미수집으로 null) |
 | `userCashAmount`            | number         | 사용자 보유 현금 |
 | `shortageAmount`            | number         | 부족 자금        |
 | `monthlyIncomeAmount`       | number         | 사용자 월소득    |
-| `monthlyHousingCost`        | number         | 월 주거비        |
-| `rentBurdenRate`            | number         | 월세 부담률      |
+| `monthlyHousingCost`        | number         | 월 주거비(관리비 정보 없으면 월세 기준) |
+| `rentBurdenRate`            | number         | 월세 부담률(관리비 정보 없으면 월세 기준) |
 | `financialMessage`          | string \| null | 재정 분석 문구   |
 
 | 상태 | 코드           | 설명                                                                  |

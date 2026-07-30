@@ -149,7 +149,8 @@ export class EligibilityController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '재정 계산 결과 조회',
-    description: '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다.',
+    description:
+      '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. 현재 관리비 원본을 수집하지 않아 관리비는 null로 반환하며, 월 주거비와 월세 부담률은 월세 기준으로 계산한다.',
   })
   @ApiParam({
     name: 'analysisId',

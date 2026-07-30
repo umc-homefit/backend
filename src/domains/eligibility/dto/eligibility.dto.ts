@@ -95,8 +95,12 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
   expectedMonthlyRentAmount: number;
 
-  @ApiProperty({ description: '예상 관리비 (원 단위)', example: 50000 })
-  maintenanceFeeAmount: number;
+  @ApiPropertyOptional({
+    description: '예상 관리비 (원 단위, 공고에 정보가 없으면 null)',
+    example: 50000,
+    nullable: true,
+  })
+  maintenanceFeeAmount: number | null;
 }
 
 export class EligibilityConditionsResultDto {
@@ -166,8 +170,12 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
   expectedMonthlyRentAmount: number;
 
-  @ApiProperty({ description: '예상 관리비 (원 단위)', example: 50000 })
-  maintenanceFeeAmount: number;
+  @ApiPropertyOptional({
+    description: '예상 관리비 (원 단위, 공고에 정보가 없으면 null)',
+    example: 50000,
+    nullable: true,
+  })
+  maintenanceFeeAmount: number | null;
 
   @ApiProperty({ description: '사용자 보유 현금 (원 단위)', example: 8000000 })
   userCashAmount: number;
@@ -178,10 +186,10 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '사용자 월소득 (원 단위)', example: 1400000 })
   monthlyIncomeAmount: number;
 
-  @ApiProperty({ description: '월 주거비 (원 단위)', example: 400000 })
+  @ApiProperty({ description: '월 주거비 (원 단위, 관리비 정보가 없으면 월세 기준)', example: 400000 })
   monthlyHousingCost: number;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
+  @ApiProperty({ description: '월세 부담률 (% 단위, 관리비 정보가 없으면 월세 기준)', example: 28.57 })
   rentBurdenRate: number;
 
   @ApiPropertyOptional({
