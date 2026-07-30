@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { calculateNoticeStatus } from '../notices/notice-status.util';
+import { NoticeStatus } from '../notices/dto/notices.dto';
 import {
   EligibilityConditionCode,
   EligibilityConditionResultDto,
@@ -357,13 +359,23 @@ export class EligibilityService {
           eligibilityAnalysisId: true,
           noticeId: true,
           unitId: true,
+          expectedDepositAmount: true,
           resultLevel: true,
           eligibilityScore: true,
           shortageAmount: true,
           rentBurdenRate: true,
           analyzedAt: true,
-          // 이력 카드에 공고명을 표시하기 위해 분석이 연결된 공고의 제목만 함께 가져온다.
-          notice: { select: { title: true } },
+          // 이력 화면의 공고 카드를 바로 그릴 수 있도록 분석 결과와 연결된 공고·주택형 정보를 함께 조회한다.
+          notice: {
+            select: {
+              title: true,
+              announcementNo: true,
+              applicationStartAt: true,
+              applicationEndAt: true,
+              isAdditionalRecruitment: true,
+            },
+          },
+          unit: { select: { unitName: true, exclusiveAreaM2: true } },
         },
         // 같은 시각에 생성된 결과도 안정적으로 정렬되도록 분석 ID를 두 번째 기준으로 사용한다.
         orderBy: [{ analyzedAt: 'desc' }, { eligibilityAnalysisId: 'desc' }],
@@ -374,18 +386,36 @@ export class EligibilityService {
     const totalPages = Math.ceil(totalElements / size);
 
     return {
-      analyses: analyses.map((analysis) => ({
-        // Prisma의 BigInt/Decimal/Date 객체를 API 응답에 맞는 number/ISO 문자열로 바꾼다.
-        analysisId: Number(analysis.eligibilityAnalysisId),
-        noticeId: Number(analysis.noticeId),
-        unitId: Number(analysis.unitId),
-        noticeTitle: analysis.notice.title,
-        resultLevel: analysis.resultLevel as EligibilityResultLevel,
-        eligibilityScore: Number(analysis.eligibilityScore),
-        shortageAmount: Number(analysis.shortageAmount),
-        rentBurdenRate: Number(analysis.rentBurdenRate),
-        analyzedAt: analysis.analyzedAt.toISOString(),
-      })),
+      analyses: analyses.map((analysis) => {
+        const noticeStatus = calculateNoticeStatus(
+          analysis.notice.applicationStartAt,
+          analysis.notice.applicationEndAt,
+          new Date(),
+        );
+
+        return {
+          // Prisma의 BigInt/Decimal/Date 객체를 API 응답에 맞는 number/ISO 문자열로 바꾼다.
+          analysisId: Number(analysis.eligibilityAnalysisId),
+          noticeId: Number(analysis.noticeId),
+          unitId: Number(analysis.unitId),
+          noticeTitle: analysis.notice.title,
+          announcementNo: analysis.notice.announcementNo,
+          unitName: analysis.unit.unitName,
+          exclusiveAreaM2:
+            analysis.unit.exclusiveAreaM2 === null ? null : Number(analysis.unit.exclusiveAreaM2),
+          expectedDepositAmount: Number(analysis.expectedDepositAmount),
+          applicationStartAt: analysis.notice.applicationStartAt?.toISOString() ?? null,
+          applicationEndAt: analysis.notice.applicationEndAt?.toISOString() ?? null,
+          noticeStatus,
+          noticeStatusDisplayText: this.getNoticeStatusDisplayText(noticeStatus),
+          isAdditionalRecruitment: analysis.notice.isAdditionalRecruitment,
+          resultLevel: analysis.resultLevel as EligibilityResultLevel,
+          eligibilityScore: Number(analysis.eligibilityScore),
+          shortageAmount: Number(analysis.shortageAmount),
+          rentBurdenRate: Number(analysis.rentBurdenRate),
+          analyzedAt: analysis.analyzedAt.toISOString(),
+        };
+      }),
       pageInfo: {
         page,
         size,
@@ -636,6 +666,18 @@ export class EligibilityService {
         today.getUTCDate() < birthDate.getUTCDate());
     if (hasNotHadBirthdayYet) age -= 1;
     return age;
+  }
+
+  // notices 도메인과 같은 상태 enum을 사용하되, 분석 이력 응답에는 카드 표시용 문구도 함께 제공한다.
+  private getNoticeStatusDisplayText(status: NoticeStatus): string {
+    const displayText: Record<NoticeStatus, string> = {
+      [NoticeStatus.RECRUITING]: '모집중',
+      [NoticeStatus.SCHEDULED]: '모집예정',
+      [NoticeStatus.CLOSING_SOON]: '마감임박',
+      [NoticeStatus.CLOSED]: '마감',
+    };
+
+    return displayText[status];
   }
 
   private formatAgeRequirement(minAge: number | null, maxAge: number | null): string {

@@ -8,6 +8,7 @@ import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
+import { NoticeStatus } from '../../notices/dto/notices.dto';
 
 export { EligibilityConditionCode, EligibilityConditionResultStatus, EligibilityResultLevel };
 
@@ -142,6 +143,34 @@ export class EligibilityAnalysisHistoryItemDto {
 
   @ApiProperty({ description: '공고명', example: '어반허브 서울스테이션 추가모집' })
   noticeTitle: string;
+
+  @ApiPropertyOptional({ description: '공고 번호', example: '2024-강동-031', nullable: true })
+  announcementNo: string | null;
+
+  @ApiPropertyOptional({ description: '주택형명', example: '59㎡', nullable: true })
+  unitName: string | null;
+
+  @ApiPropertyOptional({ description: '전용 면적(㎡)', example: 59, nullable: true })
+  exclusiveAreaM2: number | null;
+
+  // 이력 카드는 분석 당시 선택한 주택형의 보증금을 보여줘야 하므로 공고의 현재 최소·최대값 대신 분석 스냅샷을 반환한다.
+  @ApiProperty({ description: '분석 당시 예상 보증금(원 단위)', example: 32000000 })
+  expectedDepositAmount: number;
+
+  @ApiPropertyOptional({ description: '접수 시작 일시(ISO 8601)', nullable: true })
+  applicationStartAt: string | null;
+
+  @ApiPropertyOptional({ description: '접수 종료 일시(ISO 8601)', nullable: true })
+  applicationEndAt: string | null;
+
+  @ApiProperty({ description: '현재 공고 모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  noticeStatus: NoticeStatus;
+
+  @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
+  noticeStatusDisplayText: string;
+
+  @ApiProperty({ description: '추가모집 여부', example: false })
+  isAdditionalRecruitment: boolean;
 
   @ApiProperty({
     description: '입주 가능성 등급',

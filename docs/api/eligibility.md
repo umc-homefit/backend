@@ -258,7 +258,7 @@
 | 항목              | 내용                                                |
 | ----------------- | --------------------------------------------------- |
 | Method · Endpoint | `GET /users/me/eligibility-analyses`                |
-| 설명              | 로그인한 사용자의 입주 가능성 분석 이력을 조회한다. |
+| 설명              | 로그인한 사용자의 입주 가능성 분석 이력과 카드 표시용 공고·주택형 정보를 조회한다. |
 | 인증              | **필수**                                            |
 
 ### Query Parameter
@@ -278,6 +278,15 @@
       "noticeId": 12,
       "unitId": 3,
       "noticeTitle": "어반허브 서울스테이션 추가모집",
+      "announcementNo": "2024-강동-031",
+      "unitName": "59㎡",
+      "exclusiveAreaM2": 59,
+      "expectedDepositAmount": 32000000,
+      "applicationStartAt": "2026-07-05T00:00:00.000Z",
+      "applicationEndAt": "2026-07-08T09:00:00.000Z",
+      "noticeStatus": "RECRUITING",
+      "noticeStatusDisplayText": "모집중",
+      "isAdditionalRecruitment": false,
       "resultLevel": "HIGH",
       "eligibilityScore": 82,
       "shortageAmount": 2000000,
@@ -295,7 +304,7 @@
 }
 ```
 
-분석 일시 최신순으로 반환하며, 같은 시각의 결과는 분석 ID 내림차순으로 정렬한다. 분석 이력이 없으면 `analyses: []`와 `pageInfo`를 함께 반환한다.
+분석 일시 최신순으로 반환하며, 같은 시각의 결과는 분석 ID 내림차순으로 정렬한다. 각 이력에는 분석 당시 보증금과 현재 공고의 접수 일정·모집 상태·주택형 정보를 함께 반환한다. 현재 스키마에 경쟁률 데이터는 저장하지 않아 경쟁률은 반환하지 않는다. 분석 이력이 없으면 `analyses: []`와 `pageInfo`를 함께 반환한다.
 
 | 상태 | 코드           | 설명                                                                   |
 | ---- | -------------- | ---------------------------------------------------------------------- |
