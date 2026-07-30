@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
@@ -25,23 +26,36 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  @ApiOperation({ summary: '내 기본 정보 조회', description: '로그인한 사용자의 계정 기본 정보를 조회한다.' })
+  @ApiOperation({
+    summary: '내 기본 정보 조회',
+    description: '로그인한 사용자의 계정 기본 정보를 조회한다.',
+  })
   @ApiSuccessResponse(BasicInfoResultDto, { description: '내 기본 정보 조회 완료' })
-  async getBasicInfo(@CurrentUser() user: CurrentUserPayload): Promise<ApiResponse<BasicInfoResultDto>> {
+  async getBasicInfo(
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<ApiResponse<BasicInfoResultDto>> {
     const result = await this.usersService.getBasicInfo(user.userId);
     return createSuccessResponse(result, 'USER200', '기본 정보 조회 성공');
   }
 
   @Get('profile')
-  @ApiOperation({ summary: '내 프로필 조회', description: '닉네임, 생년월일, 연락처 등 프로필 정보를 조회한다.' })
+  @ApiOperation({
+    summary: '내 프로필 조회',
+    description: '닉네임, 생년월일, 연락처 등 프로필 정보를 조회한다.',
+  })
   @ApiSuccessResponse(ProfileResultDto, { description: '내 프로필 정보 조회 성공' })
-  async getProfile(@CurrentUser() user: CurrentUserPayload): Promise<ApiResponse<ProfileResultDto>> {
+  async getProfile(
+    @CurrentUser() user: CurrentUserPayload,
+  ): Promise<ApiResponse<ProfileResultDto>> {
     const result = await this.usersService.getProfile(user.userId);
     return createSuccessResponse(result, 'USER200', '프로필 조회 성공');
   }
 
   @Put('profile')
-  @ApiOperation({ summary: '내 프로필 수정', description: '닉네임, 생년월일, 연락처, 프로필 이미지를 수정한다.' })
+  @ApiOperation({
+    summary: '내 프로필 수정',
+    description: '닉네임, 생년월일, 연락처, 프로필 이미지를 수정한다.',
+  })
   @ApiSuccessResponse(UpdateProfileResultDto, { description: '프로필 수정 완료' })
   async updateProfile(
     @CurrentUser() user: CurrentUserPayload,
@@ -52,7 +66,10 @@ export class UsersController {
   }
 
   @Get('condition-profile')
-  @ApiOperation({ summary: '사용자 조건 프로필 조회', description: '소득·자산·무주택 등 입주 조건 프로필을 조회한다.' })
+  @ApiOperation({
+    summary: '사용자 조건 프로필 조회',
+    description: '소득·자산·무주택 등 입주 조건 프로필을 조회한다.',
+  })
   @ApiSuccessResponse(ConditionProfileResultDto, { description: '금융 조건 프로필 조회 완료' })
   async getConditionProfile(
     @CurrentUser() user: CurrentUserPayload,
@@ -62,8 +79,21 @@ export class UsersController {
   }
 
   @Put('condition-profile')
-  @ApiOperation({ summary: '사용자 조건 프로필 수정', description: '소득/자산/부채/무주택 여부 등 조건 프로필을 생성/수정한다.' })
+  @ApiOperation({
+    summary: '사용자 조건 프로필 수정',
+    description: '소득/자산/부채/무주택 여부 등 조건 프로필을 생성/수정한다.',
+  })
   @ApiSuccessResponse(UpdateConditionProfileResultDto, { description: '조건 프로필 수정 완료' })
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'monthlyIncomeAmount는 0 이상의 정수여야 합니다.' },
+    {
+      status: 400,
+      code: 'USER400',
+      message:
+        'maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘로부터 3개월 이내의 미래 날짜여야 합니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+  ])
   async updateConditionProfile(
     @CurrentUser() user: CurrentUserPayload,
     @Body() body: UpdateConditionProfileRequestDto,

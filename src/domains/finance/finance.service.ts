@@ -15,6 +15,7 @@ import {
   UserConditionProfile,
 } from '@prisma/client';
 
+import { addUtcMonthsClamped } from '../../common/utils/date.util';
 import { HouseholdHeadStatus, MaritalStatus } from '../users/dto/users.dto';
 import {
   FinanceTermItemDto,
@@ -43,7 +44,10 @@ import { FinanceRepository, LoanProductRateUpsertInput } from './finance.reposit
  * Prisma 필드 타입이 순수 string이다 — 그래서 아래 배열도 string[]로 선언한다 (enum 리터럴 값만 채워서 사용).
  */
 /** requireMarried 상품에서 "기혼으로 간주"할 상태. 예비신혼(결혼예정, ERD 기준 3개월 이내)도 신혼부부 상품 대상이라 포함한다. */
-const MARRIED_ELIGIBLE_STATUSES: string[] = [MaritalStatus.MARRIED, MaritalStatus.MARRIAGE_EXPECTED];
+const MARRIED_ELIGIBLE_STATUSES: string[] = [
+  MaritalStatus.MARRIED,
+  MaritalStatus.MARRIAGE_EXPECTED,
+];
 /** requireHouseholdHead 상품에서 "세대주로 간주"할 상태. 예비세대주/세대주 인정자도 포함한다. */
 const HOUSEHOLD_HEAD_ELIGIBLE_STATUSES: string[] = [
   HouseholdHeadStatus.HEAD,
@@ -98,19 +102,8 @@ export class FinanceService {
     userId: bigint,
     providerType: LoanProviderType | undefined,
   ): Promise<MatchLoanProductsResultDto> {
-    const [conditionProfile, userProfile] = await Promise.all([
-      this.financeRepository.findUserConditionProfileByUserId(userId),
-      this.financeRepository.findUserProfileByUserId(userId),
-    ]);
-
-    if (!conditionProfile) {
-      throw new BadRequestException({
-        code: 'FINANCE400',
-        message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
-      });
-    }
-
-    const age = this.calculateAge(userProfile?.birthDate ?? null);
+    // where절이 providerType(파라미터)에만 의존하고 프로필 조회 결과와 무관하므로,
+    // 세 쿼리를 순차 대기시키지 않고 한 번에 병렬로 실행한다.
     const where: Prisma.LoanProductWhereInput = {
       AND: [
         {
@@ -123,7 +116,20 @@ export class FinanceService {
       ],
     };
 
-    const products = await this.financeRepository.findLoanProductsForMatch(where);
+    const [conditionProfile, userProfile, products] = await Promise.all([
+      this.financeRepository.findUserConditionProfileByUserId(userId),
+      this.financeRepository.findUserProfileByUserId(userId),
+      this.financeRepository.findLoanProductsForMatch(where),
+    ]);
+
+    if (!conditionProfile) {
+      throw new BadRequestException({
+        code: 'FINANCE400',
+        message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
+      });
+    }
+
+    const age = this.calculateAge(userProfile?.birthDate ?? null);
     // product와 평가 결과(dto)를 한 쌍으로 묶어서 만든다 — 두 배열을 index로 짝짓지 않아
     // 한쪽만 따로 filter/reorder해도 어긋나지 않는다.
     const evaluations = products.map((product) => ({
@@ -169,8 +175,7 @@ export class FinanceService {
     // isFirstTimeBuyer가 null(미입력)이면 나이와 동일하게 관대하게 통과시키고 스킵 플래그로 알린다.
     const firstTimeBuyerCheckSkipped =
       product.firstTimeBuyerOnly === true && profile.isFirstTimeBuyer === null;
-    const passesFirstTimeBuyer =
-      !product.firstTimeBuyerOnly || profile.isFirstTimeBuyer !== false;
+    const passesFirstTimeBuyer = !product.firstTimeBuyerOnly || profile.isFirstTimeBuyer !== false;
 
     const isEligible =
       passesAge &&
@@ -336,6 +341,8 @@ export class FinanceService {
    * marriageDate/newbornBirthDate는 Prisma에서 시간 정보 없는 DATE(자정 UTC)로 들어오므로,
    * today/cutoff도 로컬 타임존이 아닌 UTC 자정 기준으로 맞춰야 서버 실행 환경(로컬 Asia/Seoul vs 배포 UTC)에
    * 따라 경계일 판정이 최대 하루 어긋나는 것을 방지할 수 있다.
+   * cutoff는 setUTCFullYear를 직접 쓰지 않고 addUtcMonthsClamped(년 -> 개월 환산)로 계산한다 —
+   * today가 2/29(윤년)이면 setUTCFullYear만으로는 없는 날짜(2/29 아닌 해)라 3/1로 밀리는 overflow가 있었다.
    * allowFuture=false(기본)면 미래 날짜는 무조건 탈락시킨다 — 혼인/출산은 이미 발생한 사실이어야 하므로.
    * MARRIAGE_EXPECTED처럼 아직 발생하지 않은 미래 혼인일을 다루는 호출에서만 true로 넘긴다.
    */
@@ -345,8 +352,7 @@ export class FinanceService {
     if (!allowFuture && date > today) {
       return false;
     }
-    const cutoff = new Date(today);
-    cutoff.setUTCFullYear(cutoff.getUTCFullYear() - years);
+    const cutoff = addUtcMonthsClamped(today, -years * 12);
     return date >= cutoff;
   }
 

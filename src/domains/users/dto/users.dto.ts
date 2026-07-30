@@ -9,48 +9,7 @@ import {
   Min,
   IsDateString,
   ValidateIf,
-  Validate,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  ValidationArguments,
 } from 'class-validator';
-
-/**
- * ERD 기준 MARRIAGE_EXPECTED("3개월 이내 결혼예정")의 정의를 실제로 강제한다.
- * maritalStatus가 MARRIAGE_EXPECTED가 아니면 통과(다른 상태의 marriageDate는 대상이 아님).
- * today/cutoff는 로컬 타임존이 아닌 UTC 자정 기준으로 계산한다 — marriageDate(YYYY-MM-DD)는
- * ISO 날짜 문자열이라 UTC 자정으로 파싱되므로, 서버 실행 환경(로컬 Asia/Seoul vs 배포 UTC)에 따라
- * 경계일 판정이 최대 하루 어긋나는 것을 방지한다.
- */
-@ValidatorConstraint({ name: 'marriageExpectedWithinMonths', async: false })
-class MarriageExpectedWithinMonthsConstraint implements ValidatorConstraintInterface {
-  private readonly withinMonths = 3;
-
-  validate(marriageDate: unknown, args: ValidationArguments): boolean {
-    const dto = args.object as UpdateConditionProfileRequestDto;
-    if (dto.maritalStatus !== MaritalStatus.MARRIAGE_EXPECTED) {
-      return true;
-    }
-    if (typeof marriageDate !== 'string') {
-      return false;
-    }
-    const target = new Date(marriageDate);
-    if (Number.isNaN(target.getTime())) {
-      return false;
-    }
-
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
-    const cutoff = new Date(today);
-    cutoff.setUTCMonth(cutoff.getUTCMonth() + this.withinMonths);
-
-    return target >= today && target <= cutoff;
-  }
-
-  defaultMessage(): string {
-    return `maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘로부터 ${this.withinMonths}개월 이내의 미래 날짜여야 합니다.`;
-  }
-}
 
 /**
  * user_condition_profiles.marital_status는 ERD상 VARCHAR + 주석 컨벤션(네이티브 DB enum 아님).
@@ -79,7 +38,11 @@ export class UpdateProfileRequestDto {
   @IsString()
   nickname?: string;
 
-  @ApiPropertyOptional({ description: '수정할 생년월일 (YYYY-MM-DD)', example: '1998-05-20', nullable: true })
+  @ApiPropertyOptional({
+    description: '수정할 생년월일 (YYYY-MM-DD)',
+    example: '1998-05-20',
+    nullable: true,
+  })
   @IsOptional()
   @IsDateString() // 피드백 반영: 날짜 형식 검증 추가
   birthDate?: string;
@@ -111,8 +74,8 @@ export class UpdateProfileResultDto {
 // 3. 조건 프로필 수정 요청 DTO
 export class UpdateConditionProfileRequestDto {
   @ApiProperty({ description: '월 총소득', example: 3000000 })
-  @IsInt() 
-  @Min(0)  
+  @IsInt()
+  @Min(0)
   monthlyIncomeAmount: number;
 
   @ApiProperty({ description: '총 보유 자산', example: 50000000 })
@@ -161,7 +124,8 @@ export class UpdateConditionProfileRequestDto {
   // 생략(undefined)=미변경만 허용. null은 의미가 없다(UNKNOWN이 이미 "미입력" 상태를 표현) → 검증에 걸려 400.
   @ValidateIf((o) => o.maritalStatus !== undefined)
   @IsEnum(MaritalStatus, {
-    message: 'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, MARRIAGE_EXPECTED',
+    message:
+      'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, MARRIAGE_EXPECTED',
   })
   maritalStatus?: MaritalStatus;
 
@@ -174,13 +138,20 @@ export class UpdateConditionProfileRequestDto {
   })
   // maritalStatus가 MARRIAGE_EXPECTED면 marriageDate 생략/null도 검증 대상에 포함시켜 필수로 만든다.
   // (다른 상태에서는 기존처럼 생략=미변경, null=초기화를 그대로 허용)
+  // "오늘로부터 3개월 이내" 규칙 자체는 여기서 검증하지 않는다 — 이 요청에 maritalStatus가 생략된 채
+  // marriageDate만 오면(기존 DB 값이 이미 MARRIAGE_EXPECTED인 경우) class-validator는 DB 상태를 모르므로
+  // 우회가 가능했다. 그 규칙은 DB의 기존 값과 병합한 유효값 기준으로 UsersService.updateConditionProfile에서 검증한다.
   @ValidateIf(
     (o) =>
       o.maritalStatus === MaritalStatus.MARRIAGE_EXPECTED ||
       (o.marriageDate !== undefined && o.marriageDate !== null),
   )
-  @IsDateString({}, { message: 'marriageDate는 YYYY-MM-DD 형식의 날짜여야 합니다 (MARRIAGE_EXPECTED 선택 시 필수).' })
-  @Validate(MarriageExpectedWithinMonthsConstraint)
+  @IsDateString(
+    {},
+    {
+      message: 'marriageDate는 YYYY-MM-DD 형식의 날짜여야 합니다 (MARRIAGE_EXPECTED 선택 시 필수).',
+    },
+  )
   marriageDate?: string | null;
 
   @ApiPropertyOptional({ description: '최근 출산 여부', example: false })
@@ -213,7 +184,8 @@ export class UpdateConditionProfileRequestDto {
   householdHeadStatus?: HouseholdHeadStatus;
 
   @ApiPropertyOptional({
-    description: '생애최초 주택 구입자 여부. null을 명시적으로 보내면 기존 값을 지운다(미입력 상태로 되돌림).',
+    description:
+      '생애최초 주택 구입자 여부. null을 명시적으로 보내면 기존 값을 지운다(미입력 상태로 되돌림).',
     example: false,
     nullable: true,
   })
