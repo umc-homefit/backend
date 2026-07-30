@@ -40,8 +40,9 @@
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100`
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
 - 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
-- 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않고 최종 등급은 `NEED_CHECK`로 반환한다.
-- 자동 판정한 필수 정책 조건 중 하나라도 `FAIL`이면 최종 등급은 `NOT_ELIGIBLE`이다.
+- 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않는다.
+- 자동 판정한 필수 정책 조건 중 하나라도 `FAIL`이면 최종 등급은 `NOT_ELIGIBLE`이다. `FAIL`과 `NEED_CHECK`가 함께 있으면, 이미 충족하지 못한 필수 조건이 확인됐으므로 `NOT_ELIGIBLE`을 우선한다.
+- `FAIL`이 없고 `NEED_CHECK`만 있으면 최종 등급은 `NEED_CHECK`로 반환한다.
 - `summaryMessage`는 최종 `resultLevel`을 먼저 안내하고, 부족 자금·월세 부담률을 근거로 덧붙이는 종합 분석 문구다.
 
 ---

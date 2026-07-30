@@ -96,8 +96,8 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   expectedMonthlyRentAmount: number;
 
   @ApiPropertyOptional({
-    description: '예상 관리비 (원 단위, 공고에 정보가 없으면 null)',
-    example: 50000,
+    description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
+    example: null,
     nullable: true,
   })
   maintenanceFeeAmount: number | null;
@@ -171,8 +171,8 @@ export class FinancialSummaryResultDto {
   expectedMonthlyRentAmount: number;
 
   @ApiPropertyOptional({
-    description: '예상 관리비 (원 단위, 공고에 정보가 없으면 null)',
-    example: 50000,
+    description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
+    example: null,
     nullable: true,
   })
   maintenanceFeeAmount: number | null;
