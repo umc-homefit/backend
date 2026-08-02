@@ -132,13 +132,13 @@ export class UpdateConditionProfileRequestDto {
   @ApiPropertyOptional({
     description:
       '혼인일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다. ' +
-      'maritalStatus가 MARRIAGE_EXPECTED(결혼예정)인 경우 오늘로부터 3개월 이내의 미래 날짜만 허용된다.',
+      'maritalStatus가 MARRIAGE_EXPECTED(결혼예정)인 경우 오늘부터 3개월 이내(오늘 포함)의 날짜만 허용된다.',
     example: '2025-05-01',
     nullable: true,
   })
   // maritalStatus가 MARRIAGE_EXPECTED면 marriageDate 생략/null도 검증 대상에 포함시켜 필수로 만든다.
   // (다른 상태에서는 기존처럼 생략=미변경, null=초기화를 그대로 허용)
-  // "오늘로부터 3개월 이내" 규칙 자체는 여기서 검증하지 않는다 — 이 요청에 maritalStatus가 생략된 채
+  // "오늘부터 3개월 이내" 규칙 자체는 여기서 검증하지 않는다 — 이 요청에 maritalStatus가 생략된 채
   // marriageDate만 오면(기존 DB 값이 이미 MARRIAGE_EXPECTED인 경우) class-validator는 DB 상태를 모르므로
   // 우회가 가능했다. 그 규칙은 DB의 기존 값과 병합한 유효값 기준으로 UsersService.updateConditionProfile에서 검증한다.
   @ValidateIf(

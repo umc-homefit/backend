@@ -273,7 +273,7 @@
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
 | `maritalStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
-| `marriageDate` | string \| null | N | 혼인일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경). `maritalStatus: MARRIAGE_EXPECTED`일 때는 생략/null도 검증 대상이 되어 사실상 필수이며, 오늘로부터 3개월 이내의 미래 날짜만 허용 — 벗어나면 `COMMON400` |
+| `marriageDate` | string \| null | N | 혼인일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경). `maritalStatus: MARRIAGE_EXPECTED`일 때는 생략/null도 검증 대상이 되어 사실상 필수이며, **오늘부터 3개월 이내(오늘 포함)** 의 날짜만 허용 — 실패 시 응답 코드는 아래 Status 표 참고 |
 | `hasRecentNewborn` | boolean | N | 최근 출산 여부. 미입력 시 기존값 보존 |
 | `newbornBirthDate` | string \| null | N | 출산일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경) |
 | `householdHeadStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
@@ -288,6 +288,29 @@
   "updatedAt": "2026-07-01T14:30:00Z"
 }
 ```
+
+### Status
+
+`marriageDate` 검증은 **실패 사유에 따라 코드가 두 가지로 나뉜다.** 클라이언트는 이 둘을 구분해서 처리해야 한다.
+
+| 상태 | 코드 | 발생 조건 |
+| --- | --- | --- |
+| 400 | `COMMON400` | 필드 타입/형식 위반. `marriageDate`가 `YYYY-MM-DD` 형식이 아니거나, `maritalStatus: MARRIAGE_EXPECTED`인데 `marriageDate`가 생략/`null`인 경우 등 (class-validator 단계) |
+| 400 | `USER400` | 형식은 올바르지만 **`maritalStatus: MARRIAGE_EXPECTED`의 "오늘부터 3개월 이내(오늘 포함)" 범위를 벗어난 경우** (Service 단계의 도메인 규칙 검증) |
+| 401 | `AUTH401` | 인증 필요 또는 유효하지 않은 Access Token |
+
+`USER400` 응답 예시:
+
+```json
+{
+  "isSuccess": false,
+  "code": "USER400",
+  "message": "maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘부터 3개월 이내(오늘 포함)의 날짜여야 합니다.",
+  "result": null
+}
+```
+
+> 3개월 규칙을 Service 단계에서 검증하는 이유: 요청 바디만으로는 판정할 수 없다. `maritalStatus`를 생략한 채 `marriageDate`만 수정하면 class-validator는 DB에 저장된 기존 `maritalStatus`를 모르므로 규칙을 우회할 수 있다. 그래서 기존 값과 병합한 **유효값** 기준으로 Service에서 판정하며, 이 단계의 실패는 공통 요청 검증이 아니라 도메인 규칙 위반이므로 `USER400`을 사용한다.
 
 ---
 

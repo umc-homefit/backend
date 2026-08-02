@@ -176,7 +176,7 @@
   - `maritalStatus`는 ERD 기준 VARCHAR+주석 컨벤션 문자열(`UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`) — `MARRIED`와 `MARRIAGE_EXPECTED`(예비신혼, ERD상 3개월 이내 결혼예정) 둘 다 기혼으로 간주해 통과시킨다. `UNKNOWN`(미입력)은 "미혼"이 아니라 "아직 모름"이므로 관대하게 통과시키고 `marriedCheckSkipped: true`로 표시한다. 네이티브 DB enum이 아니라 값 검증은 API 레이어(class-validator)에서만 한다.
   - `householdHeadStatus`도 동일한 컨벤션(`UNKNOWN`/`HEAD`/`HEAD_EXPECTED`/`RECOGNIZED`/`MEMBER`) — `HEAD`/`HEAD_EXPECTED`(예비세대주)/`RECOGNIZED`(세대주 인정자) 셋 다 세대주로 간주해 통과시킨다. `UNKNOWN`도 `maritalStatus`와 동일하게 관대히 통과 + `householdHeadCheckSkipped: true`.
   - `PUT /users/me/condition-profile`에 위 5개 필드(`maritalStatus`/`marriageDate`/`hasRecentNewborn`/`newbornBirthDate`/`householdHeadStatus`)와 `isFirstTimeBuyer`가 모두 optional로 추가되어 있어야 정상 동작한다(User 도메인, 반영 완료).
-  - `maritalStatus: MARRIAGE_EXPECTED`로 저장할 때는 입력 단계(`PUT /users/me/condition-profile`)에서 `marriageDate`가 오늘로부터 3개월 이내의 미래 날짜인지 class-validator 커스텀 검증으로 강제한다. 범위를 벗어나면 `COMMON400`으로 거부된다 (Auth/User 도메인, `docs/api/auth-user.md` 참고).
+  - `maritalStatus: MARRIAGE_EXPECTED`로 저장할 때는 입력 단계(`PUT /users/me/condition-profile`)에서 `marriageDate`가 **오늘부터 3개월 이내(오늘 포함)** 인지 강제한다. 이 판정은 요청 바디만으로는 우회가 가능해 class-validator가 아니라 `UsersService`에서 DB 기존값과 병합한 유효값 기준으로 하며, 범위를 벗어나면 `USER400`으로 거부된다(형식 오류·필수 누락은 `COMMON400`). 자세한 코드 구분은 Auth/User 도메인 문서(`docs/api/auth-user.md`)의 Status 표 참고.
 
 사용자의 금융정보(나이/소득/자산/무주택여부 등 `user_condition_profiles`)가 입력되지 않은 상태로 조회하면 매칭 판정이 불가능하므로 400을 반환한다.
 

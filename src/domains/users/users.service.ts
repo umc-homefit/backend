@@ -116,7 +116,7 @@ export class UsersService {
       if (!effectiveMarriageDate || !this.isWithinMarriageExpectedWindow(effectiveMarriageDate)) {
         throw new BadRequestException({
           code: 'USER400',
-          message: `maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘로부터 ${MARRIAGE_EXPECTED_WITHIN_MONTHS}개월 이내의 미래 날짜여야 합니다.`,
+          message: `maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘부터 ${MARRIAGE_EXPECTED_WITHIN_MONTHS}개월 이내(오늘 포함)의 날짜여야 합니다.`,
         });
       }
     }

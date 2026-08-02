@@ -356,16 +356,22 @@ export class FinanceService {
     return date >= cutoff;
   }
 
-  /** 생년월일 기준 만 나이. birthDate가 없으면 나이 조건 검사를 스킵할 수 있도록 null을 반환한다. */
+  /**
+   * 생년월일 기준 만 나이. birthDate가 없으면 나이 조건 검사를 스킵할 수 있도록 null을 반환한다.
+   * birthDate는 Prisma에서 시간 정보 없는 DATE(자정 UTC)로 들어오므로 today도 UTC getter로 읽는다 —
+   * 로컬 getter를 쓰면 서버 실행 환경(로컬 Asia/Seoul vs 배포 UTC)에 따라 생일 당일 판정이 하루
+   * 어긋난다. 같은 파일의 isWithinYears와 동일하게 UTC 기준으로 통일한 것.
+   */
   private calculateAge(birthDate: Date | null): number | null {
     if (!birthDate) {
       return null;
     }
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
+    let age = today.getUTCFullYear() - birthDate.getUTCFullYear();
     const hasHadBirthdayThisYear =
-      today.getMonth() > birthDate.getMonth() ||
-      (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+      today.getUTCMonth() > birthDate.getUTCMonth() ||
+      (today.getUTCMonth() === birthDate.getUTCMonth() &&
+        today.getUTCDate() >= birthDate.getUTCDate());
     if (!hasHadBirthdayThisYear) {
       age -= 1;
     }

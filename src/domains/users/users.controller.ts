@@ -90,7 +90,7 @@ export class UsersController {
       status: 400,
       code: 'USER400',
       message:
-        'maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘로부터 3개월 이내의 미래 날짜여야 합니다.',
+        'maritalStatus가 MARRIAGE_EXPECTED인 경우 marriageDate는 오늘부터 3개월 이내(오늘 포함)의 날짜여야 합니다.',
     },
     { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
   ])
