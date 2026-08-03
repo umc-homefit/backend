@@ -11,15 +11,13 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
+import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   EligibilityAnalysisResultDto,
-  EligibilityConditionCode,
-  EligibilityConditionResultStatus,
   EligibilityConditionsResultDto,
-  EligibilityResultLevel,
   FinancialSummaryResultDto,
   GetMyEligibilityAnalysesQueryDto,
   MyEligibilityAnalysesResultDto,
@@ -27,37 +25,6 @@ import {
 } from './dto/eligibility.dto';
 import { EligibilityService } from './eligibility.service';
 
-const MOCK_CONDITION_RESULTS = [
-  {
-    conditionCode: EligibilityConditionCode.INCOME,
-    conditionName: '소득 조건',
-    requiredValue: '월소득 350만원 이하',
-    userValue: '월소득 280만원',
-    resultStatus: EligibilityConditionResultStatus.PASS,
-    failReason: null,
-  },
-  {
-    conditionCode: EligibilityConditionCode.CASH,
-    conditionName: '보유 현금',
-    requiredValue: '보증금 1000만원 이상',
-    userValue: '보유 현금 800만원',
-    resultStatus: EligibilityConditionResultStatus.FAIL,
-    failReason: '예상 보증금 대비 보유 현금이 200만원 부족합니다.',
-  },
-  {
-    conditionCode: EligibilityConditionCode.RENT_BURDEN,
-    conditionName: '월세 부담률',
-    requiredValue: '월소득 대비 월 주거비 40% 이하 권장',
-    userValue: '28.57%',
-    resultStatus: EligibilityConditionResultStatus.PASS,
-    failReason: null,
-  },
-];
-
-/**
- * POST 분석 생성은 EligibilityService/DB와 연동되어 있고,
- * 조회 계열 API는 추후 서비스 연동 전까지 명세 예시 응답을 반환한다.
- */
 @ApiTags('Eligibility Analysis')
 @ApiBearerAuth('access-token')
 @Controller()
@@ -77,6 +44,18 @@ export class EligibilityController {
     status: 201,
     description: '입주 가능성 분석 생성 성공',
   })
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message:
+        'noticeId/unitId가 safe integer가 아니거나 0 이하이거나, 주택이 해당 공고에 속하지 않습니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    { status: 404, code: 'COMMON404', message: '존재하지 않는 공고 또는 주택 정보입니다.' },
+    { status: 409, code: 'COMMON409', message: '사용자 조건 프로필이 입력되지 않았습니다.' },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
   async requestEligibilityAnalysis(
     @CurrentUser() user: CurrentUserPayload,
     @Param('noticeId', ParseIntPipe) noticeId: number,
@@ -104,30 +83,28 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(EligibilityAnalysisResultDto, { description: '분석 결과 조회 성공' })
-  getEligibilityAnalysis(
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getEligibilityAnalysis(
+    // JwtAuthGuard가 토큰을 검증한 뒤 요청 객체에 넣어 둔 로그인 사용자 정보다.
+    @CurrentUser() user: CurrentUserPayload,
+    // URL의 문자열 ID를 number로 바꾸고, 숫자가 아니면 Nest가 400을 반환한다.
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<EligibilityAnalysisResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: EligibilityAnalysisResultDto = {
-      analysisId: 1,
-      noticeId: 12,
-      unitId: 3,
-      resultLevel: EligibilityResultLevel.HIGH,
-      eligibilityScore: 82,
-      expectedDepositAmount: 10000000,
-      expectedMonthlyRentAmount: 350000,
-      maintenanceFeeAmount: 50000,
-      shortageAmount: 2000000,
-      rentBurdenRate: 28.57,
-      summaryMessage:
-        '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
-      conditionResults: MOCK_CONDITION_RESULTS,
-      analyzedAt: '2026-07-01T00:10:00',
-    };
-
+  ): Promise<ApiResponse<EligibilityAnalysisResultDto>> {
+    // 서비스에는 분석 ID뿐 아니라 "누가 조회하는가"도 전달해 소유권을 확인한다.
+    const result = await this.eligibilityService.getEligibilityAnalysis(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '분석 결과 조회에 성공했습니다.');
   }
 
@@ -145,35 +122,26 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(EligibilityConditionsResultDto, { description: '조건별 비교 결과 조회 성공' })
-  getEligibilityConditions(
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getEligibilityConditions(
+    // JwtAuthGuard가 검증해 둔 사용자 정보를 전달하여 자신의 분석만 조회하게 한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<EligibilityConditionsResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: EligibilityConditionsResultDto = {
-      conditionResults: [
-        ...MOCK_CONDITION_RESULTS,
-        {
-          conditionCode: EligibilityConditionCode.ASSET,
-          conditionName: '자산 조건',
-          requiredValue: '총자산 2억 5천만원 이하',
-          userValue: '총자산 1억 2천만원',
-          resultStatus: EligibilityConditionResultStatus.PASS,
-          failReason: null,
-        },
-        {
-          conditionCode: EligibilityConditionCode.HOMELESS,
-          conditionName: '무주택 여부',
-          requiredValue: '무주택자',
-          userValue: '무주택자',
-          resultStatus: EligibilityConditionResultStatus.PASS,
-          failReason: null,
-        },
-      ],
-    };
-
+  ): Promise<ApiResponse<EligibilityConditionsResultDto>> {
+    const result = await this.eligibilityService.getEligibilityConditions(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '조건별 비교 결과 조회에 성공했습니다.');
   }
 
@@ -181,7 +149,8 @@ export class EligibilityController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: '재정 계산 결과 조회',
-    description: '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다.',
+    description:
+      '예상 보증금, 월세, 관리비, 부족 자금, 월세 부담률 등 재정 계산 결과를 조회한다. 현재 관리비 원본을 수집하지 않아 관리비는 null로 반환하며, 월 주거비와 월세 부담률은 월세 기준으로 계산한다.',
   })
   @ApiParam({
     name: 'analysisId',
@@ -190,26 +159,26 @@ export class EligibilityController {
     example: 1,
   })
   @ApiSuccessResponse(FinancialSummaryResultDto, { description: '재정 계산 결과 조회 성공' })
-  getFinancialSummary(
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'analysisId가 safe integer가 아니거나 0 이하입니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    {
+      status: 404,
+      code: 'COMMON404',
+      message: '분석 결과가 없거나 다른 사용자의 분석 결과입니다.',
+    },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getFinancialSummary(
+    // 인증된 사용자 ID를 전달해 자신의 분석 결과만 조회한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Param('analysisId', ParseIntPipe) analysisId: number,
-  ): ApiResponse<FinancialSummaryResultDto> {
-    if (analysisId !== 1) {
-      throw new NotFoundException('존재하지 않는 분석 결과입니다.');
-    }
-
-    const result: FinancialSummaryResultDto = {
-      expectedDepositAmount: 10000000,
-      expectedMonthlyRentAmount: 350000,
-      maintenanceFeeAmount: 50000,
-      userCashAmount: 8000000,
-      shortageAmount: 2000000,
-      monthlyIncomeAmount: 1400000,
-      monthlyHousingCost: 400000,
-      rentBurdenRate: 28.57,
-      financialMessage:
-        '예상 보증금 대비 보유 현금이 200만원 부족하지만, 월세 부담률은 28.57%로 안정적인 편입니다.',
-    };
-
+  ): Promise<ApiResponse<FinancialSummaryResultDto>> {
+    const result = await this.eligibilityService.getFinancialSummary(analysisId, user.userId);
     return createSuccessResponse(result, 'ELIGIBILITY200', '재정 계산 결과 조회에 성공했습니다.');
   }
 
@@ -220,48 +189,23 @@ export class EligibilityController {
     description: '로그인한 사용자가 이전에 실행한 입주 가능성 분석 이력 목록을 조회한다.',
   })
   @ApiSuccessResponse(MyEligibilityAnalysesResultDto, { description: '분석 이력 조회 성공' })
-  getMyEligibilityAnalyses(
+  @ApiErrorResponse([
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'page는 0 이상, size는 1 이상 50 이하의 정수여야 합니다.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증 토큰이 없거나 만료되었습니다.' },
+    { status: 500, code: 'COMMON500', message: '서버 오류가 발생했습니다.' },
+  ])
+  async getMyEligibilityAnalyses(
+    // 토큰에서 얻은 사용자 ID로 다른 사용자의 분석 이력이 섞이지 않게 한다.
+    @CurrentUser() user: CurrentUserPayload,
     @Query() query: GetMyEligibilityAnalysesQueryDto,
-  ): ApiResponse<MyEligibilityAnalysesResultDto> {
+  ): Promise<ApiResponse<MyEligibilityAnalysesResultDto>> {
     const page = query.page ?? 0;
     const size = query.size ?? 10;
-    const totalElements = 2;
-    const totalPages = Math.ceil(totalElements / size);
-
-    const result: MyEligibilityAnalysesResultDto = {
-      analyses: [
-        {
-          analysisId: 1,
-          noticeId: 12,
-          unitId: 3,
-          noticeTitle: '어반허브 서울스테이션 추가모집',
-          resultLevel: EligibilityResultLevel.HIGH,
-          eligibilityScore: 82,
-          shortageAmount: 2000000,
-          rentBurdenRate: 28.57,
-          analyzedAt: '2026-07-01T00:10:00',
-        },
-        {
-          analysisId: 2,
-          noticeId: 15,
-          unitId: 5,
-          noticeTitle: '서초 꽃마을 추가모집',
-          resultLevel: EligibilityResultLevel.MEDIUM,
-          eligibilityScore: 65,
-          shortageAmount: 5000000,
-          rentBurdenRate: 37.5,
-          analyzedAt: '2026-06-30T18:10:00',
-        },
-      ],
-      pageInfo: {
-        page,
-        size,
-        totalElements,
-        totalPages,
-        hasNext: page + 1 < totalPages,
-      },
-    };
-
+    const result = await this.eligibilityService.getMyEligibilityAnalyses(user.userId, page, size);
     return createSuccessResponse(result, 'ELIGIBILITY200', '내 분석 이력 조회에 성공했습니다.');
   }
 }
