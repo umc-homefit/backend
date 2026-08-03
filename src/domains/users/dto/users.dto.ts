@@ -1,13 +1,35 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { 
-  IsBoolean, 
-  IsNumber, 
-  IsOptional, 
-  IsString, 
-  IsInt, 
-  Min, 
-  IsDateString 
+import {
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsInt,
+  Min,
+  IsDateString,
+  ValidateIf,
 } from 'class-validator';
+
+/**
+ * user_condition_profiles.marital_status는 ERD상 VARCHAR + 주석 컨벤션(네이티브 DB enum 아님).
+ * 값 목록만 TS enum으로 관리해 class-validator/Swagger에서 타입 안정성을 준다.
+ */
+export enum MaritalStatus {
+  UNKNOWN = 'UNKNOWN',
+  SINGLE = 'SINGLE',
+  MARRIED = 'MARRIED',
+  MARRIAGE_EXPECTED = 'MARRIAGE_EXPECTED', // 3개월 이내 결혼예정 (ERD 기준)
+}
+
+/** user_condition_profiles.household_head_status도 동일하게 VARCHAR + 주석 컨벤션. */
+export enum HouseholdHeadStatus {
+  UNKNOWN = 'UNKNOWN',
+  HEAD = 'HEAD',
+  HEAD_EXPECTED = 'HEAD_EXPECTED', // 예비세대주
+  RECOGNIZED = 'RECOGNIZED', // 세대주 인정자
+  MEMBER = 'MEMBER',
+}
 
 // 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
@@ -16,7 +38,11 @@ export class UpdateProfileRequestDto {
   @IsString()
   nickname?: string;
 
-  @ApiPropertyOptional({ description: '수정할 생년월일 (YYYY-MM-DD)', example: '1998-05-20', nullable: true })
+  @ApiPropertyOptional({
+    description: '수정할 생년월일 (YYYY-MM-DD)',
+    example: '1998-05-20',
+    nullable: true,
+  })
   @IsOptional()
   @IsDateString() // 피드백 반영: 날짜 형식 검증 추가
   birthDate?: string;
@@ -48,8 +74,8 @@ export class UpdateProfileResultDto {
 // 3. 조건 프로필 수정 요청 DTO
 export class UpdateConditionProfileRequestDto {
   @ApiProperty({ description: '월 총소득', example: 3000000 })
-  @IsInt() 
-  @Min(0)  
+  @IsInt()
+  @Min(0)
   monthlyIncomeAmount: number;
 
   @ApiProperty({ description: '총 보유 자산', example: 50000000 })
@@ -89,6 +115,93 @@ export class UpdateConditionProfileRequestDto {
   @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
   @IsString()
   housingOwnershipStatus: string;
+
+  @ApiPropertyOptional({
+    description: '혼인 상태',
+    enum: MaritalStatus,
+    example: MaritalStatus.SINGLE,
+  })
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(UNKNOWN이 이미 "미입력" 상태를 표현) → 검증에 걸려 400.
+  @ValidateIf((o) => o.maritalStatus !== undefined)
+  @IsEnum(MaritalStatus, {
+    message:
+      'maritalStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, SINGLE, MARRIED, MARRIAGE_EXPECTED',
+  })
+  maritalStatus?: MaritalStatus;
+
+  @ApiPropertyOptional({
+    description:
+      '혼인일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다. ' +
+      'maritalStatus가 MARRIAGE_EXPECTED(결혼예정)인 경우 오늘부터 3개월 이내(오늘 포함)의 날짜만 허용된다.',
+    example: '2025-05-01',
+    nullable: true,
+  })
+  // maritalStatus가 MARRIAGE_EXPECTED면 marriageDate 생략/null도 검증 대상에 포함시켜 필수로 만든다.
+  // (다른 상태에서는 기존처럼 생략=미변경, null=초기화를 그대로 허용)
+  // "오늘부터 3개월 이내" 규칙 자체는 여기서 검증하지 않는다 — 이 요청에 maritalStatus가 생략된 채
+  // marriageDate만 오면(기존 DB 값이 이미 MARRIAGE_EXPECTED인 경우) class-validator는 DB 상태를 모르므로
+  // 우회가 가능했다. 그 규칙은 DB의 기존 값과 병합한 유효값 기준으로 UsersService.updateConditionProfile에서 검증한다.
+  @ValidateIf(
+    (o) =>
+      o.maritalStatus === MaritalStatus.MARRIAGE_EXPECTED ||
+      (o.marriageDate !== undefined && o.marriageDate !== null),
+  )
+  @IsDateString(
+    {},
+    {
+      message: 'marriageDate는 YYYY-MM-DD 형식의 날짜여야 합니다 (MARRIAGE_EXPECTED 선택 시 필수).',
+    },
+  )
+  marriageDate?: string | null;
+
+  @ApiPropertyOptional({ description: '최근 출산 여부', example: false })
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(false가 이미 기본값) → 검증에 걸려 400.
+  @ValidateIf((o) => o.hasRecentNewborn !== undefined)
+  @IsBoolean()
+  hasRecentNewborn?: boolean;
+
+  @ApiPropertyOptional({
+    description: '출산일자 (YYYY-MM-DD). null을 명시적으로 보내면 기존 값을 지운다.',
+    example: '2026-03-01',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((o) => o.newbornBirthDate !== null)
+  @IsDateString()
+  newbornBirthDate?: string | null;
+
+  @ApiPropertyOptional({
+    description: '세대주 여부',
+    enum: HouseholdHeadStatus,
+    example: HouseholdHeadStatus.HEAD,
+  })
+  // 생략(undefined)=미변경만 허용. null은 의미가 없다(UNKNOWN이 이미 "미입력" 상태를 표현) → 검증에 걸려 400.
+  @ValidateIf((o) => o.householdHeadStatus !== undefined)
+  @IsEnum(HouseholdHeadStatus, {
+    message:
+      'householdHeadStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HEAD, HEAD_EXPECTED, RECOGNIZED, MEMBER',
+  })
+  householdHeadStatus?: HouseholdHeadStatus;
+
+  @ApiPropertyOptional({
+    description:
+      '생애최초 주택 구입자 여부. null을 명시적으로 보내면 기존 값을 지운다(미입력 상태로 되돌림).',
+    example: false,
+    nullable: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isFirstTimeBuyer?: boolean | null;
+
+  @ApiPropertyOptional({
+    description:
+      '직업 상태 (값 컨벤션 기획 확인 중, 아직 미확정). null을 명시적으로 보내면 기존 값을 지운다.',
+    example: 'EMPLOYED',
+    nullable: true,
+  })
+  @IsOptional()
+  @IsString()
+  employmentStatus?: string | null;
 }
 
 // 4. 조건 프로필 수정 결과 DTO
@@ -170,6 +283,35 @@ export class ConditionProfileResultDto {
 
   @ApiPropertyOptional({ description: '직장/학교 지역 코드', example: '11680', nullable: true })
   workplaceRegionCode: string | null;
+
+  @ApiProperty({ description: '혼인 상태', enum: MaritalStatus, example: MaritalStatus.SINGLE })
+  maritalStatus: MaritalStatus;
+
+  @ApiPropertyOptional({ description: '혼인일자', example: '2025-05-01', nullable: true })
+  marriageDate: string | null;
+
+  @ApiProperty({ description: '최근 출산 여부', example: false })
+  hasRecentNewborn: boolean;
+
+  @ApiPropertyOptional({ description: '출산일자', example: '2026-03-01', nullable: true })
+  newbornBirthDate: string | null;
+
+  @ApiProperty({
+    description: '세대주 여부',
+    enum: HouseholdHeadStatus,
+    example: HouseholdHeadStatus.HEAD,
+  })
+  householdHeadStatus: HouseholdHeadStatus;
+
+  @ApiPropertyOptional({ description: '생애최초 주택 구입자 여부', example: false, nullable: true })
+  isFirstTimeBuyer: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '직업 상태 (값 컨벤션 기획 확인 중)',
+    example: 'EMPLOYED',
+    nullable: true,
+  })
+  employmentStatus: string | null;
 
   @ApiProperty({ description: '최초 저장 일시', example: '2026-07-01T09:00:00Z' })
   createdAt: string;

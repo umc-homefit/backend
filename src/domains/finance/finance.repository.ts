@@ -12,6 +12,8 @@ import {
   Prisma,
   ProductCategory,
   RequiredDocument,
+  UserConditionProfile,
+  UserProfile,
 } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
@@ -68,6 +70,19 @@ export class FinanceRepository {
 
   findLoanProductById(productId: bigint): Promise<LoanProduct | null> {
     return this.prisma.loanProduct.findUnique({ where: { productId } });
+  }
+
+  /** loan-products/match 전용. 페이징 없이 조건에 맞는 상품 전체를 반환한다. */
+  findLoanProductsForMatch(where: Prisma.LoanProductWhereInput): Promise<LoanProduct[]> {
+    return this.prisma.loanProduct.findMany({ where, orderBy: [{ productId: 'asc' }] });
+  }
+
+  findUserConditionProfileByUserId(userId: bigint): Promise<UserConditionProfile | null> {
+    return this.prisma.userConditionProfile.findUnique({ where: { userId } });
+  }
+
+  findUserProfileByUserId(userId: bigint): Promise<UserProfile | null> {
+    return this.prisma.userProfile.findUnique({ where: { userId } });
   }
 
   /**

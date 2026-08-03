@@ -14,6 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 
 import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
+import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
 import { ApiResponse, createSuccessResponse } from '../../common/types/api-response.type';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
@@ -26,19 +27,13 @@ import {
   GuideListResultDto,
   LoanProductDetailResultDto,
   LoanProductListResultDto,
-  LoanProviderType,
   MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
-  ProductCategory,
   RequiredDocumentItemDto,
   SyncLoanProductsResultDto,
 } from './dto/finance.dto';
 import { FinanceService } from './finance.service';
 
-/**
- * 금융상품 매칭 조회(loan-products/match)만 Service/DB 연동 전 단계로, Notion 명세의 Example 응답을 그대로 반환하는 mock 구현이다.
- * 그 외 엔드포인트는 FinanceService를 통해 DB에서 조회한다.
- */
 @ApiTags('Finance/Guide')
 @Controller()
 export class FinanceController {
@@ -52,31 +47,24 @@ export class FinanceController {
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융상품 매칭 조회',
-    description: '사용자 조건과 공고 기준으로 매칭되는 금융상품을 조회한다.',
+    description:
+      '사용자 조건 프로필(나이/소득/자산/무주택/결혼/출산) 기준으로 신청 자격이 되는 금융상품을 조회한다.',
   })
   @ApiSuccessResponse(MatchLoanProductsResultDto, { description: '금융상품 매칭 조회 성공' })
-  matchLoanProducts(
-    @Query() _query: MatchLoanProductsQueryDto,
-  ): ApiResponse<MatchLoanProductsResultDto> {
-    const result: MatchLoanProductsResultDto = {
-      matchedCount: 2,
-      minRate: '1.2%',
-      maxLimitAmount: 200000000,
-      products: [
-        {
-          productId: 101,
-          productName: '청년 버팀목 전세자금대출',
-          providerType: LoanProviderType.POLICY,
-          productCategory: ProductCategory.JEONSE_LOAN,
-          providerName: '주택도시기금',
-          rateRange: '1.5% ~ 2.7%',
-          maxIncome: 60000000,
-          firstTimeBuyerOnly: false,
-          maxLimitAmount: 200000000,
-          isEligible: true,
-        },
-      ],
-    };
+  @ApiErrorResponse([
+    { status: 400, code: 'COMMON400', message: 'providerType은 POLICY 또는 BANK여야 합니다.' },
+    {
+      status: 400,
+      code: 'FINANCE400',
+      message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
+    },
+    { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
+  ])
+  async matchLoanProducts(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: MatchLoanProductsQueryDto,
+  ): Promise<ApiResponse<MatchLoanProductsResultDto>> {
+    const result = await this.financeService.matchLoanProducts(user.userId, query.providerType);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 매칭 조회에 성공했습니다.');
   }

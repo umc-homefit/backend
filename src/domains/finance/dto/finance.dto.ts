@@ -29,12 +29,6 @@ export enum LoanProductSort {
 }
 
 export class MatchLoanProductsQueryDto {
-  @ApiPropertyOptional({ description: '매칭 기준 공고 ID', example: 22 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt({ message: 'noticeId는 정수여야 합니다.' })
-  noticeId?: number;
-
   @ApiPropertyOptional({
     description: '상품 제공 유형',
     enum: LoanProviderType,
@@ -90,6 +84,49 @@ export class MatchedLoanProductDto {
 
   @ApiProperty({ description: '사용자 조건 대비 자격 충족 여부', example: true })
   isEligible: boolean;
+
+  @ApiProperty({
+    description:
+      '나이 조건 검사 여부. 사용자 생년월일이 등록되지 않아 이 상품의 나이 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  ageCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '세대주 조건 검사 스킵 여부. 세대주 전용 상품인데 사용자가 세대주 여부를 입력하지 않아(UNKNOWN) 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  householdHeadCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '혼인기간 조건 검사 스킵 여부. 신혼부부 전용 상품인데 혼인 상태를 입력하지 않았거나(UNKNOWN) 혼인일자가 등록되지 않아 혼인기간 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  marriedCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '출산 경과기간 조건 검사 스킵 여부. 신생아 특례 상품인데 출산일자가 등록되지 않아 경과기간 조건 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  newbornCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '생애최초 구입자 조건 검사 스킵 여부. 생애최초 전용 상품인데 사용자가 이 값을 입력하지 않아 검사를 건너뛴 경우 true',
+    example: false,
+  })
+  firstTimeBuyerCheckSkipped: boolean;
+
+  @ApiProperty({
+    description:
+      '자격 미충족 사유 코드 배열. isEligible=true면 빈 배열. 가능한 값: AGE, INCOME, ASSET, HOMELESS, HOUSEHOLD_HEAD, FIRST_TIME_BUYER, MARRIED, NEWBORN',
+    example: [],
+    type: [String],
+  })
+  ineligibleReasons: string[];
 }
 
 export class MatchLoanProductsResultDto {

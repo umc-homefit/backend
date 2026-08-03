@@ -70,6 +70,13 @@ export class UsersRepository {
       residenceRegionCode: dto.residenceRegionCode,
       workplaceRegionCode: dto.workplaceRegionCode,
       housingOwnershipStatus: dto.housingOwnershipStatus,
+      maritalStatus: dto.maritalStatus,
+      marriageDate: this.toNullableDate(dto.marriageDate),
+      hasRecentNewborn: dto.hasRecentNewborn,
+      newbornBirthDate: this.toNullableDate(dto.newbornBirthDate),
+      householdHeadStatus: dto.householdHeadStatus,
+      isFirstTimeBuyer: dto.isFirstTimeBuyer,
+      employmentStatus: dto.employmentStatus,
     };
 
     return await this.prisma.userConditionProfile.upsert({
@@ -78,9 +85,14 @@ export class UsersRepository {
       create: {
         userId,
         ...conditionData,
-        householdHeadStatus: 'UNKNOWN',
-        maritalStatus: 'UNKNOWN',
       },
     });
+  }
+
+  /** undefined(필드 생략 → 기존 값 유지)와 null(명시적 초기화)을 구분해 Prisma에 그대로 전달한다. */
+  private toNullableDate(value: string | null | undefined): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    return new Date(value);
   }
 }
