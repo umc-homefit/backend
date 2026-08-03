@@ -412,29 +412,34 @@ export async function runNoticeSeed(
   });
   log(`[notice-seed] 실행 전 Seed 공고 수: ${beforeCount}`);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const complexes: NoticeSeedResult['complexes'] = [];
-    const complexIds = new Map<string, bigint>();
+  const result = await prisma.$transaction(
+    async (tx) => {
+      const complexes: NoticeSeedResult['complexes'] = [];
+      const complexIds = new Map<string, bigint>();
 
-    for (const complexSeed of COMPLEXES) {
-      const complex = await upsertComplex(tx, complexSeed);
-      complexes.push(complex);
-      complexIds.set(complex.key, complex.complexId);
-    }
-
-    const notices: NoticeSeedResult['notices'] = [];
-    for (const noticeSeed of NOTICES) {
-      const complex = COMPLEXES.find((item) => item.key === noticeSeed.complexKey);
-      const complexId = complexIds.get(noticeSeed.complexKey);
-      if (!complex || !complexId) {
-        throw new Error(`Seed 단지 연결을 찾을 수 없습니다: ${noticeSeed.complexKey}`);
+      for (const complexSeed of COMPLEXES) {
+        const complex = await upsertComplex(tx, complexSeed);
+        complexes.push(complex);
+        complexIds.set(complex.key, complex.complexId);
       }
 
-      notices.push(await upsertNotice(tx, noticeSeed, complex, complexId, now));
-    }
+      const notices: NoticeSeedResult['notices'] = [];
+      for (const noticeSeed of NOTICES) {
+        const complex = COMPLEXES.find((item) => item.key === noticeSeed.complexKey);
+        const complexId = complexIds.get(noticeSeed.complexKey);
+        if (!complex || !complexId) {
+          throw new Error(`Seed 단지 연결을 찾을 수 없습니다: ${noticeSeed.complexKey}`);
+        }
 
-    return { complexes, notices };
-  });
+        notices.push(await upsertNotice(tx, noticeSeed, complex, complexId, now));
+      }
+
+      return { complexes, notices };
+    },
+    // Railway Public TCP Proxy에서는 여러 관계 데이터를 순차 upsert할 때 기본 5초를 넘을 수 있다.
+    // Seed 전체의 원자성은 유지하되 원격 DB 왕복 시간을 고려해 충분한 제한을 둔다.
+    { maxWait: 10_000, timeout: 60_000 },
+  );
 
   const [noticeCount, unitCount, conditionCount, fileCount] = await Promise.all([
     prisma.notice.count({ where: { dedupHash: { startsWith: NOTICE_SEED_PREFIX } } }),
