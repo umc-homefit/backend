@@ -82,6 +82,29 @@ export class MatchedLoanProductDto {
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
 
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '월 최소 납입액 (원 단위). 청약저축 전용',
+    example: 20000,
+    nullable: true,
+  })
+  minMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최대 납입액 (원 단위). 청약저축 전용',
+    example: 500000,
+    nullable: true,
+  })
+  maxMonthlyDeposit: number | null;
+
   @ApiProperty({ description: '사용자 조건 대비 자격 충족 여부', example: true })
   isEligible: boolean;
 
@@ -235,6 +258,29 @@ export class LoanProductListItemDto {
 
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '월 최소 납입액 (원 단위). 청약저축 전용',
+    example: 20000,
+    nullable: true,
+  })
+  minMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최대 납입액 (원 단위). 청약저축 전용',
+    example: 500000,
+    nullable: true,
+  })
+  maxMonthlyDeposit: number | null;
 }
 
 export class LoanProductListResultDto {
@@ -299,6 +345,15 @@ export class LoanProductDetailResultDto {
 
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
 
   @ApiPropertyOptional({
     description: 'LTV 한도(담보가치 대비 대출 비율, %). 대출 상품 전용',

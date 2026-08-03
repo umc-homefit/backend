@@ -208,6 +208,13 @@ export class FinanceService {
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
+      minMonthlyDeposit:
+        product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
+      maxMonthlyDeposit:
+        product.maxMonthlyDeposit === null ? null : Number(product.maxMonthlyDeposit),
       isEligible,
       ageCheckSkipped,
       householdHeadCheckSkipped: householdHead.skipped,
@@ -521,6 +528,13 @@ export class FinanceService {
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
+      minMonthlyDeposit:
+        product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
+      maxMonthlyDeposit:
+        product.maxMonthlyDeposit === null ? null : Number(product.maxMonthlyDeposit),
     };
   }
 
@@ -535,6 +549,9 @@ export class FinanceService {
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
       ltvRatio: product.ltvRatio,
       dtiRatio: product.dtiRatio,
       loanTermMinYears: product.loanTermMinYears,
