@@ -92,7 +92,12 @@
       "rateRange": "3.2% ~ 4.5%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
-      "maxLimitAmount": 200000000
+      "maxLimitAmount": 200000000,
+      "minAge": 19,
+      "maxAge": 34,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null
     }
   ]
 }
@@ -154,6 +159,11 @@
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 200000000,
+      "minAge": 19,
+      "maxAge": 34,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": false,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -172,6 +182,11 @@
       "maxIncome": 75000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 300000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": true,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -190,6 +205,11 @@
       "maxIncome": 130000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 500000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": true,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -208,6 +228,11 @@
       "maxIncome": 50000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 120000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": false,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -276,7 +301,7 @@
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
-목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`)도 상세 응답에 동일하게 포함된다.
+목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
 
 상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
 
