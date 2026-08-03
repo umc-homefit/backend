@@ -140,13 +140,13 @@
 
 ```json
 {
-  "matchedCount": 1,
-  "minRate": "1.5%",
-  "maxLimitAmount": 200000000,
+  "matchedCount": 2,
+  "minRate": "1.0%",
+  "maxLimitAmount": 500000000,
   "products": [
     {
       "productId": 101,
-      "productName": "청년 버팀목 전세자금대출",
+      "productName": "청년전용 버팀목전세자금",
       "providerType": "POLICY",
       "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
@@ -154,6 +154,42 @@
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
       "maxLimitAmount": 200000000,
+      "isEligible": false,
+      "ageCheckSkipped": false,
+      "householdHeadCheckSkipped": false,
+      "marriedCheckSkipped": false,
+      "newbornCheckSkipped": false,
+      "firstTimeBuyerCheckSkipped": false,
+      "ineligibleReasons": ["HOUSEHOLD_HEAD"]
+    },
+    {
+      "productId": 108,
+      "productName": "신혼부부전용 전세자금",
+      "providerType": "POLICY",
+      "productCategory": "JEONSE_LOAN",
+      "providerName": "주택도시기금",
+      "rateRange": "1.2% ~ 2.1%",
+      "maxIncome": 75000000,
+      "firstTimeBuyerOnly": false,
+      "maxLimitAmount": 300000000,
+      "isEligible": true,
+      "ageCheckSkipped": false,
+      "householdHeadCheckSkipped": false,
+      "marriedCheckSkipped": true,
+      "newbornCheckSkipped": false,
+      "firstTimeBuyerCheckSkipped": false,
+      "ineligibleReasons": []
+    },
+    {
+      "productId": 110,
+      "productName": "신생아 특례 버팀목전세자금",
+      "providerType": "POLICY",
+      "productCategory": "JEONSE_LOAN",
+      "providerName": "주택도시기금",
+      "rateRange": "1.0% ~ 1.8%",
+      "maxIncome": 130000000,
+      "firstTimeBuyerOnly": false,
+      "maxLimitAmount": 500000000,
       "isEligible": true,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -161,6 +197,24 @@
       "newbornCheckSkipped": false,
       "firstTimeBuyerCheckSkipped": false,
       "ineligibleReasons": []
+    },
+    {
+      "productId": 104,
+      "productName": "일반 버팀목전세자금",
+      "providerType": "POLICY",
+      "productCategory": "JEONSE_LOAN",
+      "providerName": "주택도시기금",
+      "rateRange": "2.3% ~ 3.3%",
+      "maxIncome": 50000000,
+      "firstTimeBuyerOnly": false,
+      "maxLimitAmount": 120000000,
+      "isEligible": false,
+      "ageCheckSkipped": false,
+      "householdHeadCheckSkipped": false,
+      "marriedCheckSkipped": false,
+      "newbornCheckSkipped": false,
+      "firstTimeBuyerCheckSkipped": false,
+      "ineligibleReasons": ["INCOME"]
     }
   ]
 }
