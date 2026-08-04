@@ -472,11 +472,23 @@ export class SavedNoticeItemDto {
   @ApiProperty({ description: '공고 제목', example: '강동구 청년안심주택 2025-03호' })
   title: string;
 
+  @ApiPropertyOptional({ description: '공고번호', example: '2026-03호', nullable: true })
+  announcementNo: string | null;
+
   @ApiProperty({ description: '시/도', example: '서울' })
   region: string;
 
   @ApiPropertyOptional({ description: '시/군/구', example: '강동구', nullable: true })
   district: string | null;
+
+  @ApiPropertyOptional({ description: '대표 주택형 요약', example: '전용 24㎡', nullable: true })
+  unitSummary: string | null;
+
+  @ApiPropertyOptional({ description: '최소 보증금 (원 단위)', example: 32000000, nullable: true })
+  depositMin: number | null;
+
+  @ApiPropertyOptional({ description: '최대 보증금 (원 단위)', example: 48000000, nullable: true })
+  depositMax: number | null;
 
   @ApiProperty({
     description: '신청 시작·마감 시각으로 계산한 모집 상태',
@@ -490,6 +502,13 @@ export class SavedNoticeItemDto {
 
   @ApiProperty({ description: '추가모집 여부', example: true })
   isAdditionalRecruitment: boolean;
+
+  @ApiPropertyOptional({
+    description: '접수 시작 일시 (ISO 8601)',
+    example: '2026-07-01T10:00:00+09:00',
+    nullable: true,
+  })
+  applicationStartAt: string | null;
 
   @ApiPropertyOptional({
     description: '접수 종료 일시 (ISO 8601)',

@@ -57,6 +57,7 @@ type SavedNoticeRecord = Prisma.SavedNoticeGetPayload<{
     notice: {
       include: {
         complex: true;
+        units: true;
         _count: {
           select: { savedNotices: true };
         };
@@ -158,6 +159,9 @@ export class NoticesService {
           notice: {
             include: {
               complex: true,
+              units: {
+                orderBy: { unitId: 'asc' },
+              },
               _count: {
                 select: { savedNotices: true },
               },
@@ -397,16 +401,22 @@ export class NoticesService {
       savedNotice.notice.applicationEndAt,
       currentKstDateTime,
     );
+    const unitStats = this.getUnitStats(savedNotice.notice.units);
 
     return {
       savedNoticeId: this.toNumber(savedNotice.savedNoticeId),
       noticeId: this.toNumber(savedNotice.noticeId),
       title: savedNotice.notice.title,
+      announcementNo: savedNotice.notice.announcementNo,
       region: savedNotice.notice.complex.region,
       district: savedNotice.notice.complex.district,
+      unitSummary: this.toUnitSummary(savedNotice.notice.units),
+      depositMin: unitStats.depositMin,
+      depositMax: unitStats.depositMax,
       status,
       statusDisplayText: this.toStatusDisplayText(status),
       isAdditionalRecruitment: savedNotice.notice.isAdditionalRecruitment,
+      applicationStartAt: this.toIsoString(savedNotice.notice.applicationStartAt),
       applicationEndAt: this.toIsoString(savedNotice.notice.applicationEndAt),
       dDayText: this.toDdayText(savedNotice.notice.applicationEndAt),
       interestedCount: savedNotice.notice._count.savedNotices,

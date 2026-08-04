@@ -328,6 +328,12 @@ describe('Notice API contract (e2e)', () => {
     expect(savedList.body.result.savedNotices).toEqual([
       expect.objectContaining({
         noticeId: fixture.boundaryNoticeId,
+        announcementNo: 'E2E-BOUNDARY',
+        unitSummary: '전용 59㎡',
+        depositMin: 50000000,
+        depositMax: 100000000,
+        applicationStartAt: expect.any(String),
+        applicationEndAt: expect.any(String),
         interestedCount: 2,
       }),
     ]);
