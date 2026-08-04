@@ -93,7 +93,10 @@ export class UpdateConditionProfileRequestDto {
   @Min(0)
   monthlyDebtPaymentAmount: number;
 
-  @ApiProperty({ description: '보유 현금', example: 20000000 })
+  @ApiProperty({
+    description: '보유 현금. 예금·적금 등을 포함한 금융자산 개념 — 단순 시재 현금이 아님',
+    example: 20000000,
+  })
   @IsInt()
   @Min(0)
   cashSavings: number;
@@ -112,7 +115,11 @@ export class UpdateConditionProfileRequestDto {
   @IsString()
   workplaceRegionCode?: string;
 
-  @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
+  @ApiProperty({
+    description:
+      "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
+    example: 'HOMELESS',
+  })
   @IsString()
   housingOwnershipStatus: string;
 
@@ -269,10 +276,17 @@ export class ConditionProfileResultDto {
   @ApiProperty({ description: '월 상환액', example: 400000 })
   monthlyDebtPaymentAmount: number;
 
-  @ApiProperty({ description: '보유 현금', example: 20000000 })
+  @ApiProperty({
+    description: '보유 현금. 예금·적금 등을 포함한 금융자산 개념 — 단순 시재 현금이 아님',
+    example: 20000000,
+  })
   cashSavings: number;
 
-  @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
+  @ApiProperty({
+    description:
+      "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
+    example: 'HOMELESS',
+  })
   housingOwnershipStatus: string;
 
   @ApiProperty({ description: '무주택 여부', example: true })

@@ -18,7 +18,7 @@
 | --- | --- | --- |
 | `provider` | `LOCAL` / `KAKAO` / `GOOGLE` | `POST /auth/social` 요청은 `KAKAO`, `GOOGLE`. `APPLE`은 미지원으로 제외됨 |
 | `status` | `ACTIVE` / `INACTIVE` | 계정 상태. 회원가입/로그인 여부는 `isNewUser`로 판단 |
-| `housingOwnershipStatus` | `HOMELESS` / `FAMILY_OWNED` / `UNKNOWN` | ERD 기준. MVP에서는 `HOMELESS` 우선 사용 |
+| `housingOwnershipStatus` | `HOMELESS` / `OWNED` / `FAMILY_OWNED` / `UNKNOWN` | ERD 기준(`docs/homefit_erd_v1_fixed.sql` 컬럼 주석, 4종). 이전 버전엔 `OWNED`가 빠져 3종으로 적혀있었음 — 정정. `HOMELESS`=본인·가족 모두 무주택(완전 무주택) / `FAMILY_OWNED`=본인은 무주택이나 배우자·가족 명의로 유주택 / `OWNED`=본인이 직접 유주택 / `UNKNOWN`=미입력. **이 의미는 ERD 원문 주석엔 없고, 금융상품(2) Notion 페이지의 실제 상품 조건 비교(신청인 단독 기준 vs 배우자 합산 기준으로 무주택 판정 범위가 다른 상품이 실재함)로 추정한 해석 — 기획 최종 확인 필요.** 코드에서도 이 필드는 검증·매칭 로직에 아직 쓰이지 않음(`isHomeless` boolean만 실제 판정에 사용) |
 
 ## 1차 구현 범위
 
@@ -234,8 +234,8 @@
 | `totalAssetAmount` | number | 총 보유 자산 |
 | `totalDebtAmount` | number | 총 부채 금액 |
 | `monthlyDebtPaymentAmount` | number | 월 상환액 |
-| `cashSavings` | number | 보유 현금 |
-| `housingOwnershipStatus` | string | 주택 소유 상태 |
+| `cashSavings` | number | 보유 현금. 예금·적금 등을 포함한 **금융자산** 개념 — 단순 시재 현금이 아님 |
+| `housingOwnershipStatus` | string | 주택 소유 상태: `HOMELESS`/`OWNED`/`FAMILY_OWNED`/`UNKNOWN`(공통 enum 표 참고) |
 | `isHomeless` | boolean | 무주택 여부 |
 | `residenceRegionCode` | string \| null | 거주 지역 코드 |
 | `workplaceRegionCode` | string \| null | 직장/학교 지역 코드 |
@@ -267,9 +267,9 @@
 | `totalAssetAmount` | number | Y | 총 보유 자산 |
 | `totalDebtAmount` | number | Y | 총 부채 금액 |
 | `monthlyDebtPaymentAmount` | number | Y | 월 상환액 |
-| `cashSavings` | number | Y | 보유 현금 |
+| `cashSavings` | number | Y | 보유 현금. 예금·적금 등을 포함한 **금융자산** 개념 — 단순 시재 현금이 아님 |
 | `isHomeless` | boolean | Y | 무주택 여부 |
-| `housingOwnershipStatus` | string | Y | 주택 소유 상태 |
+| `housingOwnershipStatus` | string | Y | 주택 소유 상태: `HOMELESS`/`OWNED`/`FAMILY_OWNED`/`UNKNOWN`(공통 enum 표 참고) |
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
 | `maritalStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
