@@ -92,6 +92,7 @@
       "rateRange": "3.2% ~ 4.5%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 200000000,
       "minAge": 19,
       "maxAge": 34,
@@ -140,6 +141,9 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `providerType` | enum | N | `POLICY` / `BANK` |
+| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` |
+| `keyword` | string | N | 상품명/취급기관명 부분 검색 |
+| `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
 
 ### Response (result)
 
@@ -158,6 +162,7 @@
       "rateRange": "1.5% ~ 2.7%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 200000000,
       "minAge": 19,
       "maxAge": 34,
@@ -181,6 +186,7 @@
       "rateRange": "1.2% ~ 2.1%",
       "maxIncome": 75000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 300000000,
       "minAge": null,
       "maxAge": null,
@@ -204,6 +210,7 @@
       "rateRange": "1.0% ~ 1.8%",
       "maxIncome": 130000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 500000000,
       "minAge": null,
       "maxAge": null,
@@ -227,6 +234,7 @@
       "rateRange": "2.3% ~ 3.3%",
       "maxIncome": 50000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 120000000,
       "minAge": null,
       "maxAge": null,
@@ -295,13 +303,14 @@
 | `dtiRatio` | number \| null | DTI 한도(소득 대비 원리금 상환 비율, %). 대출 상품 전용 |
 | `loanTermMinYears` | number \| null | 대출 기간 최소(년) |
 | `loanTermMaxYears` | number \| null | 대출 기간 최대(년) |
-| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p) |
+| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p). 생애최초 전용은 `firstTimeBuyerRateDiscount` 참고 |
+| `firstTimeBuyerRateDiscount` | number \| null | 생애최초 구입자 전용 추가 우대금리(%p). `firstTimeBuyerOnly`(자격 조건)와 별개 — 생애최초 전용이 아닌 상품도 값을 가질 수 있음 |
 | `minMonthlyDeposit` | number \| null | 월 최소 납입액 (원 단위). 청약저축 전용 |
 | `maxMonthlyDeposit` | number \| null | 월 최대 납입액 (원 단위). 청약저축 전용 |
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
-목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
+목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`, `incomeTaxDeductible`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
 
 상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
 

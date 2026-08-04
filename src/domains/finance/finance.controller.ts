@@ -64,7 +64,7 @@ export class FinanceController {
     @CurrentUser() user: CurrentUserPayload,
     @Query() query: MatchLoanProductsQueryDto,
   ): Promise<ApiResponse<MatchLoanProductsResultDto>> {
-    const result = await this.financeService.matchLoanProducts(user.userId, query.providerType);
+    const result = await this.financeService.matchLoanProducts(user.userId, query);
 
     return createSuccessResponse(result, 'FINANCE200', '금융상품 매칭 조회에 성공했습니다.');
   }

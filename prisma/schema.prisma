@@ -481,42 +481,44 @@ model EligibilityConditionResult {
 }
 
 model LoanProduct {
-  productId                BigInt           @id(map: "PK_LOAN_PRODUCTS") @default(autoincrement()) @map("product_id")
-  productName              String           @map("product_name") @db.VarChar(255)
-  providerType             LoanProviderType @map("provider_type")
-  providerName             String           @map("provider_name") @db.VarChar(100)
-  productCategory          ProductCategory? @map("product_category") // MORTGAGE_LOAN / JEONSE_LOAN / SUBSCRIPTION_SAVINGS. 기존 로우는 백필 전까지 NULL
-  guaranteeRatio           Int?             @map("guarantee_ratio") // 신규: 보증비율(%). 은행 대출상품 전용
-  minRate                  Decimal?         @map("min_rate") @db.Decimal(5, 2)
-  maxRate                  Decimal?         @map("max_rate") @db.Decimal(5, 2)
-  maxLimitAmount           BigInt?          @map("max_limit_amount")
-  minAge                   Int?             @map("min_age")
-  maxAge                   Int?             @map("max_age")
-  maxIncome                BigInt?          @map("max_income")
-  minIncome                BigInt?          @map("min_income") // 소득 하한. 하한 없는 상품은 NULL
-  maxAsset                 BigInt?          @map("max_asset")
-  minAsset                 BigInt?          @map("min_asset") // 자산 하한. 하한 없는 상품은 NULL
-  requireNoHouse           Boolean?         @map("require_no_house") // nullable, 기본값 없음
-  firstTimeBuyerOnly       Boolean?         @map("first_time_buyer_only") // 생애최초 전용 여부. requireNoHouse(무주택)와 별개 조건
-  ltvRatio                 Int?             @map("ltv_ratio") // 담보가치 대비 대출 비율(%). 대출 상품 전용. loanRatioPercent(전세보증금 대비)와 중복/충돌 가능성 있어 정리 필요
-  dtiRatio                 Int?             @map("dti_ratio") // 소득 대비 원리금 상환 비율(%). 대출 상품 전용
-  loanTermMinYears         Int?             @map("loan_term_min_years")
-  loanTermMaxYears         Int?             @map("loan_term_max_years")
-  preferentialRateDiscount Decimal?         @map("preferential_rate_discount") @db.Decimal(4, 2) // 우대금리 최대 할인폭(%p)
-  minMonthlyDeposit        BigInt?          @map("min_monthly_deposit") // 청약저축 전용: 월 최소 납입액
-  maxMonthlyDeposit        BigInt?          @map("max_monthly_deposit") // 청약저축 전용: 월 최대 납입액
-  maxDepositAmount         BigInt?          @map("max_deposit_amount") // 전세보증금 상한 (원 단위). 예: 청년전용 버팀목 3억원
-  loanRatioPercent         Decimal?         @map("loan_ratio_percent") @db.Decimal(5, 2) // 대출비율: 전세보증금 대비 최대 대출 가능 비율(%). ltvRatio와 중복/충돌 가능성 있어 정리 필요
-  maxAreaM2                Decimal?         @map("max_area_m2") @db.Decimal(6, 2) // 임차 전용면적 상한(㎡). notice_units.exclusive_area_m2와 비교
-  officialUrl              String?          @map("official_url") @db.VarChar(500) // 변경: nullable
-  description              String?          @db.Text
-  requireMarried           Boolean?         @map("require_married") // 신혼부부 전용 여부. loan-products/match 매칭 조건용
-  maxMarriageYears         Int?             @map("max_marriage_years") // 혼인기간 조건(예: 7년 이내). requireMarried=true일 때만 의미
-  requireRecentNewborn     Boolean?         @map("require_recent_newborn") // 신생아 특례 대상 여부. loan-products/match 매칭 조건용
-  newbornWithinYears       Int?             @map("newborn_within_years") // 출산 후 몇 년 이내 조건. requireRecentNewborn=true일 때만 의미
-  requireHouseholdHead     Boolean?         @map("require_household_head") // 세대주(예비세대주 포함) 전용 여부. loan-products/match 매칭 조건용
-  createdAt                DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt                DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
+  productId                  BigInt           @id(map: "PK_LOAN_PRODUCTS") @default(autoincrement()) @map("product_id")
+  productName                String           @map("product_name") @db.VarChar(255)
+  providerType               LoanProviderType @map("provider_type")
+  providerName               String           @map("provider_name") @db.VarChar(100)
+  productCategory            ProductCategory? @map("product_category") // MORTGAGE_LOAN / JEONSE_LOAN / SUBSCRIPTION_SAVINGS. 기존 로우는 백필 전까지 NULL
+  guaranteeRatio             Int?             @map("guarantee_ratio") // 신규: 보증비율(%). 은행 대출상품 전용
+  minRate                    Decimal?         @map("min_rate") @db.Decimal(5, 2)
+  maxRate                    Decimal?         @map("max_rate") @db.Decimal(5, 2)
+  maxLimitAmount             BigInt?          @map("max_limit_amount")
+  minAge                     Int?             @map("min_age")
+  maxAge                     Int?             @map("max_age")
+  maxIncome                  BigInt?          @map("max_income")
+  minIncome                  BigInt?          @map("min_income") // 소득 하한. 하한 없는 상품은 NULL
+  maxAsset                   BigInt?          @map("max_asset")
+  minAsset                   BigInt?          @map("min_asset") // 자산 하한. 하한 없는 상품은 NULL
+  requireNoHouse             Boolean?         @map("require_no_house") // nullable, 기본값 없음
+  firstTimeBuyerOnly         Boolean?         @map("first_time_buyer_only") // 생애최초 전용 여부. requireNoHouse(무주택)와 별개 조건
+  incomeTaxDeductible        Boolean?         @map("income_tax_deductible") // 소득공제 여부. nullable, 기본값 없음 — 외부 API로 자동화 불가, 전 상품 수기 입력
+  ltvRatio                   Int?             @map("ltv_ratio") // 담보가치 대비 대출 비율(%). 대출 상품 전용. loanRatioPercent(전세보증금 대비)와 중복/충돌 가능성 있어 정리 필요
+  dtiRatio                   Int?             @map("dti_ratio") // 소득 대비 원리금 상환 비율(%). 대출 상품 전용
+  loanTermMinYears           Int?             @map("loan_term_min_years")
+  loanTermMaxYears           Int?             @map("loan_term_max_years")
+  preferentialRateDiscount   Decimal?         @map("preferential_rate_discount") @db.Decimal(4, 2) // 우대금리 최대 할인폭(%p). 생애최초 전용 우대금리는 별도(firstTimeBuyerRateDiscount)
+  firstTimeBuyerRateDiscount Decimal?         @map("first_time_buyer_rate_discount") @db.Decimal(4, 2) // 생애최초 구입자 전용 추가 우대금리(%p). firstTimeBuyerOnly(자격 조건)와 별개 — firstTimeBuyerOnly=false인 상품도 값 가질 수 있음
+  minMonthlyDeposit          BigInt?          @map("min_monthly_deposit") // 청약저축 전용: 월 최소 납입액
+  maxMonthlyDeposit          BigInt?          @map("max_monthly_deposit") // 청약저축 전용: 월 최대 납입액
+  maxDepositAmount           BigInt?          @map("max_deposit_amount") // 전세보증금 상한 (원 단위). 예: 청년전용 버팀목 3억원
+  loanRatioPercent           Decimal?         @map("loan_ratio_percent") @db.Decimal(5, 2) // 대출비율: 전세보증금 대비 최대 대출 가능 비율(%). ltvRatio와 중복/충돌 가능성 있어 정리 필요
+  maxAreaM2                  Decimal?         @map("max_area_m2") @db.Decimal(6, 2) // 임차 전용면적 상한(㎡). notice_units.exclusive_area_m2와 비교
+  officialUrl                String?          @map("official_url") @db.VarChar(500) // 변경: nullable
+  description                String?          @db.Text
+  requireMarried             Boolean?         @map("require_married") // 신혼부부 전용 여부. loan-products/match 매칭 조건용
+  maxMarriageYears           Int?             @map("max_marriage_years") // 혼인기간 조건(예: 7년 이내). requireMarried=true일 때만 의미
+  requireRecentNewborn       Boolean?         @map("require_recent_newborn") // 신생아 특례 대상 여부. loan-products/match 매칭 조건용
+  newbornWithinYears         Int?             @map("newborn_within_years") // 출산 후 몇 년 이내 조건. requireRecentNewborn=true일 때만 의미
+  requireHouseholdHead       Boolean?         @map("require_household_head") // 세대주(예비세대주 포함) 전용 여부. loan-products/match 매칭 조건용
+  createdAt                  DateTime         @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt                  DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamp(0)
 
   documentMappings DocumentMapping[]
 

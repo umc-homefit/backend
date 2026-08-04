@@ -3,6 +3,7 @@ import { addUtcMonthsClamped } from '../../common/utils/date.util';
 import { UsersRepository } from './users.repository';
 import {
   HouseholdHeadStatus,
+  HousingOwnershipStatus,
   MaritalStatus,
   UpdateConditionProfileRequestDto,
   UpdateProfileRequestDto,
@@ -68,7 +69,7 @@ export class UsersService {
       totalDebtAmount: Number(condition.totalDebtAmount),
       monthlyDebtPaymentAmount: Number(condition.monthlyDebtPaymentAmount),
       cashSavings: Number(condition.cashSavings),
-      housingOwnershipStatus: condition.housingOwnershipStatus,
+      housingOwnershipStatus: condition.housingOwnershipStatus as HousingOwnershipStatus,
       isHomeless: condition.isHomeless,
       residenceRegionCode: condition.residenceRegionCode,
       workplaceRegionCode: condition.workplaceRegionCode,

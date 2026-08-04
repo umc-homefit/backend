@@ -73,8 +73,11 @@ export class FinanceRepository {
   }
 
   /** loan-products/match 전용. 페이징 없이 조건에 맞는 상품 전체를 반환한다. */
-  findLoanProductsForMatch(where: Prisma.LoanProductWhereInput): Promise<LoanProduct[]> {
-    return this.prisma.loanProduct.findMany({ where, orderBy: [{ productId: 'asc' }] });
+  findLoanProductsForMatch(
+    where: Prisma.LoanProductWhereInput,
+    orderBy: Prisma.LoanProductOrderByWithRelationInput[],
+  ): Promise<LoanProduct[]> {
+    return this.prisma.loanProduct.findMany({ where, orderBy });
   }
 
   findUserConditionProfileByUserId(userId: bigint): Promise<UserConditionProfile | null> {

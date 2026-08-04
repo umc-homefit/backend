@@ -69,7 +69,7 @@ describe('FinanceService - 나이 조건 판정', () => {
       birthDate: new Date(`${birthDate}T00:00:00Z`),
     } as unknown as UserProfile);
 
-    const result = await service.matchLoanProducts(1n, undefined);
+    const result = await service.matchLoanProducts(1n, {});
     return result.products[0];
   };
 
@@ -120,7 +120,7 @@ describe('FinanceService - 나이 조건 판정', () => {
     it('나이 조건 검사를 건너뛰고 통과시키되 ageCheckSkipped로 표시한다', async () => {
       repository.findUserProfileByUserId.mockResolvedValue(null);
 
-      const result = await service.matchLoanProducts(1n, undefined);
+      const result = await service.matchLoanProducts(1n, {});
 
       expect(result.products[0].isEligible).toBe(true);
       expect(result.products[0].ageCheckSkipped).toBe(true);
@@ -205,7 +205,7 @@ describe('FinanceService - 혼인/신생아 조건 판정', () => {
     } as unknown as UserConditionProfile);
     repository.findLoanProductsForMatch.mockResolvedValue([marriedProduct]);
 
-    const result = await service.matchLoanProducts(1n, undefined);
+    const result = await service.matchLoanProducts(1n, {});
     return result.products[0];
   };
 
@@ -220,7 +220,7 @@ describe('FinanceService - 혼인/신생아 조건 판정', () => {
     } as unknown as UserConditionProfile);
     repository.findLoanProductsForMatch.mockResolvedValue([newbornProduct]);
 
-    const result = await service.matchLoanProducts(1n, undefined);
+    const result = await service.matchLoanProducts(1n, {});
     return result.products[0];
   };
 

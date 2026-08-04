@@ -31,6 +31,18 @@ export enum HouseholdHeadStatus {
   MEMBER = 'MEMBER',
 }
 
+/**
+ * user_condition_profiles.housing_ownership_status도 동일하게 VARCHAR + 주석 컨벤션.
+ * 의미는 ERD 원문 주석엔 없고, 실제 상품 조건 비교(신청인 단독 기준 vs 배우자 합산 기준으로
+ * 무주택 판정 범위가 다른 상품이 실재함)로 추정한 해석 — 기획 최종 확인 필요.
+ */
+export enum HousingOwnershipStatus {
+  UNKNOWN = 'UNKNOWN',
+  HOMELESS = 'HOMELESS', // 본인·가족 모두 무주택(완전 무주택)
+  FAMILY_OWNED = 'FAMILY_OWNED', // 본인은 무주택이나 배우자·가족 명의로 유주택
+  OWNED = 'OWNED', // 본인이 직접 유주택
+}
+
 // 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
   @ApiPropertyOptional({ description: '수정할 닉네임', example: '홈핏유저', nullable: true })
@@ -118,10 +130,14 @@ export class UpdateConditionProfileRequestDto {
   @ApiProperty({
     description:
       "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
-    example: 'HOMELESS',
+    enum: HousingOwnershipStatus,
+    example: HousingOwnershipStatus.HOMELESS,
   })
-  @IsString()
-  housingOwnershipStatus: string;
+  @IsEnum(HousingOwnershipStatus, {
+    message:
+      'housingOwnershipStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HOMELESS, FAMILY_OWNED, OWNED',
+  })
+  housingOwnershipStatus: HousingOwnershipStatus;
 
   @ApiPropertyOptional({
     description: '혼인 상태',
@@ -285,9 +301,10 @@ export class ConditionProfileResultDto {
   @ApiProperty({
     description:
       "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
-    example: 'HOMELESS',
+    enum: HousingOwnershipStatus,
+    example: HousingOwnershipStatus.HOMELESS,
   })
-  housingOwnershipStatus: string;
+  housingOwnershipStatus: HousingOwnershipStatus;
 
   @ApiProperty({ description: '무주택 여부', example: true })
   isHomeless: boolean;

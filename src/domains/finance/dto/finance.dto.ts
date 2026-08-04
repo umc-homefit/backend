@@ -39,6 +39,31 @@ export class MatchLoanProductsQueryDto {
     message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
   })
   providerType?: LoanProviderType;
+
+  @ApiPropertyOptional({ description: '상품 카테고리', enum: ProductCategory })
+  @IsOptional()
+  @IsEnum(ProductCategory, {
+    message:
+      'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+  })
+  productCategory?: ProductCategory;
+
+  @ApiPropertyOptional({ description: '상품명/취급기관명 검색어 (부분 검색)', example: '버팀목' })
+  @IsOptional()
+  @IsString({ message: 'keyword는 문자열이어야 합니다.' })
+  keyword?: string;
+
+  @ApiPropertyOptional({
+    description: '정렬 기준',
+    enum: LoanProductSort,
+    default: LoanProductSort.RECOMMENDED,
+    example: LoanProductSort.RECOMMENDED,
+  })
+  @IsOptional()
+  @IsEnum(LoanProductSort, {
+    message: 'sort는 반드시 다음 중 하나여야합니다 : RECOMMENDED, LATEST, RATE_ASC, LIMIT_DESC',
+  })
+  sort?: LoanProductSort = LoanProductSort.RECOMMENDED;
 }
 
 export class MatchedLoanProductDto {
@@ -78,6 +103,9 @@ export class MatchedLoanProductDto {
 
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
+
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
 
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
@@ -256,6 +284,9 @@ export class LoanProductListItemDto {
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
 
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
 
@@ -343,6 +374,9 @@ export class LoanProductDetailResultDto {
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
 
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
 
@@ -376,11 +410,19 @@ export class LoanProductDetailResultDto {
   loanTermMaxYears: number | null;
 
   @ApiPropertyOptional({
-    description: '우대금리 최대 할인폭(%p)',
+    description: '우대금리 최대 할인폭(%p). 생애최초 전용 우대금리는 firstTimeBuyerRateDiscount 참고',
     example: 0.5,
     nullable: true,
   })
   preferentialRateDiscount: number | null;
+
+  @ApiPropertyOptional({
+    description:
+      '생애최초 구입자 전용 추가 우대금리(%p). firstTimeBuyerOnly(자격 조건)와 별개 — 생애최초 전용이 아닌 상품도 값을 가질 수 있음',
+    example: 0.1,
+    nullable: true,
+  })
+  firstTimeBuyerRateDiscount: number | null;
 
   @ApiPropertyOptional({
     description: '월 최소 납입액 (원 단위). 청약저축 전용',
