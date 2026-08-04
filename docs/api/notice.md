@@ -417,9 +417,13 @@ GET /notices?minArea=20&minDeposit=50000000
       {
         "savedNoticeId": 100, "noticeId": 1,
         "title": "강동구 청년안심주택 2025-03호",
+        "announcementNo": "2026-03호",
         "region": "서울", "district": "강동구",
+        "unitSummary": "전용 24㎡",
+        "depositMin": 32000000, "depositMax": 48000000,
         "status": "RECRUITING", "statusDisplayText": "모집중",
         "isAdditionalRecruitment": true,
+        "applicationStartAt": "2026-07-01T10:00:00+09:00",
         "applicationEndAt": "2026-07-10T18:00:00+09:00",
         "dDayText": "D-3", "interestedCount": 32,
         "savedAt": "2026-06-30T10:00:00+09:00"
@@ -429,6 +433,14 @@ GET /notices?minArea=20&minDeposit=50000000
   }
 }
 ```
+
+- `announcementNo`, `unitSummary`, `depositMin`, `depositMax`, `applicationStartAt`,
+  `applicationEndAt`은 원본 데이터가 없으면 `null`이다.
+- `unitSummary`는 전용면적 정보가 있는 주택형 중 가장 작은 면적을 `전용 {값}㎡`로 만든 표시용 문자열이다.
+- `depositMin`은 주택형 전체의 최소 보증금, `depositMax`는 주택형 전체의 최대 보증금이다.
+- 저장 공고 목록은 공고 단위이므로 특정 주택형의 `unitId`, `exclusiveAreaM2`,
+  `expectedDepositAmount`를 반환하지 않는다.
+- 경쟁률은 현재 MVP 응답에 포함하지 않는다.
 
 | 상태 | 설명 |
 | --- | --- |
