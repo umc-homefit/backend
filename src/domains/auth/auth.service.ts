@@ -11,6 +11,7 @@ import {
   SocialAuthRequestDto,
 } from './dto/auth.dto';
 import { SocialTokenVerifierService } from './services/social-token-verifier.service';
+import { UsersService } from '../users/users.service';
 
 const SALT_ROUNDS = 10;
 
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly socialTokenVerifier: SocialTokenVerifierService,
+    private readonly usersService: UsersService,
   ) {}
 
   async signup(dto: SignupRequestDto): Promise<AuthResultDto> {
@@ -33,6 +35,7 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
     const user = await this.authRepository.createEmailUser(dto.email, hashedPassword);
+    await this.usersService.createDefaultProfile(user.userId);
 
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
@@ -96,6 +99,7 @@ export class AuthService {
           verified.email,
         );
         isNewUser = true;
+        await this.usersService.createDefaultProfile(user.userId);
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           // DB가 email과 (provider, providerId) 중 어떤 UNIQUE 제약을 먼저 보고했는지는

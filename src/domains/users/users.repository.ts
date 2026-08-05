@@ -51,6 +51,13 @@ export class UsersRepository {
     });
   }
 
+  // 4-1. 기본 프로필 생성 (회원가입 직후, 랜덤 닉네임 부여용 - AuthService/UsersService에서 호출)
+  async createDefaultProfile(userId: bigint, nickname: string) {
+    return await this.prisma.userProfile.create({
+      data: { userId, nickname },
+    });
+  }
+
   // 5. 금융 조건 프로필 조회
   async findConditionProfileByUserId(userId: bigint) {
     return await this.prisma.userConditionProfile.findUnique({

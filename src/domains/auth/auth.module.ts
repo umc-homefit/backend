@@ -8,9 +8,11 @@ import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { SocialTokenVerifierService } from './services/social-token-verifier.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
+    UsersModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

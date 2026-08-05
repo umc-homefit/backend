@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { addUtcMonthsClamped } from '../../common/utils/date.util';
+import { generateRandomNickname } from '../../common/utils/nickname-generator.js';
 import { UsersRepository } from './users.repository';
 import {
   HouseholdHeadStatus,
@@ -134,5 +135,11 @@ export class UsersService {
     today.setUTCHours(0, 0, 0, 0);
     const cutoff = addUtcMonthsClamped(today, MARRIAGE_EXPECTED_WITHIN_MONTHS);
     return marriageDate >= today && marriageDate <= cutoff;
+  }
+
+  // 회원가입(이메일/소셜) 직후 AuthService가 호출하는 진입점.
+  // "우아한거북이3817" 같은 랜덤 닉네임으로 기본 프로필을 만들어준다.
+  async createDefaultProfile(userId: bigint): Promise<void> {
+    await this.usersRepository.createDefaultProfile(userId, generateRandomNickname());
   }
 }
