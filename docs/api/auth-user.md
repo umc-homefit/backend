@@ -269,9 +269,9 @@
 | `monthlyDebtPaymentAmount` | number | Y | 월 상환액 |
 | `cashSavings` | number | Y | 보유 현금. 예금·적금 등을 포함한 **금융자산** 개념 — 단순 시재 현금이 아님 |
 | `isHomeless` | boolean | Y | 무주택 여부 |
-| `housingOwnershipStatus` | string | Y | 주택 소유 상태: `HOMELESS`/`OWNED`/`FAMILY_OWNED`/`UNKNOWN`(공통 enum 표 참고) |
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
+| `housingOwnershipStatus` | string | Y | 주택 소유 상태: `HOMELESS`/`OWNED`/`FAMILY_OWNED`/`UNKNOWN`(공통 enum 표 참고) |
 | `maritalStatus` | string(VARCHAR+주석) | N | `UNKNOWN`/`SINGLE`/`MARRIED`/`MARRIAGE_EXPECTED`. 미입력 시 `UNKNOWN` 유지(기존값 보존) |
 | `marriageDate` | string \| null | N | 혼인일자 (YYYY-MM-DD). `null`을 명시적으로 보내면 기존 값을 지운다(생략=미변경). `maritalStatus: MARRIAGE_EXPECTED`일 때는 생략/null도 검증 대상이 되어 사실상 필수이며, **오늘부터 3개월 이내(오늘 포함)** 의 날짜만 허용 — 실패 시 응답 코드는 아래 Status 표 참고 |
 | `hasRecentNewborn` | boolean | N | 최근 출산 여부. 미입력 시 기존값 보존 |

@@ -55,6 +55,17 @@ export class FinanceController {
     { status: 400, code: 'COMMON400', message: 'providerType은 POLICY 또는 BANK여야 합니다.' },
     {
       status: 400,
+      code: 'COMMON400',
+      message:
+        'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+    },
+    {
+      status: 400,
+      code: 'COMMON400',
+      message: 'sort는 반드시 다음 중 하나여야합니다 : RECOMMENDED, LATEST, RATE_ASC, LIMIT_DESC',
+    },
+    {
+      status: 400,
       code: 'FINANCE400',
       message: '금융정보가 입력되지 않아 매칭할 수 없습니다. 조건 프로필을 먼저 등록해주세요.',
     },

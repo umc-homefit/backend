@@ -113,18 +113,7 @@ export class FinanceService {
             { productCategory: { not: ProductCategory.SUBSCRIPTION_SAVINGS } },
           ],
         },
-        ...(query.providerType ? [{ providerType: query.providerType }] : []),
-        ...(query.productCategory ? [{ productCategory: query.productCategory }] : []),
-        ...(query.keyword
-          ? [
-              {
-                OR: [
-                  { productName: { contains: query.keyword, mode: 'insensitive' as const } },
-                  { providerName: { contains: query.keyword, mode: 'insensitive' as const } },
-                ],
-              },
-            ]
-          : []),
+        ...this.buildProductFilterConditions(query),
       ],
     };
 
@@ -424,18 +413,7 @@ export class FinanceService {
   async getLoanProducts(query: GetLoanProductsQueryDto): Promise<LoanProductListResultDto> {
     const page = query.page ?? 0;
     const size = query.size ?? 20;
-    const where: Prisma.LoanProductWhereInput = {
-      ...(query.providerType ? { providerType: query.providerType } : {}),
-      ...(query.productCategory ? { productCategory: query.productCategory } : {}),
-      ...(query.keyword
-        ? {
-            OR: [
-              { productName: { contains: query.keyword, mode: 'insensitive' } },
-              { providerName: { contains: query.keyword, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    };
+    const where: Prisma.LoanProductWhereInput = { AND: this.buildProductFilterConditions(query) };
 
     const [products, totalElements] = await Promise.all([
       this.financeRepository.findLoanProducts({
@@ -515,6 +493,28 @@ export class FinanceService {
       documentType: mapping.document.documentType,
       isRequired: mapping.isRequired,
     };
+  }
+
+  /** GET /loan-products와 GET /loan-products/match가 공유하는 providerType/productCategory/keyword 필터. */
+  private buildProductFilterConditions(query: {
+    providerType?: LoanProviderType;
+    productCategory?: ProductCategory;
+    keyword?: string;
+  }): Prisma.LoanProductWhereInput[] {
+    return [
+      ...(query.providerType ? [{ providerType: query.providerType }] : []),
+      ...(query.productCategory ? [{ productCategory: query.productCategory }] : []),
+      ...(query.keyword
+        ? [
+            {
+              OR: [
+                { productName: { contains: query.keyword, mode: 'insensitive' as const } },
+                { providerName: { contains: query.keyword, mode: 'insensitive' as const } },
+              ],
+            },
+          ]
+        : []),
+    ];
   }
 
   private buildLoanProductOrderBy(
