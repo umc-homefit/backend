@@ -31,6 +31,7 @@ import {
   LoanProductListResultDto,
   LoanProductSort,
   LoanProviderType,
+  MatchableProductCategory,
   MatchedLoanProductDto,
   MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
@@ -498,12 +499,16 @@ export class FinanceService {
   /** GET /loan-products와 GET /loan-products/match가 공유하는 providerType/productCategory/keyword 필터. */
   private buildProductFilterConditions(query: {
     providerType?: LoanProviderType;
-    productCategory?: ProductCategory;
+    // Match(loan-products/match)는 SUBSCRIPTION_SAVINGS를 뺀 MatchableProductCategory를 넘길 수 있어
+    // 두 타입을 함께 받는다. 문자열 값 자체는 ProductCategory의 부분집합이라 캐스팅은 안전하다.
+    productCategory?: ProductCategory | MatchableProductCategory;
     keyword?: string;
   }): Prisma.LoanProductWhereInput[] {
     return [
       ...(query.providerType ? [{ providerType: query.providerType }] : []),
-      ...(query.productCategory ? [{ productCategory: query.productCategory }] : []),
+      ...(query.productCategory
+        ? [{ productCategory: query.productCategory as ProductCategory }]
+        : []),
       ...(query.keyword
         ? [
             {

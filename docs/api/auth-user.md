@@ -268,7 +268,7 @@
 | `totalDebtAmount` | number | Y | 총 부채 금액 |
 | `monthlyDebtPaymentAmount` | number | Y | 월 상환액 |
 | `cashSavings` | number | Y | 보유 현금. 예금·적금 등을 포함한 **금융자산** 개념 — 단순 시재 현금이 아님 |
-| `isHomeless` | boolean | Y | 무주택 여부 |
+| `isHomeless` | boolean | Y | **참고용 입력** — 실제 저장값은 서버가 `housingOwnershipStatus` 기준으로 재계산한다(`housingOwnershipStatus='HOMELESS'`일 때만 `true`로 저장, 그 외엔 이 값과 무관하게 `false`). 두 필드가 독립 검증되어 모순된 값(예: `OWNED`인데 `isHomeless=true`)이 그대로 저장되던 문제 때문에 도입 — 실제 매칭·입주가능성 판정 로직은 `isHomeless`만 참조하므로 |
 | `residenceRegionCode` | string | N | 거주 지역 코드 |
 | `workplaceRegionCode` | string | N | 직장/학교 지역 코드 |
 | `housingOwnershipStatus` | string | Y | 주택 소유 상태: `HOMELESS`/`OWNED`/`FAMILY_OWNED`/`UNKNOWN`(공통 enum 표 참고) |

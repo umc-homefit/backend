@@ -56,8 +56,7 @@ export class FinanceController {
     {
       status: 400,
       code: 'COMMON400',
-      message:
-        'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+      message: 'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN',
     },
     {
       status: 400,

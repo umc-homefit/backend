@@ -113,7 +113,12 @@ export class UpdateConditionProfileRequestDto {
   @Min(0)
   cashSavings: number;
 
-  @ApiProperty({ description: '무주택 여부', example: true })
+  @ApiProperty({
+    description:
+      '무주택 여부. 참고용 입력이며 실제 저장 값은 서버가 housingOwnershipStatus 기준으로 재계산한다 ' +
+      "(housingOwnershipStatus='HOMELESS'일 때만 true로 저장, 그 외엔 이 값과 무관하게 false)",
+    example: true,
+  })
   @IsBoolean()
   isHomeless: boolean;
 

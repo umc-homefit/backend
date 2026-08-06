@@ -28,6 +28,16 @@ export enum LoanProductSort {
   LIMIT_DESC = 'LIMIT_DESC',
 }
 
+/**
+ * 매칭(loan-products/match) 전용 카테고리 값. SUBSCRIPTION_SAVINGS는 매칭 로직이 항상
+ * 하드 제외하므로(청약저축은 보증금 마련 목적이 아님) 애초에 유효값 목록에서 뺀다 —
+ * 넣으면 where절이 자기모순(AND에 배제 조건과 일치 조건이 동시에 들어감)이 되어 조용히 빈 배열만 반환되던 문제.
+ */
+export enum MatchableProductCategory {
+  MORTGAGE_LOAN = 'MORTGAGE_LOAN',
+  JEONSE_LOAN = 'JEONSE_LOAN',
+}
+
 export class MatchLoanProductsQueryDto {
   @ApiPropertyOptional({
     description: '상품 제공 유형',
@@ -40,13 +50,15 @@ export class MatchLoanProductsQueryDto {
   })
   providerType?: LoanProviderType;
 
-  @ApiPropertyOptional({ description: '상품 카테고리', enum: ProductCategory })
-  @IsOptional()
-  @IsEnum(ProductCategory, {
-    message:
-      'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN, SUBSCRIPTION_SAVINGS',
+  @ApiPropertyOptional({
+    description: '상품 카테고리 (청약저축은 매칭 대상이 아니라 허용되지 않음)',
+    enum: MatchableProductCategory,
   })
-  productCategory?: ProductCategory;
+  @IsOptional()
+  @IsEnum(MatchableProductCategory, {
+    message: 'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN',
+  })
+  productCategory?: MatchableProductCategory;
 
   @ApiPropertyOptional({ description: '상품명/취급기관명 검색어 (부분 검색)', example: '버팀목' })
   @IsOptional()

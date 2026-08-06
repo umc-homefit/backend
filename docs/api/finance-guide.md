@@ -141,9 +141,11 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `providerType` | enum | N | `POLICY` / `BANK` |
-| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` / `SUBSCRIPTION_SAVINGS` |
+| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` (청약저축은 매칭 대상이 아니라 `SUBSCRIPTION_SAVINGS`는 허용하지 않음 — 넘기면 `COMMON400`) |
 | `keyword` | string | N | 상품명/취급기관명 부분 검색 |
 | `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
+
+> `productCategory=SUBSCRIPTION_SAVINGS`는 List(`GET /loan-products`)에선 정상 조회되지만 Match에선 애초에 유효값이 아니다 — 청약저축은 나이/소득/자산 매칭 개념 자체가 안 맞아 항상 매칭 후보에서 제외되는데, 예전엔 이 값을 넘겨도 검증을 통과시켜놓고 내부적으로 항상 빈 배열만 반환해 혼란을 줬다. 지금은 DTO 단계에서 `COMMON400`으로 막는다.
 
 ### Response (result)
 
@@ -279,7 +281,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
-| 400 | 사용자 금융정보 미입력 (`FINANCE400`) |
+| 400 | 잘못된 Query Parameter (`COMMON400`) 또는 사용자 금융정보 미입력 (`FINANCE400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
