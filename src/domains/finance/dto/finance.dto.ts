@@ -103,6 +103,13 @@ export class MatchedLoanProductDto {
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
+  @ApiPropertyOptional({
+    description: '제공기관 로고 이미지 URL',
+    example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
+    nullable: true,
+  })
+  providerLogoUrl: string | null;
+
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;
 
@@ -283,6 +290,13 @@ export class LoanProductListItemDto {
   @ApiProperty({ description: '제공 기관명', example: '하나은행' })
   providerName: string;
 
+  @ApiPropertyOptional({
+    description: '제공기관 로고 이미지 URL',
+    example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
+    nullable: true,
+  })
+  providerLogoUrl: string | null;
+
   @ApiPropertyOptional({ description: '금리 범위', example: '3.2% ~ 4.5%', nullable: true })
   rateRange: string | null;
 
@@ -372,6 +386,13 @@ export class LoanProductDetailResultDto {
 
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
+
+  @ApiPropertyOptional({
+    description: '제공기관 로고 이미지 URL',
+    example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
+    nullable: true,
+  })
+  providerLogoUrl: string | null;
 
   @ApiPropertyOptional({ description: '금리 범위', example: '1.5% ~ 2.7%', nullable: true })
   rateRange: string | null;

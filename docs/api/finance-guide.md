@@ -89,6 +89,7 @@
       "providerType": "BANK",
       "productCategory": "JEONSE_LOAN",
       "providerName": "하나은행",
+      "providerLogoUrl": "https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png",
       "rateRange": "3.2% ~ 4.5%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
@@ -103,6 +104,8 @@
   ]
 }
 ```
+
+- `providerLogoUrl`: 제공기관 로고 이미지 URL (nullable). S3에 public-read로 올린 정적 이미지를 가리키며, 신규 컬럼이라 백필 전 기존 로우는 전부 `null`이다.
 
 ### Status
 
@@ -161,6 +164,7 @@
       "providerType": "POLICY",
       "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
+      "providerLogoUrl": "https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hf-fund.png",
       "rateRange": "1.5% ~ 2.7%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
@@ -185,6 +189,7 @@
       "providerType": "POLICY",
       "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
+      "providerLogoUrl": "https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hf-fund.png",
       "rateRange": "1.2% ~ 2.1%",
       "maxIncome": 75000000,
       "firstTimeBuyerOnly": false,
@@ -209,6 +214,7 @@
       "providerType": "POLICY",
       "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
+      "providerLogoUrl": "https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hf-fund.png",
       "rateRange": "1.0% ~ 1.8%",
       "maxIncome": 130000000,
       "firstTimeBuyerOnly": false,
@@ -233,6 +239,7 @@
       "providerType": "POLICY",
       "productCategory": "JEONSE_LOAN",
       "providerName": "주택도시기금",
+      "providerLogoUrl": "https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hf-fund.png",
       "rateRange": "2.3% ~ 3.3%",
       "maxIncome": 50000000,
       "firstTimeBuyerOnly": false,
@@ -312,7 +319,7 @@
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
-목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`, `incomeTaxDeductible`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
+목록 필드(`productCategory`, `providerLogoUrl`, `maxIncome`, `firstTimeBuyerOnly`, `incomeTaxDeductible`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
 
 상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
 
