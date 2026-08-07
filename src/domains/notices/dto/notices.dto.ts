@@ -147,6 +147,9 @@ export class NoticeListItemDto {
   @ApiProperty({ description: '공고 ID', example: 1 })
   noticeId: number;
 
+  @ApiPropertyOptional({ description: '공고 번호', example: '2026-03호', nullable: true })
+  announcementNo: string | null;
+
   @ApiProperty({ description: '공고 제목', example: '강동구 청년안심주택 추가모집' })
   title: string;
 
