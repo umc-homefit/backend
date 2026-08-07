@@ -1,6 +1,35 @@
 import { PrismaService } from '../../prisma/prisma.service';
 import { NoticesService } from './notices.service';
 
+describe('NoticesService 공고 목록', () => {
+  const noticeCount = jest.fn();
+  const findNotices = jest.fn();
+  const transaction = jest.fn();
+  const prisma = {
+    notice: {
+      count: noticeCount,
+      findMany: findNotices,
+    },
+    $transaction: transaction,
+  } as unknown as PrismaService;
+  const service = new NoticesService(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it.each([
+    ['공고번호가 있으면 문자열을', '2026-03호'],
+    ['공고번호가 없으면 null을', null],
+  ])('%s 반환한다', async (_description, announcementNo) => {
+    transaction.mockResolvedValue([1, [createNoticeListRecord(announcementNo)]]);
+
+    const result = await service.getNotices(1n, {});
+
+    expect(result.notices[0].announcementNo).toBe(announcementNo);
+  });
+});
+
 describe('NoticesService 저장 공고 목록', () => {
   const savedNoticeCount = jest.fn();
   const findSavedNotices = jest.fn();
@@ -94,6 +123,47 @@ describe('NoticesService 저장 공고 목록', () => {
     });
   });
 });
+
+function createNoticeListRecord(announcementNo: string | null) {
+  const createdAt = new Date('2026-07-01T00:00:00.000Z');
+
+  return {
+    noticeId: 1n,
+    complexId: 1n,
+    announcementNo,
+    title: '강동구 청년안심주택 추가모집',
+    sourceUrl: 'https://example.com/notices/1',
+    dedupHash: 'notice-list-test',
+    contentHash: null,
+    isAdditionalRecruitment: true,
+    applicationStartAt: null,
+    applicationEndAt: null,
+    rawContent: null,
+    parsedJson: null,
+    lastCrawledAt: null,
+    views: 120,
+    interestedCount: 32,
+    createdAt,
+    updatedAt: createdAt,
+    complex: {
+      complexId: 1n,
+      name: '강동구 청년안심주택',
+      region: '서울',
+      district: '강동구',
+      address: '서울특별시 강동구',
+      sourceUrl: 'https://example.com/complexes/1',
+      isActive: true,
+      crawlEnabled: true,
+      createdAt,
+      updatedAt: createdAt,
+    },
+    units: [],
+    savedNotices: [],
+    _count: {
+      savedNotices: 32,
+    },
+  };
+}
 
 function createSavedNoticeRecord(overrides: {
   announcementNo?: string | null;

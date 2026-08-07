@@ -148,6 +148,7 @@ GET /notices?minArea=20&minDeposit=50000000
     "notices": [
       {
         "noticeId": 1,
+        "announcementNo": "2026-03호",
         "title": "강동구 청년안심주택 2025-03호",
         "region": "서울",
         "district": "강동구",
@@ -171,6 +172,8 @@ GET /notices?minArea=20&minDeposit=50000000
   }
 }
 ```
+
+`announcementNo`는 공고 번호이며 원본 공고에 값이 없으면 `null`을 반환한다.
 
 ### Status
 

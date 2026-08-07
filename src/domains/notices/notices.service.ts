@@ -434,6 +434,7 @@ export class NoticesService {
 
     return {
       noticeId: this.toNumber(notice.noticeId),
+      announcementNo: notice.announcementNo,
       title: notice.title,
       region: notice.complex.region,
       district: notice.complex.district,
