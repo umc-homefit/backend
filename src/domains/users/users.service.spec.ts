@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { MaritalStatus, UpdateConditionProfileRequestDto } from './dto/users.dto';
+import {
+  HousingOwnershipStatus,
+  MaritalStatus,
+  UpdateConditionProfileRequestDto,
+} from './dto/users.dto';
 import { UsersRepository } from './users.repository';
 import { UsersService } from './users.service';
 
@@ -94,5 +98,64 @@ describe('UsersService - MARRIAGE_EXPECTED 혼인일 검증', () => {
       ).rejects.toThrow(BadRequestException);
       expect(repository.upsertConditionProfile).not.toHaveBeenCalled();
     });
+  });
+});
+
+/**
+ * isHomeless는 housingOwnershipStatus와 독립적으로 검증돼 서로 모순된 값(예: OWNED인데
+ * isHomeless=true)이 그대로 저장될 수 있었고, 실제 매칭·입주가능성 판정 로직은 isHomeless만
+ * 참조해 화면 표시(housingOwnershipStatus 기준)와 판정 결과가 어긋나는 문제가 있었다.
+ * 팀 합의(2026-08-06): HOMELESS일 때만 true, 나머지(FAMILY_OWNED/OWNED/UNKNOWN)는 false —
+ * 클라이언트가 보낸 isHomeless 값과 무관하게 서버가 재계산해서 저장해야 한다.
+ */
+describe('UsersService - isHomeless 파생', () => {
+  let service: UsersService;
+  let repository: {
+    findConditionProfileByUserId: jest.Mock;
+    upsertConditionProfile: jest.Mock;
+  };
+
+  /** maritalStatus는 SINGLE로 고정해 혼인일 검증 분기를 안 타게 하고, housingOwnershipStatus/isHomeless만 바꿔본다. */
+  const updateWithHousingStatus = (
+    housingOwnershipStatus: HousingOwnershipStatus,
+    isHomelessInRequest: boolean,
+  ) =>
+    service.updateConditionProfile(1n, {
+      maritalStatus: MaritalStatus.SINGLE,
+      housingOwnershipStatus,
+      isHomeless: isHomelessInRequest,
+    } as UpdateConditionProfileRequestDto);
+
+  beforeEach(() => {
+    repository = {
+      findConditionProfileByUserId: jest.fn().mockResolvedValue(null),
+      upsertConditionProfile: jest.fn().mockResolvedValue({
+        userConditionProfileId: 1n,
+        updatedAt: new Date('2026-08-02T00:00:00Z'),
+      }),
+    };
+    service = new UsersService(repository as unknown as UsersRepository);
+  });
+
+  it('housingOwnershipStatus=HOMELESS면 isHomeless=false를 보내도 true로 저장한다', async () => {
+    await updateWithHousingStatus(HousingOwnershipStatus.HOMELESS, false);
+
+    expect(repository.upsertConditionProfile).toHaveBeenCalledWith(
+      1n,
+      expect.objectContaining({ isHomeless: true }),
+    );
+  });
+
+  it.each([
+    HousingOwnershipStatus.OWNED,
+    HousingOwnershipStatus.FAMILY_OWNED,
+    HousingOwnershipStatus.UNKNOWN,
+  ])('housingOwnershipStatus=%s면 isHomeless=true를 보내도 false로 저장한다', async (status) => {
+    await updateWithHousingStatus(status, true);
+
+    expect(repository.upsertConditionProfile).toHaveBeenCalledWith(
+      1n,
+      expect.objectContaining({ isHomeless: false }),
+    );
   });
 });

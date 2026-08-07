@@ -92,7 +92,13 @@
       "rateRange": "3.2% ~ 4.5%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
-      "maxLimitAmount": 200000000
+      "incomeTaxDeductible": false,
+      "maxLimitAmount": 200000000,
+      "minAge": 19,
+      "maxAge": 34,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null
     }
   ]
 }
@@ -135,6 +141,11 @@
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `providerType` | enum | N | `POLICY` / `BANK` |
+| `productCategory` | enum | N | `MORTGAGE_LOAN` / `JEONSE_LOAN` (청약저축은 매칭 대상이 아니라 `SUBSCRIPTION_SAVINGS`는 허용하지 않음 — 넘기면 `COMMON400`) |
+| `keyword` | string | N | 상품명/취급기관명 부분 검색 |
+| `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
+
+> `productCategory=SUBSCRIPTION_SAVINGS`는 List(`GET /loan-products`)에선 정상 조회되지만 Match에선 애초에 유효값이 아니다 — 청약저축은 나이/소득/자산 매칭 개념 자체가 안 맞아 항상 매칭 후보에서 제외되는데, 예전엔 이 값을 넘겨도 검증을 통과시켜놓고 내부적으로 항상 빈 배열만 반환해 혼란을 줬다. 지금은 DTO 단계에서 `COMMON400`으로 막는다.
 
 ### Response (result)
 
@@ -153,7 +164,13 @@
       "rateRange": "1.5% ~ 2.7%",
       "maxIncome": 60000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 200000000,
+      "minAge": 19,
+      "maxAge": 34,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": false,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -171,7 +188,13 @@
       "rateRange": "1.2% ~ 2.1%",
       "maxIncome": 75000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 300000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": true,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -189,7 +212,13 @@
       "rateRange": "1.0% ~ 1.8%",
       "maxIncome": 130000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 500000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": true,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -207,7 +236,13 @@
       "rateRange": "2.3% ~ 3.3%",
       "maxIncome": 50000000,
       "firstTimeBuyerOnly": false,
+      "incomeTaxDeductible": false,
       "maxLimitAmount": 120000000,
+      "minAge": null,
+      "maxAge": null,
+      "requireNoHouse": true,
+      "minMonthlyDeposit": null,
+      "maxMonthlyDeposit": null,
       "isEligible": false,
       "ageCheckSkipped": false,
       "householdHeadCheckSkipped": false,
@@ -246,7 +281,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 조회 성공 |
-| 400 | 사용자 금융정보 미입력 (`FINANCE400`) |
+| 400 | 잘못된 Query Parameter (`COMMON400`) 또는 사용자 금융정보 미입력 (`FINANCE400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 
 ---
@@ -270,13 +305,14 @@
 | `dtiRatio` | number \| null | DTI 한도(소득 대비 원리금 상환 비율, %). 대출 상품 전용 |
 | `loanTermMinYears` | number \| null | 대출 기간 최소(년) |
 | `loanTermMaxYears` | number \| null | 대출 기간 최대(년) |
-| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p) |
+| `preferentialRateDiscount` | number \| null | 우대금리 최대 할인폭(%p). 생애최초 전용은 `firstTimeBuyerRateDiscount` 참고 |
+| `firstTimeBuyerRateDiscount` | number \| null | 생애최초 구입자 전용 추가 우대금리(%p). `firstTimeBuyerOnly`(자격 조건)와 별개 — 생애최초 전용이 아닌 상품도 값을 가질 수 있음 |
 | `minMonthlyDeposit` | number \| null | 월 최소 납입액 (원 단위). 청약저축 전용 |
 | `maxMonthlyDeposit` | number \| null | 월 최대 납입액 (원 단위). 청약저축 전용 |
 | `officialUrl` | string \| null | 공식 안내 URL |
 | `description` | string \| null | 상품 설명 |
 
-목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`)도 상세 응답에 동일하게 포함된다.
+목록 필드(`productCategory`, `maxIncome`, `firstTimeBuyerOnly`, `incomeTaxDeductible`, `minAge`, `maxAge`, `requireNoHouse`)도 상세 응답에 동일하게 포함된다.
 
 상품이 존재하지 않으면 아래 형식으로 404를 반환한다.
 

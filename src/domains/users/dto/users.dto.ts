@@ -31,6 +31,18 @@ export enum HouseholdHeadStatus {
   MEMBER = 'MEMBER',
 }
 
+/**
+ * user_condition_profiles.housing_ownership_status도 동일하게 VARCHAR + 주석 컨벤션.
+ * 의미는 ERD 원문 주석엔 없고, 실제 상품 조건 비교(신청인 단독 기준 vs 배우자 합산 기준으로
+ * 무주택 판정 범위가 다른 상품이 실재함)로 추정한 해석 — 기획 최종 확인 필요.
+ */
+export enum HousingOwnershipStatus {
+  UNKNOWN = 'UNKNOWN',
+  HOMELESS = 'HOMELESS', // 본인·가족 모두 무주택(완전 무주택)
+  FAMILY_OWNED = 'FAMILY_OWNED', // 본인은 무주택이나 배우자·가족 명의로 유주택
+  OWNED = 'OWNED', // 본인이 직접 유주택
+}
+
 // 1. 프로필 수정 요청 DTO
 export class UpdateProfileRequestDto {
   @ApiPropertyOptional({ description: '수정할 닉네임', example: '홈핏유저', nullable: true })
@@ -93,12 +105,20 @@ export class UpdateConditionProfileRequestDto {
   @Min(0)
   monthlyDebtPaymentAmount: number;
 
-  @ApiProperty({ description: '보유 현금', example: 20000000 })
+  @ApiProperty({
+    description: '보유 현금. 예금·적금 등을 포함한 금융자산 개념 — 단순 시재 현금이 아님',
+    example: 20000000,
+  })
   @IsInt()
   @Min(0)
   cashSavings: number;
 
-  @ApiProperty({ description: '무주택 여부', example: true })
+  @ApiProperty({
+    description:
+      '무주택 여부. 참고용 입력이며 실제 저장 값은 서버가 housingOwnershipStatus 기준으로 재계산한다 ' +
+      "(housingOwnershipStatus='HOMELESS'일 때만 true로 저장, 그 외엔 이 값과 무관하게 false)",
+    example: true,
+  })
   @IsBoolean()
   isHomeless: boolean;
 
@@ -112,9 +132,17 @@ export class UpdateConditionProfileRequestDto {
   @IsString()
   workplaceRegionCode?: string;
 
-  @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
-  @IsString()
-  housingOwnershipStatus: string;
+  @ApiProperty({
+    description:
+      "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
+    enum: HousingOwnershipStatus,
+    example: HousingOwnershipStatus.HOMELESS,
+  })
+  @IsEnum(HousingOwnershipStatus, {
+    message:
+      'housingOwnershipStatus는 반드시 다음 중 하나여야합니다 : UNKNOWN, HOMELESS, FAMILY_OWNED, OWNED',
+  })
+  housingOwnershipStatus: HousingOwnershipStatus;
 
   @ApiPropertyOptional({
     description: '혼인 상태',
@@ -269,11 +297,19 @@ export class ConditionProfileResultDto {
   @ApiProperty({ description: '월 상환액', example: 400000 })
   monthlyDebtPaymentAmount: number;
 
-  @ApiProperty({ description: '보유 현금', example: 20000000 })
+  @ApiProperty({
+    description: '보유 현금. 예금·적금 등을 포함한 금융자산 개념 — 단순 시재 현금이 아님',
+    example: 20000000,
+  })
   cashSavings: number;
 
-  @ApiProperty({ description: '주택 소유 상태', example: 'HOMELESS' })
-  housingOwnershipStatus: string;
+  @ApiProperty({
+    description:
+      "주택 소유 상태. 'HOMELESS'=본인·가족 모두 무주택(완전 무주택) / 'FAMILY_OWNED'=본인은 무주택이나 배우자·가족 명의로 유주택 / 'OWNED'=본인이 직접 유주택 / 'UNKNOWN'=미입력. 실제 상품 조건 비교로 추정한 해석 — 기획 최종 확인 필요",
+    enum: HousingOwnershipStatus,
+    example: HousingOwnershipStatus.HOMELESS,
+  })
+  housingOwnershipStatus: HousingOwnershipStatus;
 
   @ApiProperty({ description: '무주택 여부', example: true })
   isHomeless: boolean;
