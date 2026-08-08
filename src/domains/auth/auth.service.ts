@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma, UserProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { generateRandomNickname } from '../../common/utils/nickname-generator';
 import { AuthRepository } from './auth.repository';
 import {
   AuthResultDto,
@@ -11,7 +12,6 @@ import {
   SocialAuthRequestDto,
 } from './dto/auth.dto';
 import { SocialTokenVerifierService } from './services/social-token-verifier.service';
-import { UsersService } from '../users/users.service';
 
 const SALT_ROUNDS = 10;
 
@@ -21,7 +21,6 @@ export class AuthService {
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly socialTokenVerifier: SocialTokenVerifierService,
-    private readonly usersService: UsersService,
   ) {}
 
   async signup(dto: SignupRequestDto): Promise<AuthResultDto> {
@@ -34,8 +33,12 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = await this.authRepository.createEmailUser(dto.email, hashedPassword);
-    await this.usersService.createDefaultProfile(user.userId);
+    // User + 기본 프로필(랜덤 닉네임)을 nested create로 한 번에 원자적으로 생성한다.
+    const user = await this.authRepository.createEmailUser(
+      dto.email,
+      hashedPassword,
+      generateRandomNickname(),
+    );
 
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
@@ -93,13 +96,17 @@ export class AuthService {
       }
 
       try {
+        // User + 기본 프로필을 nested create로 한 번에 원자적으로 생성한다.
+        // 이 호출 하나가 통째로 실패/성공하므로, 아래 catch의 P2002는 오직
+        // User 테이블의 UNIQUE 제약(email, provider+providerId) 위반일 때만 발생한다 —
+        // 프로필 쪽 문제를 "이미 가입된 유저"로 오인할 여지가 없다.
         user = await this.authRepository.createSocialUser(
           provider,
           verified.providerId,
           verified.email,
+          generateRandomNickname(),
         );
         isNewUser = true;
-        await this.usersService.createDefaultProfile(user.userId);
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
           // DB가 email과 (provider, providerId) 중 어떤 UNIQUE 제약을 먼저 보고했는지는
