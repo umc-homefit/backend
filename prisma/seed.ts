@@ -1,9 +1,17 @@
 import { createHash } from 'node:crypto';
 
-import { NoticeConditionTargetType, NoticeFileType, Prisma, PrismaClient } from '@prisma/client';
+import {
+  LoanProviderType,
+  NoticeConditionTargetType,
+  NoticeFileType,
+  Prisma,
+  PrismaClient,
+  ProductCategory,
+} from '@prisma/client';
 
 export const NOTICE_SEED_OPT_IN_ENV = 'HOMEFIT_NOTICE_SEED';
 export const NOTICE_SEED_PREFIX = 'homefit-test:notice-seed:v1:';
+export const LOAN_PRODUCT_SEED_OPT_IN_ENV = 'HOMEFIT_LOAN_PRODUCT_SEED';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -464,15 +472,154 @@ export async function runNoticeSeed(
   return result;
 }
 
+/**
+ * loan_products는 (providerName, productName, guaranteeRatio) 복합 unique 제약이 있지만
+ * guaranteeRatio가 nullable이라 Postgres는 NULL끼리 서로 다르다고 취급한다. Prisma의
+ * upsert()가 내부적으로 INSERT ... ON CONFLICT를 쓰면 guaranteeRatio가 NULL인 행끼리는
+ * 충돌로 감지되지 않아 반복 실행 시 중복이 생길 수 있다(실제로 겪었던 문제).
+ * 그래서 upsert() 대신 findMany로 먼저 찾아본 뒤 직접 create/update를 분기한다
+ * (위 upsertComplex와 동일한 패턴).
+ */
+type LoanProductSeed = {
+  key: string;
+  productName: string;
+  providerType: LoanProviderType;
+  providerName: string;
+  productCategory: ProductCategory;
+  minRate: number;
+  maxRate: number;
+  maxLimitAmount: bigint;
+  minAge: number | null;
+  maxAge: number | null;
+  maxIncome: bigint | null;
+  maxAsset: bigint | null;
+  requireNoHouse: boolean | null;
+  firstTimeBuyerOnly: boolean;
+  incomeTaxDeductible: boolean;
+  loanTermMinYears: number | null;
+  loanTermMaxYears: number | null;
+  officialUrl: string;
+  providerLogoUrl: string | null;
+  description: string;
+};
+
+const LOAN_PRODUCTS: LoanProductSeed[] = [
+  {
+    key: 'hana-bank-jeonse',
+    productName: '[TEST] 하나은행 청년 전세자금대출',
+    providerType: LoanProviderType.BANK,
+    providerName: '하나은행',
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 3.2,
+    maxRate: 4.5,
+    maxLimitAmount: 200_000_000n,
+    minAge: 19,
+    maxAge: 34,
+    maxIncome: 60_000_000n,
+    maxAsset: null,
+    requireNoHouse: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: false,
+    loanTermMinYears: null,
+    loanTermMaxYears: null,
+    officialUrl: 'https://www.kebhana.com',
+    // 로고 이미지 URL 미확보 상태 — 실제 이미지를 확보하기 전까지는 null 유지.
+    providerLogoUrl: null,
+    description: '[TEST DATA] providerLogoUrl 응답 확인용 가상 상품입니다. 실제 대출 상품이 아닙니다.',
+  },
+  {
+    key: 'hf-fund-jeonse',
+    productName: '[TEST] 청년전용 버팀목전세자금',
+    providerType: LoanProviderType.POLICY,
+    providerName: '주택도시기금',
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 1.5,
+    maxRate: 2.7,
+    maxLimitAmount: 200_000_000n,
+    minAge: 19,
+    maxAge: 34,
+    maxIncome: 60_000_000n,
+    maxAsset: 320_000_000n,
+    requireNoHouse: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: true,
+    loanTermMinYears: 2,
+    loanTermMaxYears: 10,
+    officialUrl: 'https://nhuf.molit.go.kr',
+    providerLogoUrl:
+      'https://i.namu.wiki/i/tDsletACkcsTWUh0TVlPHOw9WADNz3swwgAYWRgLDNlsy4eVUYCZW7uRgS9HMxYqFy4rsPLEqO4iB65nz0TNLc89TiMQo6KS3ojNgwbVVtahfbcx8mIH6S5WDpsAuh2b9Z9xkCqxJyrB6EVcHzmbbw.svg',
+    description: '[TEST DATA] providerLogoUrl 응답 확인용 가상 상품입니다. 실제 대출 상품이 아닙니다.',
+  },
+];
+
+async function upsertLoanProduct(tx: Prisma.TransactionClient, seed: LoanProductSeed): Promise<void> {
+  const existing = await tx.loanProduct.findMany({
+    where: { providerName: seed.providerName, productName: seed.productName },
+    select: { productId: true },
+    orderBy: { productId: 'asc' },
+  });
+
+  if (existing.length > 1) {
+    throw new Error(
+      `Seed 대상 금융상품이 이미 중복 존재합니다. 먼저 정리해주세요: ${seed.providerName} / ${seed.productName}`,
+    );
+  }
+
+  const data: Prisma.LoanProductUncheckedUpdateInput = {
+    productName: seed.productName,
+    providerType: seed.providerType,
+    providerName: seed.providerName,
+    productCategory: seed.productCategory,
+    minRate: seed.minRate,
+    maxRate: seed.maxRate,
+    maxLimitAmount: seed.maxLimitAmount,
+    minAge: seed.minAge,
+    maxAge: seed.maxAge,
+    maxIncome: seed.maxIncome,
+    maxAsset: seed.maxAsset,
+    requireNoHouse: seed.requireNoHouse,
+    firstTimeBuyerOnly: seed.firstTimeBuyerOnly,
+    incomeTaxDeductible: seed.incomeTaxDeductible,
+    loanTermMinYears: seed.loanTermMinYears,
+    loanTermMaxYears: seed.loanTermMaxYears,
+    officialUrl: seed.officialUrl,
+    providerLogoUrl: seed.providerLogoUrl,
+    description: seed.description,
+  };
+
+  if (existing[0]) {
+    await tx.loanProduct.update({ where: { productId: existing[0].productId }, data });
+  } else {
+    await tx.loanProduct.create({ data: data as Prisma.LoanProductUncheckedCreateInput });
+  }
+}
+
+export async function runLoanProductSeed(
+  prisma: PrismaClient,
+  log: (message: string) => void = console.log,
+): Promise<void> {
+  await prisma.$transaction(
+    async (tx) => {
+      for (const seed of LOAN_PRODUCTS) {
+        await upsertLoanProduct(tx, seed);
+      }
+    },
+    { maxWait: 10_000, timeout: 60_000 },
+  );
+  log(`[loan-product-seed] 완료: ${LOAN_PRODUCTS.length}건 upsert`);
+}
+
 function validateCliSafety(): void {
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('NODE_ENV=production에서는 Notice Seed 실행을 거부합니다.');
-  }
-  if (process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true') {
-    throw new Error(`${NOTICE_SEED_OPT_IN_ENV}=true를 명시해야 Notice Seed를 실행할 수 있습니다.`);
+    throw new Error('NODE_ENV=production에서는 Seed 실행을 거부합니다.');
   }
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL이 설정되지 않았습니다. 대상 DB를 먼저 확인해주세요.');
+  }
+  if (process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true' && process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] !== 'true') {
+    throw new Error(
+      `${NOTICE_SEED_OPT_IN_ENV}=true 또는 ${LOAN_PRODUCT_SEED_OPT_IN_ENV}=true 중 최소 하나는 명시해야 Seed를 실행할 수 있습니다.`,
+    );
   }
 }
 
@@ -485,11 +632,16 @@ function describeDatabaseTarget(databaseUrl: string): string {
 async function main(): Promise<void> {
   validateCliSafety();
   const databaseUrl = process.env.DATABASE_URL as string;
-  console.log(`[notice-seed] 대상 DB: ${describeDatabaseTarget(databaseUrl)}`);
+  console.log(`[seed] 대상 DB: ${describeDatabaseTarget(databaseUrl)}`);
 
   const prisma = new PrismaClient();
   try {
-    await runNoticeSeed(prisma);
+    if (process.env[NOTICE_SEED_OPT_IN_ENV] === 'true') {
+      await runNoticeSeed(prisma);
+    }
+    if (process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] === 'true') {
+      await runLoanProductSeed(prisma);
+    }
   } finally {
     await prisma.$disconnect();
   }
