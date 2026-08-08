@@ -31,7 +31,9 @@ import {
   LoanProductListResultDto,
   LoanProductSort,
   LoanProviderType,
+  MatchableProductCategory,
   MatchedLoanProductDto,
+  MatchLoanProductsQueryDto,
   MatchLoanProductsResultDto,
   ProductCategory,
   RequiredDocumentItemDto,
@@ -100,9 +102,9 @@ export class FinanceService {
    */
   async matchLoanProducts(
     userId: bigint,
-    providerType: LoanProviderType | undefined,
+    query: MatchLoanProductsQueryDto,
   ): Promise<MatchLoanProductsResultDto> {
-    // where절이 providerType(파라미터)에만 의존하고 프로필 조회 결과와 무관하므로,
+    // where절이 query(파라미터)에만 의존하고 프로필 조회 결과와 무관하므로,
     // 세 쿼리를 순차 대기시키지 않고 한 번에 병렬로 실행한다.
     const where: Prisma.LoanProductWhereInput = {
       AND: [
@@ -112,14 +114,17 @@ export class FinanceService {
             { productCategory: { not: ProductCategory.SUBSCRIPTION_SAVINGS } },
           ],
         },
-        ...(providerType ? [{ providerType }] : []),
+        ...this.buildProductFilterConditions(query),
       ],
     };
 
     const [conditionProfile, userProfile, products] = await Promise.all([
       this.financeRepository.findUserConditionProfileByUserId(userId),
       this.financeRepository.findUserProfileByUserId(userId),
-      this.financeRepository.findLoanProductsForMatch(where),
+      this.financeRepository.findLoanProductsForMatch(
+        where,
+        this.buildLoanProductOrderBy(query.sort),
+      ),
     ]);
 
     if (!conditionProfile) {
@@ -207,7 +212,15 @@ export class FinanceService {
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
+      incomeTaxDeductible: product.incomeTaxDeductible,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
+      minMonthlyDeposit:
+        product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
+      maxMonthlyDeposit:
+        product.maxMonthlyDeposit === null ? null : Number(product.maxMonthlyDeposit),
       isEligible,
       ageCheckSkipped,
       householdHeadCheckSkipped: householdHead.skipped,
@@ -401,18 +414,7 @@ export class FinanceService {
   async getLoanProducts(query: GetLoanProductsQueryDto): Promise<LoanProductListResultDto> {
     const page = query.page ?? 0;
     const size = query.size ?? 20;
-    const where: Prisma.LoanProductWhereInput = {
-      ...(query.providerType ? { providerType: query.providerType } : {}),
-      ...(query.productCategory ? { productCategory: query.productCategory } : {}),
-      ...(query.keyword
-        ? {
-            OR: [
-              { productName: { contains: query.keyword, mode: 'insensitive' } },
-              { providerName: { contains: query.keyword, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    };
+    const where: Prisma.LoanProductWhereInput = { AND: this.buildProductFilterConditions(query) };
 
     const [products, totalElements] = await Promise.all([
       this.financeRepository.findLoanProducts({
@@ -494,6 +496,32 @@ export class FinanceService {
     };
   }
 
+  /** GET /loan-products와 GET /loan-products/match가 공유하는 providerType/productCategory/keyword 필터. */
+  private buildProductFilterConditions(query: {
+    providerType?: LoanProviderType;
+    // Match(loan-products/match)는 SUBSCRIPTION_SAVINGS를 뺀 MatchableProductCategory를 넘길 수 있어
+    // 두 타입을 함께 받는다. 문자열 값 자체는 ProductCategory의 부분집합이라 캐스팅은 안전하다.
+    productCategory?: ProductCategory | MatchableProductCategory;
+    keyword?: string;
+  }): Prisma.LoanProductWhereInput[] {
+    return [
+      ...(query.providerType ? [{ providerType: query.providerType }] : []),
+      ...(query.productCategory
+        ? [{ productCategory: query.productCategory as ProductCategory }]
+        : []),
+      ...(query.keyword
+        ? [
+            {
+              OR: [
+                { productName: { contains: query.keyword, mode: 'insensitive' as const } },
+                { providerName: { contains: query.keyword, mode: 'insensitive' as const } },
+              ],
+            },
+          ]
+        : []),
+    ];
+  }
+
   private buildLoanProductOrderBy(
     sort: LoanProductSort | undefined,
   ): Prisma.LoanProductOrderByWithRelationInput[] {
@@ -520,7 +548,15 @@ export class FinanceService {
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
+      incomeTaxDeductible: product.incomeTaxDeductible,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
+      minMonthlyDeposit:
+        product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
+      maxMonthlyDeposit:
+        product.maxMonthlyDeposit === null ? null : Number(product.maxMonthlyDeposit),
     };
   }
 
@@ -534,13 +570,21 @@ export class FinanceService {
       rateRange: this.formatRateRange(product.minRate, product.maxRate),
       maxIncome: product.maxIncome === null ? null : Number(product.maxIncome),
       firstTimeBuyerOnly: product.firstTimeBuyerOnly,
+      incomeTaxDeductible: product.incomeTaxDeductible,
       maxLimitAmount: product.maxLimitAmount === null ? null : Number(product.maxLimitAmount),
+      minAge: product.minAge,
+      maxAge: product.maxAge,
+      requireNoHouse: product.requireNoHouse,
       ltvRatio: product.ltvRatio,
       dtiRatio: product.dtiRatio,
       loanTermMinYears: product.loanTermMinYears,
       loanTermMaxYears: product.loanTermMaxYears,
       preferentialRateDiscount:
         product.preferentialRateDiscount === null ? null : Number(product.preferentialRateDiscount),
+      firstTimeBuyerRateDiscount:
+        product.firstTimeBuyerRateDiscount === null
+          ? null
+          : Number(product.firstTimeBuyerRateDiscount),
       minMonthlyDeposit:
         product.minMonthlyDeposit === null ? null : Number(product.minMonthlyDeposit),
       maxMonthlyDeposit:

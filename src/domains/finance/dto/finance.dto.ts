@@ -28,6 +28,16 @@ export enum LoanProductSort {
   LIMIT_DESC = 'LIMIT_DESC',
 }
 
+/**
+ * 매칭(loan-products/match) 전용 카테고리 값. SUBSCRIPTION_SAVINGS는 매칭 로직이 항상
+ * 하드 제외하므로(청약저축은 보증금 마련 목적이 아님) 애초에 유효값 목록에서 뺀다 —
+ * 넣으면 where절이 자기모순(AND에 배제 조건과 일치 조건이 동시에 들어감)이 되어 조용히 빈 배열만 반환되던 문제.
+ */
+export enum MatchableProductCategory {
+  MORTGAGE_LOAN = 'MORTGAGE_LOAN',
+  JEONSE_LOAN = 'JEONSE_LOAN',
+}
+
 export class MatchLoanProductsQueryDto {
   @ApiPropertyOptional({
     description: '상품 제공 유형',
@@ -39,6 +49,33 @@ export class MatchLoanProductsQueryDto {
     message: 'providerType은 반드시 다음 중 하나여야합니다 : POLICY, BANK',
   })
   providerType?: LoanProviderType;
+
+  @ApiPropertyOptional({
+    description: '상품 카테고리 (청약저축은 매칭 대상이 아니라 허용되지 않음)',
+    enum: MatchableProductCategory,
+  })
+  @IsOptional()
+  @IsEnum(MatchableProductCategory, {
+    message: 'productCategory는 반드시 다음 중 하나여야합니다 : MORTGAGE_LOAN, JEONSE_LOAN',
+  })
+  productCategory?: MatchableProductCategory;
+
+  @ApiPropertyOptional({ description: '상품명/취급기관명 검색어 (부분 검색)', example: '버팀목' })
+  @IsOptional()
+  @IsString({ message: 'keyword는 문자열이어야 합니다.' })
+  keyword?: string;
+
+  @ApiPropertyOptional({
+    description: '정렬 기준',
+    enum: LoanProductSort,
+    default: LoanProductSort.RECOMMENDED,
+    example: LoanProductSort.RECOMMENDED,
+  })
+  @IsOptional()
+  @IsEnum(LoanProductSort, {
+    message: 'sort는 반드시 다음 중 하나여야합니다 : RECOMMENDED, LATEST, RATE_ASC, LIMIT_DESC',
+  })
+  sort?: LoanProductSort = LoanProductSort.RECOMMENDED;
 }
 
 export class MatchedLoanProductDto {
@@ -79,8 +116,34 @@ export class MatchedLoanProductDto {
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
 
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '월 최소 납입액 (원 단위). 청약저축 전용',
+    example: 20000,
+    nullable: true,
+  })
+  minMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최대 납입액 (원 단위). 청약저축 전용',
+    example: 500000,
+    nullable: true,
+  })
+  maxMonthlyDeposit: number | null;
 
   @ApiProperty({ description: '사용자 조건 대비 자격 충족 여부', example: true })
   isEligible: boolean;
@@ -233,8 +296,34 @@ export class LoanProductListItemDto {
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
 
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
+
+  @ApiPropertyOptional({
+    description: '월 최소 납입액 (원 단위). 청약저축 전용',
+    example: 20000,
+    nullable: true,
+  })
+  minMonthlyDeposit: number | null;
+
+  @ApiPropertyOptional({
+    description: '월 최대 납입액 (원 단위). 청약저축 전용',
+    example: 500000,
+    nullable: true,
+  })
+  maxMonthlyDeposit: number | null;
 }
 
 export class LoanProductListResultDto {
@@ -297,8 +386,20 @@ export class LoanProductDetailResultDto {
   @ApiPropertyOptional({ description: '생애최초 전용 여부', example: false, nullable: true })
   firstTimeBuyerOnly: boolean | null;
 
+  @ApiPropertyOptional({ description: '소득공제 여부', example: false, nullable: true })
+  incomeTaxDeductible: boolean | null;
+
   @ApiPropertyOptional({ description: '최대 한도 (원 단위)', example: 200000000, nullable: true })
   maxLimitAmount: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 하한 (세)', example: 19, nullable: true })
+  minAge: number | null;
+
+  @ApiPropertyOptional({ description: '나이 조건 상한 (세)', example: 34, nullable: true })
+  maxAge: number | null;
+
+  @ApiPropertyOptional({ description: '무주택 조건 여부', example: true, nullable: true })
+  requireNoHouse: boolean | null;
 
   @ApiPropertyOptional({
     description: 'LTV 한도(담보가치 대비 대출 비율, %). 대출 상품 전용',
@@ -321,11 +422,19 @@ export class LoanProductDetailResultDto {
   loanTermMaxYears: number | null;
 
   @ApiPropertyOptional({
-    description: '우대금리 최대 할인폭(%p)',
+    description: '우대금리 최대 할인폭(%p). 생애최초 전용 우대금리는 firstTimeBuyerRateDiscount 참고',
     example: 0.5,
     nullable: true,
   })
   preferentialRateDiscount: number | null;
+
+  @ApiPropertyOptional({
+    description:
+      '생애최초 구입자 전용 추가 우대금리(%p). firstTimeBuyerOnly(자격 조건)와 별개 — 생애최초 전용이 아닌 상품도 값을 가질 수 있음',
+    example: 0.1,
+    nullable: true,
+  })
+  firstTimeBuyerRateDiscount: number | null;
 
   @ApiPropertyOptional({
     description: '월 최소 납입액 (원 단위). 청약저축 전용',
