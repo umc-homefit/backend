@@ -12,6 +12,8 @@ import { NoticeStatus } from '../../notices/dto/notices.dto';
 
 export { EligibilityConditionCode, EligibilityConditionResultStatus, EligibilityResultLevel };
 
+export const MVP_SUPPLY_TYPE = '청년안심주택' as const;
+
 export class EligibilityConditionResultDto {
   @ApiProperty({
     description: '조건 코드',
@@ -89,6 +91,12 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
 
   @ApiProperty({ description: '주택 ID', example: 3 })
   unitId: number;
+
+  @ApiProperty({
+    description: '분석 대상 공급 유형 (MVP는 청년안심주택으로 고정)',
+    example: MVP_SUPPLY_TYPE,
+  })
+  supplyType: typeof MVP_SUPPLY_TYPE;
 
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;

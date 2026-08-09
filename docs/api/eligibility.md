@@ -115,6 +115,7 @@
 | --------------------------- | ------ | ----------- |
 | `noticeId`                  | number | 공고 ID     |
 | `unitId`                    | number | 주택형 ID   |
+| `supplyType`                | string | 공급 유형. MVP는 `청년안심주택`으로 고정 |
 | `expectedDepositAmount`     | number | 예상 보증금 |
 | `expectedMonthlyRentAmount` | number | 예상 월세   |
 | `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null) |
