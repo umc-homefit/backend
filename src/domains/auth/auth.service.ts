@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma, UserProvider } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
+import { generateRandomNickname } from '../../common/utils/nickname-generator';
 import { AuthRepository } from './auth.repository';
 import {
   AuthResultDto,
@@ -32,7 +33,12 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = await this.authRepository.createEmailUser(dto.email, hashedPassword);
+    // User + 기본 프로필(랜덤 닉네임)을 nested create로 한 번에 원자적으로 생성한다.
+    const user = await this.authRepository.createEmailUser(
+      dto.email,
+      hashedPassword,
+      generateRandomNickname(),
+    );
 
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
@@ -90,10 +96,15 @@ export class AuthService {
       }
 
       try {
+        // User + 기본 프로필을 nested create로 한 번에 원자적으로 생성한다.
+        // 이 호출 하나가 통째로 실패/성공하므로, 아래 catch의 P2002는 오직
+        // User 테이블의 UNIQUE 제약(email, provider+providerId) 위반일 때만 발생한다 —
+        // 프로필 쪽 문제를 "이미 가입된 유저"로 오인할 여지가 없다.
         user = await this.authRepository.createSocialUser(
           provider,
           verified.providerId,
           verified.email,
+          generateRandomNickname(),
         );
         isNewUser = true;
       } catch (error) {
