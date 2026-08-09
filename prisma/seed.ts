@@ -1,13 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import {
-  LoanProviderType,
-  NoticeConditionTargetType,
-  NoticeFileType,
-  Prisma,
-  PrismaClient,
-  ProductCategory,
-} from '@prisma/client';
+import { NoticeConditionTargetType, NoticeFileType, Prisma, PrismaClient } from '@prisma/client';
 
 export const NOTICE_SEED_OPT_IN_ENV = 'HOMEFIT_NOTICE_SEED';
 export const NOTICE_SEED_PREFIX = 'homefit-test:notice-seed:v1:';
@@ -473,125 +466,49 @@ export async function runNoticeSeed(
 }
 
 /**
- * loan_products는 (providerName, productName, guaranteeRatio) 복합 unique 제약이 있지만
- * guaranteeRatio가 nullable이라 Postgres는 NULL끼리 서로 다르다고 취급한다. Prisma의
- * upsert()가 내부적으로 INSERT ... ON CONFLICT를 쓰면 guaranteeRatio가 NULL인 행끼리는
- * 충돌로 감지되지 않아 반복 실행 시 중복이 생길 수 있다(실제로 겪었던 문제).
- * 그래서 upsert() 대신 findMany로 먼저 찾아본 뒤 직접 create/update를 분기한다
- * (위 upsertComplex와 동일한 패턴).
+ * 로고 검증을 위해 신규 상품을 만들지 않는다 — Railway의 기존 금융상품 4건(전부 주택도시기금)은
+ * 프론트 연동 테스트가 matchedCount=4/0 기준으로 이미 의존 중이라, 상품을 새로 추가하면
+ * 그 기준이 깨진다(리뷰 피드백 반영). 그래서 기존 상품을 (providerName, productName)으로
+ * 찾아 providerLogoUrl만 갱신하고, 못 찾으면 새로 만들지 않고 에러를 낸다.
+ * 실제 로고 이미지가 준비되기 전까지는 외부 이미지를 핫링크하지 않고 null로 유지한다.
  */
-type LoanProductSeed = {
-  key: string;
-  productName: string;
-  providerType: LoanProviderType;
+type LoanProductLogoBackfill = {
   providerName: string;
-  productCategory: ProductCategory;
-  minRate: number;
-  maxRate: number;
-  maxLimitAmount: bigint;
-  minAge: number | null;
-  maxAge: number | null;
-  maxIncome: bigint | null;
-  maxAsset: bigint | null;
-  requireNoHouse: boolean | null;
-  firstTimeBuyerOnly: boolean;
-  incomeTaxDeductible: boolean;
-  loanTermMinYears: number | null;
-  loanTermMaxYears: number | null;
-  officialUrl: string;
+  productName: string;
   providerLogoUrl: string | null;
-  description: string;
 };
 
-const LOAN_PRODUCTS: LoanProductSeed[] = [
-  {
-    key: 'hana-bank-jeonse',
-    productName: '[TEST] 하나은행 청년 전세자금대출',
-    providerType: LoanProviderType.BANK,
-    providerName: '하나은행',
-    productCategory: ProductCategory.JEONSE_LOAN,
-    minRate: 3.2,
-    maxRate: 4.5,
-    maxLimitAmount: 200_000_000n,
-    minAge: 19,
-    maxAge: 34,
-    maxIncome: 60_000_000n,
-    maxAsset: null,
-    requireNoHouse: true,
-    firstTimeBuyerOnly: false,
-    incomeTaxDeductible: false,
-    loanTermMinYears: null,
-    loanTermMaxYears: null,
-    officialUrl: 'https://www.kebhana.com',
-    // 로고 이미지 URL 미확보 상태 — 실제 이미지를 확보하기 전까지는 null 유지.
-    providerLogoUrl: null,
-    description: '[TEST DATA] providerLogoUrl 응답 확인용 가상 상품입니다. 실제 대출 상품이 아닙니다.',
-  },
-  {
-    key: 'hf-fund-jeonse',
-    productName: '[TEST] 청년전용 버팀목전세자금',
-    providerType: LoanProviderType.POLICY,
-    providerName: '주택도시기금',
-    productCategory: ProductCategory.JEONSE_LOAN,
-    minRate: 1.5,
-    maxRate: 2.7,
-    maxLimitAmount: 200_000_000n,
-    minAge: 19,
-    maxAge: 34,
-    maxIncome: 60_000_000n,
-    maxAsset: 320_000_000n,
-    requireNoHouse: true,
-    firstTimeBuyerOnly: false,
-    incomeTaxDeductible: true,
-    loanTermMinYears: 2,
-    loanTermMaxYears: 10,
-    officialUrl: 'https://nhuf.molit.go.kr',
-    providerLogoUrl:
-      'https://i.namu.wiki/i/tDsletACkcsTWUh0TVlPHOw9WADNz3swwgAYWRgLDNlsy4eVUYCZW7uRgS9HMxYqFy4rsPLEqO4iB65nz0TNLc89TiMQo6KS3ojNgwbVVtahfbcx8mIH6S5WDpsAuh2b9Z9xkCqxJyrB6EVcHzmbbw.svg',
-    description: '[TEST DATA] providerLogoUrl 응답 확인용 가상 상품입니다. 실제 대출 상품이 아닙니다.',
-  },
+const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
+  { providerName: '주택도시기금', productName: '청년전용 버팀목전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '일반 버팀목전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '신혼부부전용 전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '신생아 특례 버팀목전세자금', providerLogoUrl: null },
 ];
 
-async function upsertLoanProduct(tx: Prisma.TransactionClient, seed: LoanProductSeed): Promise<void> {
+async function backfillLoanProductLogo(
+  tx: Prisma.TransactionClient,
+  item: LoanProductLogoBackfill,
+): Promise<void> {
   const existing = await tx.loanProduct.findMany({
-    where: { providerName: seed.providerName, productName: seed.productName },
+    where: { providerName: item.providerName, productName: item.productName },
     select: { productId: true },
-    orderBy: { productId: 'asc' },
   });
 
+  if (existing.length === 0) {
+    throw new Error(
+      `백필 대상 금융상품을 찾을 수 없습니다. 신규 생성은 하지 않으므로 상품명을 먼저 확인해주세요: ${item.providerName} / ${item.productName}`,
+    );
+  }
   if (existing.length > 1) {
     throw new Error(
-      `Seed 대상 금융상품이 이미 중복 존재합니다. 먼저 정리해주세요: ${seed.providerName} / ${seed.productName}`,
+      `백필 대상 금융상품이 중복 존재합니다. 먼저 정리해주세요: ${item.providerName} / ${item.productName}`,
     );
   }
 
-  const data: Prisma.LoanProductUncheckedUpdateInput = {
-    productName: seed.productName,
-    providerType: seed.providerType,
-    providerName: seed.providerName,
-    productCategory: seed.productCategory,
-    minRate: seed.minRate,
-    maxRate: seed.maxRate,
-    maxLimitAmount: seed.maxLimitAmount,
-    minAge: seed.minAge,
-    maxAge: seed.maxAge,
-    maxIncome: seed.maxIncome,
-    maxAsset: seed.maxAsset,
-    requireNoHouse: seed.requireNoHouse,
-    firstTimeBuyerOnly: seed.firstTimeBuyerOnly,
-    incomeTaxDeductible: seed.incomeTaxDeductible,
-    loanTermMinYears: seed.loanTermMinYears,
-    loanTermMaxYears: seed.loanTermMaxYears,
-    officialUrl: seed.officialUrl,
-    providerLogoUrl: seed.providerLogoUrl,
-    description: seed.description,
-  };
-
-  if (existing[0]) {
-    await tx.loanProduct.update({ where: { productId: existing[0].productId }, data });
-  } else {
-    await tx.loanProduct.create({ data: data as Prisma.LoanProductUncheckedCreateInput });
-  }
+  await tx.loanProduct.update({
+    where: { productId: existing[0].productId },
+    data: { providerLogoUrl: item.providerLogoUrl },
+  });
 }
 
 export async function runLoanProductSeed(
@@ -600,13 +517,13 @@ export async function runLoanProductSeed(
 ): Promise<void> {
   await prisma.$transaction(
     async (tx) => {
-      for (const seed of LOAN_PRODUCTS) {
-        await upsertLoanProduct(tx, seed);
+      for (const item of LOAN_PRODUCT_LOGO_BACKFILLS) {
+        await backfillLoanProductLogo(tx, item);
       }
     },
     { maxWait: 10_000, timeout: 60_000 },
   );
-  log(`[loan-product-seed] 완료: ${LOAN_PRODUCTS.length}건 upsert`);
+  log(`[loan-product-logo-backfill] 완료: ${LOAN_PRODUCT_LOGO_BACKFILLS.length}건 업데이트`);
 }
 
 function validateCliSafety(): void {
@@ -649,7 +566,7 @@ async function main(): Promise<void> {
 
 if (require.main === module) {
   void main().catch((error: unknown) => {
-    console.error('[notice-seed] 실패', error);
+    console.error('[seed] 실패', error);
     process.exitCode = 1;
   });
 }
