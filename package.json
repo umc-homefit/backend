@@ -11,6 +11,7 @@
     "test": "jest",
     "pretest:e2e": "prisma generate",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
+    "test:integration": "jest --testRegex=\\.integration\\.test\\.ts$",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",

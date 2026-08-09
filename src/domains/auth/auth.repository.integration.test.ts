@@ -5,25 +5,30 @@ import { AuthRepository } from './auth.repository';
 /**
  * ⚠️ 이 테스트는 mock이 아니라 실제 DB에 연결해서 돈다.
  *
- * 파일명이 "...integration-spec.ts" (점이 아니라 하이픈)인 이유:
- * jest.config.js의 testRegex('\.spec\.ts$')는 점(.) 앞에 오는 패턴만 잡는다.
- * *.e2e-spec.ts가 기본 유닛 테스트에서 제외되는 것과 같은 원리로, 이 파일도
- * 이름만으로 기본 `npm test`(jest.config.js) 대상에서 자동으로 빠진다.
- * 즉 jest.config.js/package.json을 전혀 수정하지 않고도 격리된다.
+ * 파일명이 "*.spec.ts"도 "*.e2e-spec.ts"도 아닌 "*.integration.test.ts"인 이유:
+ * jest.config.js(testRegex '\.spec\.ts$')와 test/jest-e2e.json(testRegex
+ * '.e2e-spec.ts$') 둘 다 이 파일을 인식하지 못하게 이름을 지었다. 즉 기본
+ * `npm test`와 `npm run test:e2e` 어디에도 자동으로 안 걸린다.
+ *
+ * 별도 config 파일 없이, package.json의 "test:integration" 스크립트가
+ * `jest --testRegex="\.integration\.test\.ts$"`로 testRegex만 커맨드라인에서
+ * 덮어써서 이 파일만 골라 실행한다 (jest.config.js의 나머지 설정은 그대로 재사용됨):
+ *   npm run test:integration
  *
  * 안전장치: 앱이 평소 쓰는 DATABASE_URL은 절대 참조하지 않고,
  * 완전히 별개의 전용 환경변수 TEST_DATABASE_URL만 사용한다.
  * 값이 없거나 localhost가 아니면 즉시 실패한다 (원격/운영 DB 오염 방지).
- * .env 파일을 새로 만들 필요 없이, 실행 직전에 셸에서 임시로 지정하면 된다:
- *
- *   PowerShell:
- *     $env:TEST_DATABASE_URL="postgresql://user:pw@localhost:5432/homefit_test?schema=public"
- *     npx jest --config jest.integration.config.js
+ * .env 파일을 새로 만들 필요 없이, 실행 직전에 셸에서 임시로 지정하면 된다.
  *
  * 사전 준비 (최초 1회, DB 자체는 만들어야 함):
  *   1. 로컬 Postgres에 테스트 전용 DB 생성: CREATE DATABASE homefit_test;
  *   2. 그 DB에 마이그레이션 적용 (한 번만):
- *      $env:DATABASE_URL="<위 TEST_DATABASE_URL 값>"; npx prisma migrate deploy
+ *      $env:DATABASE_URL="postgresql://user:pw@localhost:5432/homefit_test?schema=public"
+ *      npx prisma migrate deploy
+ *
+ * 실행:
+ *   $env:TEST_DATABASE_URL="postgresql://user:pw@localhost:5432/homefit_test?schema=public"
+ *   npm run test:integration
  */
 describe('AuthRepository (integration - 별도 테스트 전용 DB)', () => {
   let prisma: PrismaClient;
@@ -61,7 +66,6 @@ describe('AuthRepository (integration - 별도 테스트 전용 DB)', () => {
     const testUserIds = testUsers.map((u) => u.userId);
 
     if (testUserIds.length > 0) {
-      // user_profiles가 users를 FK(RESTRICT)로 참조하므로 Profile부터 지운다.
       await prisma.userProfile.deleteMany({ where: { userId: { in: testUserIds } } });
       await prisma.user.deleteMany({ where: { userId: { in: testUserIds } } });
     }

@@ -3,6 +3,7 @@ import { addUtcMonthsClamped } from '../../common/utils/date.util';
 import { UsersRepository } from './users.repository';
 import {
   HouseholdHeadStatus,
+  HousingOwnershipStatus,
   MaritalStatus,
   UpdateConditionProfileRequestDto,
   UpdateProfileRequestDto,
@@ -68,7 +69,7 @@ export class UsersService {
       totalDebtAmount: Number(condition.totalDebtAmount),
       monthlyDebtPaymentAmount: Number(condition.monthlyDebtPaymentAmount),
       cashSavings: Number(condition.cashSavings),
-      housingOwnershipStatus: condition.housingOwnershipStatus,
+      housingOwnershipStatus: condition.housingOwnershipStatus as HousingOwnershipStatus,
       isHomeless: condition.isHomeless,
       residenceRegionCode: condition.residenceRegionCode,
       workplaceRegionCode: condition.workplaceRegionCode,
@@ -121,7 +122,17 @@ export class UsersService {
       }
     }
 
-    const updated = await this.usersRepository.upsertConditionProfile(BigInt(userId), dto);
+    // isHomeless는 클라이언트가 보낸 값을 신뢰하지 않고 housingOwnershipStatus로 서버가 재계산한다.
+    // 두 필드가 독립적으로 검증돼 서로 모순된 값(예: OWNED인데 isHomeless=true)이 그대로 저장될 수 있었고,
+    // 실제 매칭·입주가능성 판정 로직(finance.service.ts, eligibility.service.ts)은 isHomeless만 참조하므로
+    // housingOwnershipStatus 기준과 실제 판정 결과가 어긋나는 문제가 있었다.
+    // 팀 합의(2026-08-06): HOMELESS일 때만 true, 나머지(FAMILY_OWNED/OWNED/UNKNOWN)는 false.
+    const derivedIsHomeless = dto.housingOwnershipStatus === HousingOwnershipStatus.HOMELESS;
+
+    const updated = await this.usersRepository.upsertConditionProfile(BigInt(userId), {
+      ...dto,
+      isHomeless: derivedIsHomeless,
+    });
     return {
       userConditionProfileId: Number(updated.userConditionProfileId),
       updatedAt: updated.updatedAt.toISOString(),
@@ -135,5 +146,4 @@ export class UsersService {
     const cutoff = addUtcMonthsClamped(today, MARRIAGE_EXPECTED_WITHIN_MONTHS);
     return marriageDate >= today && marriageDate <= cutoff;
   }
-
 }
