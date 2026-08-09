@@ -98,6 +98,13 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   })
   supplyType: typeof MVP_SUPPLY_TYPE;
 
+  @ApiPropertyOptional({
+    description: '선택한 주택형의 전용면적(㎡)',
+    example: 59,
+    nullable: true,
+  })
+  exclusiveAreaM2: number | null;
+
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;
 

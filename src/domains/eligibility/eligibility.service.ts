@@ -209,6 +209,7 @@ export class EligibilityService {
       include: {
         // API 명세: 조건 결과는 생성 ID 오름차순으로 반환한다.
         conditionResults: { orderBy: { eligibilityConditionResultId: 'asc' } },
+        unit: { select: { exclusiveAreaM2: true } },
       },
     });
 
@@ -224,6 +225,8 @@ export class EligibilityService {
       // 현재 MVP 분석 대상은 기획상 청년안심주택 6개 단지로 제한한다.
       // 공급면적(supplyAreaM2)이나 자격 대상(targetType)에서 추정하지 않고 계약 값을 명시한다.
       supplyType: MVP_SUPPLY_TYPE,
+      exclusiveAreaM2:
+        analysis.unit.exclusiveAreaM2 === null ? null : Number(analysis.unit.exclusiveAreaM2),
       resultLevel: analysis.resultLevel as EligibilityResultLevel,
       eligibilityScore: Number(analysis.eligibilityScore),
       expectedDepositAmount: Number(analysis.expectedDepositAmount),

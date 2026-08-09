@@ -27,11 +27,13 @@ describe('EligibilityService 분석 결과 조회', () => {
       rentBurdenRate: 28.57,
       summaryMessage: '입주 가능성이 높은 편입니다.',
       conditionResults: [],
+      unit: { exclusiveAreaM2: 59 },
       analyzedAt: new Date('2026-07-01T00:10:00.000Z'),
     });
 
     const result = await service.getEligibilityAnalysis(1, 1n);
 
     expect(result.supplyType).toBe(MVP_SUPPLY_TYPE);
+    expect(result.exclusiveAreaM2).toBe(59);
   });
 });

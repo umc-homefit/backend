@@ -111,14 +111,15 @@
 
 `POST /notices/{noticeId}/units/{unitId}/eligibility-analyses` 응답에 아래 필드를 추가해 반환한다.
 
-| 필드                        | 타입   | 설명        |
-| --------------------------- | ------ | ----------- |
-| `noticeId`                  | number | 공고 ID     |
-| `unitId`                    | number | 주택형 ID   |
-| `supplyType`                | string | 공급 유형. MVP는 `청년안심주택`으로 고정 |
-| `expectedDepositAmount`     | number | 예상 보증금 |
-| `expectedMonthlyRentAmount` | number | 예상 월세   |
-| `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null) |
+| 필드                        | 타입           | 설명                                     |
+| --------------------------- | -------------- | ---------------------------------------- |
+| `noticeId`                  | number         | 공고 ID                                  |
+| `unitId`                    | number         | 주택형 ID                                |
+| `supplyType`                | string         | 공급 유형. MVP는 `청년안심주택`으로 고정 |
+| `exclusiveAreaM2`           | number \| null | 선택한 주택형의 전용면적(㎡)             |
+| `expectedDepositAmount`     | number         | 예상 보증금                              |
+| `expectedMonthlyRentAmount` | number         | 예상 월세                                |
+| `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null)        |
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
 
