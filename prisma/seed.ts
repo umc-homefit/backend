@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto';
 
-import { NoticeConditionTargetType, NoticeFileType, Prisma, PrismaClient } from '@prisma/client';
+import {
+  LoanProviderType,
+  NoticeConditionTargetType,
+  NoticeFileType,
+  Prisma,
+  PrismaClient,
+  ProductCategory,
+} from '@prisma/client';
 
 export const NOTICE_SEED_OPT_IN_ENV = 'HOMEFIT_NOTICE_SEED';
 export const NOTICE_SEED_PREFIX = 'homefit-test:notice-seed:v1:';
@@ -466,37 +473,197 @@ export async function runNoticeSeed(
 }
 
 /**
- * 로고 검증을 위해 신규 상품을 만들지 않는다 — Railway의 기존 금융상품 4건(전부 주택도시기금)은
- * 프론트 연동 테스트가 matchedCount=4/0 기준으로 이미 의존 중이라, 상품을 새로 추가하면
- * 그 기준이 깨진다(리뷰 피드백 반영). 그래서 기존 상품을 (providerName, productName)으로
- * 찾아 providerLogoUrl만 갱신하고, 못 찾으면 새로 만들지 않고 에러를 낸다.
- * 실제 로고 이미지가 준비되기 전까지는 외부 이미지를 핫링크하지 않고 null로 유지한다.
+ * 신규 상품을 만들지 않는다 — Railway의 기존 금융상품 4건(전부 주택도시기금)은 프론트 연동
+ * 테스트가 matchedCount=4/0 기준으로 이미 의존 중이라, 상품을 새로 추가하면 그 기준이 깨진다
+ * (리뷰 피드백 반영). 그래서 기존 상품을 (providerName, productName)으로 찾아 필드만 갱신하고,
+ * 못 찾으면 새로 만들지 않고 에러를 낸다.
+ *
+ * 아래 값은 Notion `홈핏 1금융권 주거 금융상품 목록`("금융상품 (2)") 페이지 — 팀이 2026-08-03
+ * 웹서치로 조사해 둔 원본 자료 — 에서 가져왔다. **주의**: 이 페이지 자체가 "확인자:
+ * Claude(웹서치) → 사람 검토 필요"라고 명시하고 있고, minRate/maxRate/maxLimitAmount는
+ * 지금 Railway에 실제로 들어있던 값(및 금융상품 매칭 조회 Notion 문서 예시)과 다르다 —
+ * 이 스크립트를 실제로 돌리면 사용자에게 보이는 금리/한도가 바뀐다는 뜻이므로, Railway에
+ * 적용하기 전에 팀 검토를 거칠 것.
+ * 지역/가구유형별로 값이 갈리는 필드(maxLimitAmount, maxDepositAmount, loanRatioPercent 등)는
+ * "일반가구/수도권" 기준 대표값 하나를 골랐다 — 실제로는 케이스별로 여러 값이 존재한다.
+ * ltvRatio/dtiRatio는 전세대출 구조상 담보 개념이 없어 전부 N/A(null)로 둔다.
+ * description은 원본 문서에 상품 설명 텍스트 자체가 없어 추측하지 않고 비워뒀다(미포함).
  */
-type LoanProductLogoBackfill = {
+type LoanProductFieldBackfill = {
   providerName: string;
   productName: string;
+  providerType: LoanProviderType;
+  productCategory: ProductCategory;
+  minRate: number;
+  maxRate: number;
+  maxLimitAmount: bigint;
+  minAge: number | null;
+  maxAge: number | null;
+  minIncome: bigint | null;
+  maxIncome: bigint | null;
+  minAsset: bigint | null;
+  maxAsset: bigint | null;
+  requireNoHouse: boolean | null;
+  requireHouseholdHead: boolean | null;
+  firstTimeBuyerOnly: boolean;
+  incomeTaxDeductible: boolean;
+  requireMarried: boolean | null;
+  maxMarriageYears: number | null;
+  requireRecentNewborn: boolean | null;
+  newbornWithinYears: number | null;
+  loanRatioPercent: number | null;
+  loanTermMinYears: number | null;
+  loanTermMaxYears: number | null;
+  preferentialRateDiscount: number | null;
+  maxDepositAmount: bigint | null;
+  maxAreaM2: number | null;
+  minMonthlyDeposit: bigint | null;
+  maxMonthlyDeposit: bigint | null;
+  officialUrl: string;
+  // 실제 로고 이미지가 준비되기 전까지는 외부 이미지를 핫링크하지 않고 null로 유지한다.
   providerLogoUrl: string | null;
 };
 
-const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
-  { providerName: '주택도시기금', productName: '청년전용 버팀목전세자금', providerLogoUrl: null },
-  { providerName: '주택도시기금', productName: '일반 버팀목전세자금', providerLogoUrl: null },
-  { providerName: '주택도시기금', productName: '신혼부부전용 전세자금', providerLogoUrl: null },
-  { providerName: '주택도시기금', productName: '신생아 특례 버팀목전세자금', providerLogoUrl: null },
+const LOAN_PRODUCT_FIELD_BACKFILLS: LoanProductFieldBackfill[] = [
+  {
+    providerName: '주택도시기금',
+    productName: '청년전용 버팀목전세자금',
+    providerType: LoanProviderType.POLICY,
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 2.2,
+    maxRate: 3.3,
+    maxLimitAmount: 150_000_000n, // 일반. 만25세미만 단독세대주는 1.2억
+    minAge: 19,
+    maxAge: 34,
+    minIncome: 0n,
+    maxIncome: 50_000_000n, // 부부합산 일반. 다자녀·2자녀 6천만, 신혼가구 7,500만까지 완화
+    minAsset: 0n,
+    maxAsset: 345_000_000n,
+    requireNoHouse: true,
+    requireHouseholdHead: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: false,
+    requireMarried: false,
+    maxMarriageYears: null,
+    requireRecentNewborn: false,
+    newbornWithinYears: null,
+    loanRatioPercent: 80,
+    loanTermMinYears: 2,
+    loanTermMaxYears: 10,
+    preferentialRateDiscount: 0.5, // 기본 상한 대표값(기초수급 1.0%p 등 추가 우대는 별도)
+    maxDepositAmount: 300_000_000n,
+    maxAreaM2: 85,
+    minMonthlyDeposit: null,
+    maxMonthlyDeposit: null,
+    officialUrl: 'https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020301.jsp',
+    providerLogoUrl: null,
+  },
+  {
+    providerName: '주택도시기금',
+    productName: '신혼부부전용 전세자금',
+    providerType: LoanProviderType.POLICY,
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 1.9,
+    maxRate: 3.3,
+    maxLimitAmount: 250_000_000n, // 수도권. 수도권 외 1.6억
+    minAge: null,
+    maxAge: null,
+    minIncome: 0n,
+    maxIncome: 75_000_000n,
+    minAsset: 0n,
+    maxAsset: 337_000_000n, // 원본 문서에 "재확인 권장" 표기 있음
+    requireNoHouse: true,
+    requireHouseholdHead: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: false,
+    requireMarried: true,
+    maxMarriageYears: 7,
+    requireRecentNewborn: false,
+    newbornWithinYears: null,
+    loanRatioPercent: 80,
+    loanTermMinYears: 2,
+    loanTermMaxYears: 10,
+    preferentialRateDiscount: 0.5, // 기본 상한 대표값(다자녀 0.7%p는 별도)
+    maxDepositAmount: 500_000_000n, // 수도권. 수도권 외 4억
+    maxAreaM2: null, // 원본 문서도 "확인 안됨"
+    minMonthlyDeposit: null,
+    maxMonthlyDeposit: null,
+    officialUrl: 'https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020401.jsp',
+    providerLogoUrl: null,
+  },
+  {
+    providerName: '주택도시기금',
+    productName: '신생아 특례 버팀목전세자금',
+    providerType: LoanProviderType.POLICY,
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 1.3,
+    maxRate: 4.3, // 특례금리 5년 적용 후 소득구간별 3.30~4.30%로 전환
+    maxLimitAmount: 300_000_000n, // 2차(최신) 서칭 값. 1차 서칭 값은 2.4억 — 원본 문서도 "재확인 권장"
+    minAge: null,
+    maxAge: null,
+    minIncome: 0n,
+    maxIncome: 130_000_000n, // 개인기준 vs 부부합산기준 해석 차이 있음 — 원본 문서도 정책 판단 필요라고 표기
+    minAsset: 0n,
+    maxAsset: 488_000_000n,
+    requireNoHouse: true,
+    requireHouseholdHead: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: false,
+    requireMarried: false,
+    maxMarriageYears: null,
+    requireRecentNewborn: true,
+    newbornWithinYears: 2,
+    loanRatioPercent: 80,
+    loanTermMinYears: 2,
+    loanTermMaxYears: 12,
+    preferentialRateDiscount: null, // 원본 문서에 "기본 상한" 단일값이 없고 세부 우대 티어만 존재
+    maxDepositAmount: 500_000_000n, // 수도권. 수도권 외 4억
+    maxAreaM2: 85, // 읍면지역 100, 오피스텔 85 이하
+    minMonthlyDeposit: null,
+    maxMonthlyDeposit: null,
+    officialUrl: 'https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05021401.jsp',
+    providerLogoUrl: null,
+  },
+  {
+    providerName: '주택도시기금',
+    productName: '일반 버팀목전세자금',
+    providerType: LoanProviderType.POLICY,
+    productCategory: ProductCategory.JEONSE_LOAN,
+    minRate: 2.5,
+    maxRate: 3.5,
+    maxLimitAmount: 120_000_000n, // 일반가구·수도권. 수도권 외 8천만, 신혼·2자녀이상은 더 큼
+    minAge: null,
+    maxAge: null,
+    minIncome: 0n,
+    maxIncome: 50_000_000n, // 일반. 다자녀·2자녀 6천만, 신혼가구 7,500만
+    minAsset: 0n,
+    maxAsset: 345_000_000n,
+    requireNoHouse: true,
+    requireHouseholdHead: true,
+    firstTimeBuyerOnly: false,
+    incomeTaxDeductible: false,
+    requireMarried: false,
+    maxMarriageYears: null,
+    requireRecentNewborn: false,
+    newbornWithinYears: null,
+    loanRatioPercent: 70, // 일반가구 신규. 신혼·2자녀이상은 80
+    loanTermMinYears: 2,
+    loanTermMaxYears: 10,
+    preferentialRateDiscount: 0.5, // 기본 상한 대표값
+    maxDepositAmount: 300_000_000n, // 일반가구·수도권. 수도권 외 2억, 신혼·다자녀는 더 큼
+    maxAreaM2: 85, // 수도권. 비수도권 읍면 100, 오피스텔 85 이하
+    minMonthlyDeposit: null,
+    maxMonthlyDeposit: null,
+    officialUrl: 'https://nhuf.molit.go.kr/FP/FP05/FP0502/FP05020101.jsp',
+    providerLogoUrl: null,
+  },
 ];
 
-async function backfillLoanProductLogo(
+async function backfillLoanProductFields(
   tx: Prisma.TransactionClient,
-  item: LoanProductLogoBackfill,
+  item: LoanProductFieldBackfill,
   log: (message: string) => void,
-): Promise<boolean> {
-  // URL이 아직 없으면(null) 아예 건드리지 않는다 — 실행해도 Railway에 이미 들어있을 수 있는
-  // 기존 값을 null로 덮어쓰지 않도록, 쿼리조차 안 날리고 건너뛴다.
-  if (item.providerLogoUrl === null) {
-    log(`[loan-product-logo-backfill] 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`);
-    return false;
-  }
-
+): Promise<void> {
   const existing = await tx.loanProduct.findMany({
     where: { providerName: item.providerName, productName: item.productName },
     select: { productId: true },
@@ -513,32 +680,63 @@ async function backfillLoanProductLogo(
     );
   }
 
-  await tx.loanProduct.update({
-    where: { productId: existing[0].productId },
-    data: { providerLogoUrl: item.providerLogoUrl },
-  });
-  return true;
+  const data: Prisma.LoanProductUncheckedUpdateInput = {
+    providerType: item.providerType,
+    productCategory: item.productCategory,
+    minRate: item.minRate,
+    maxRate: item.maxRate,
+    maxLimitAmount: item.maxLimitAmount,
+    minAge: item.minAge,
+    maxAge: item.maxAge,
+    minIncome: item.minIncome,
+    maxIncome: item.maxIncome,
+    minAsset: item.minAsset,
+    maxAsset: item.maxAsset,
+    requireNoHouse: item.requireNoHouse,
+    requireHouseholdHead: item.requireHouseholdHead,
+    firstTimeBuyerOnly: item.firstTimeBuyerOnly,
+    incomeTaxDeductible: item.incomeTaxDeductible,
+    requireMarried: item.requireMarried,
+    maxMarriageYears: item.maxMarriageYears,
+    requireRecentNewborn: item.requireRecentNewborn,
+    newbornWithinYears: item.newbornWithinYears,
+    loanRatioPercent: item.loanRatioPercent,
+    loanTermMinYears: item.loanTermMinYears,
+    loanTermMaxYears: item.loanTermMaxYears,
+    preferentialRateDiscount: item.preferentialRateDiscount,
+    maxDepositAmount: item.maxDepositAmount,
+    maxAreaM2: item.maxAreaM2,
+    minMonthlyDeposit: item.minMonthlyDeposit,
+    maxMonthlyDeposit: item.maxMonthlyDeposit,
+    officialUrl: item.officialUrl,
+  };
+
+  // providerLogoUrl은 URL이 아직 없으면(null) 아예 건드리지 않는다 — 실행해도 Railway에
+  // 이미 들어있을 수 있는 기존 값을 null로 덮어쓰지 않도록, data에서 빼버린다.
+  if (item.providerLogoUrl !== null) {
+    data.providerLogoUrl = item.providerLogoUrl;
+  } else {
+    log(
+      `[loan-product-field-backfill] providerLogoUrl은 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`,
+    );
+  }
+
+  await tx.loanProduct.update({ where: { productId: existing[0].productId }, data });
 }
 
 export async function runLoanProductSeed(
   prisma: PrismaClient,
   log: (message: string) => void = console.log,
 ): Promise<void> {
-  const updatedCount = await prisma.$transaction(
+  await prisma.$transaction(
     async (tx) => {
-      let count = 0;
-      for (const item of LOAN_PRODUCT_LOGO_BACKFILLS) {
-        if (await backfillLoanProductLogo(tx, item, log)) {
-          count += 1;
-        }
+      for (const item of LOAN_PRODUCT_FIELD_BACKFILLS) {
+        await backfillLoanProductFields(tx, item, log);
       }
-      return count;
     },
     { maxWait: 10_000, timeout: 60_000 },
   );
-  log(
-    `[loan-product-logo-backfill] 완료: ${updatedCount}건 업데이트, ${LOAN_PRODUCT_LOGO_BACKFILLS.length - updatedCount}건 건너뜀`,
-  );
+  log(`[loan-product-field-backfill] 완료: ${LOAN_PRODUCT_FIELD_BACKFILLS.length}건 업데이트`);
 }
 
 function validateCliSafety(): void {
