@@ -13,7 +13,7 @@ describe('EligibilityService 분석 결과 조회', () => {
     jest.clearAllMocks();
   });
 
-  it('MVP 공급 유형을 청년안심주택으로 반환한다', async () => {
+  it('MVP 공급 유형과 선택한 주택형의 전용면적을 반환한다', async () => {
     findFirst.mockResolvedValue({
       eligibilityAnalysisId: 1n,
       noticeId: 12n,
