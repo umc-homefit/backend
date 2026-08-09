@@ -488,7 +488,15 @@ const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
 async function backfillLoanProductLogo(
   tx: Prisma.TransactionClient,
   item: LoanProductLogoBackfill,
-): Promise<void> {
+  log: (message: string) => void,
+): Promise<boolean> {
+  // URL이 아직 없으면(null) 아예 건드리지 않는다 — 실행해도 Railway에 이미 들어있을 수 있는
+  // 기존 값을 null로 덮어쓰지 않도록, 쿼리조차 안 날리고 건너뛴다.
+  if (item.providerLogoUrl === null) {
+    log(`[loan-product-logo-backfill] 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`);
+    return false;
+  }
+
   const existing = await tx.loanProduct.findMany({
     where: { providerName: item.providerName, productName: item.productName },
     select: { productId: true },
@@ -509,21 +517,28 @@ async function backfillLoanProductLogo(
     where: { productId: existing[0].productId },
     data: { providerLogoUrl: item.providerLogoUrl },
   });
+  return true;
 }
 
 export async function runLoanProductSeed(
   prisma: PrismaClient,
   log: (message: string) => void = console.log,
 ): Promise<void> {
-  await prisma.$transaction(
+  const updatedCount = await prisma.$transaction(
     async (tx) => {
+      let count = 0;
       for (const item of LOAN_PRODUCT_LOGO_BACKFILLS) {
-        await backfillLoanProductLogo(tx, item);
+        if (await backfillLoanProductLogo(tx, item, log)) {
+          count += 1;
+        }
       }
+      return count;
     },
     { maxWait: 10_000, timeout: 60_000 },
   );
-  log(`[loan-product-logo-backfill] 완료: ${LOAN_PRODUCT_LOGO_BACKFILLS.length}건 업데이트`);
+  log(
+    `[loan-product-logo-backfill] 완료: ${updatedCount}건 업데이트, ${LOAN_PRODUCT_LOGO_BACKFILLS.length - updatedCount}건 건너뜀`,
+  );
 }
 
 function validateCliSafety(): void {
