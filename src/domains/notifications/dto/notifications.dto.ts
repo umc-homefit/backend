@@ -14,6 +14,11 @@ import {
 
 export { DeviceType };
 
+export enum NotificationType {
+  NEW_NOTICE = 'NEW_NOTICE',
+  CLOSING_SOON = 'CLOSING_SOON',
+}
+
 export class RegisterDeviceTokenRequestDto {
   @ApiProperty({
     description: '푸시 발송용 기기 고유 토큰',
@@ -144,8 +149,12 @@ export class NotificationItemDto {
   @ApiProperty({ description: '알림 고유 ID', example: 101 })
   notificationId: number;
 
-  @ApiProperty({ description: '알림 타입 (NEW_NOTICE, CLOSING_SOON 등)', example: 'NEW_NOTICE' })
-  type: string;
+  @ApiProperty({
+    description: '알림 타입',
+    enum: NotificationType,
+    example: NotificationType.NEW_NOTICE,
+  })
+  type: NotificationType;
 
   @ApiProperty({ description: '알림 제목', example: '새로운 청약 공고가 등록되었습니다.' })
   title: string;
