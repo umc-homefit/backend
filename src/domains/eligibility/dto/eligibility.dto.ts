@@ -98,7 +98,7 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   })
   supplyType: typeof MVP_SUPPLY_TYPE;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '선택한 주택형의 전용면적(㎡)',
     example: 59,
     nullable: true,
