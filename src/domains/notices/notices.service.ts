@@ -10,12 +10,14 @@ import {
   NoticeConditionTargetType,
   NoticeDetailResultDto,
   NoticeFileDto,
+  NoticeFilesResultDto,
   NoticeFileType,
   NoticeListItemDto,
   NoticeListResultDto,
   NoticeSort,
   NoticeStatus,
   NoticeUnitDto,
+  NoticeUnitsResultDto,
   SaveNoticeResultDto,
   SavedNoticeItemDto,
   SavedNoticeListResultDto,
@@ -219,6 +221,44 @@ export class NoticesService {
     }
 
     return this.toNoticeDetail(notice, this.toCurrentKstDateTime());
+  }
+
+  async getNoticeUnits(noticeId: number): Promise<NoticeUnitsResultDto> {
+    const notice = await this.prisma.notice.findUnique({
+      where: { noticeId: BigInt(noticeId) },
+      select: {
+        units: {
+          orderBy: { unitId: 'asc' },
+        },
+      },
+    });
+
+    if (!notice) {
+      throw new NotFoundException('존재하지 않는 공고입니다.');
+    }
+
+    return {
+      units: notice.units.map((unit) => this.toNoticeUnit(unit)),
+    };
+  }
+
+  async getNoticeFiles(noticeId: number): Promise<NoticeFilesResultDto> {
+    const notice = await this.prisma.notice.findUnique({
+      where: { noticeId: BigInt(noticeId) },
+      select: {
+        files: {
+          orderBy: { fileId: 'asc' },
+        },
+      },
+    });
+
+    if (!notice) {
+      throw new NotFoundException('존재하지 않는 공고입니다.');
+    }
+
+    return {
+      files: notice.files.map((file) => this.toNoticeFile(file)),
+    };
   }
 
   async saveNotice(userId: bigint, noticeId: number): Promise<SaveNoticeServiceResult> {

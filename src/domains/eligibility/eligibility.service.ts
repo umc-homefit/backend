@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { calculateNoticeStatus } from '../notices/notice-status.util';
@@ -14,6 +15,7 @@ import {
   EligibilityConditionResultStatus,
   EligibilityAnalysisResultDto,
   EligibilityConditionsResultDto,
+  ConditionProfileSnapshotDto,
   EligibilityResultLevel,
   FinancialSummaryResultDto,
   MyEligibilityAnalysesResultDto,
@@ -146,6 +148,7 @@ export class EligibilityService {
         // 재정 요약은 분석 실행 당시 상태를 보여주므로, 변경 가능한 프로필 값을 함께 스냅샷으로 남긴다.
         userCashAmount: BigInt(cashSavings),
         monthlyIncomeAmount: BigInt(monthlyIncomeAmount),
+        conditionProfileSnapshot: this.createConditionProfileSnapshot(userConditionProfile),
         shortageAmount: BigInt(shortageAmount),
         rentBurdenRate,
         summaryMessage: this.createSummaryMessage(
@@ -239,6 +242,10 @@ export class EligibilityService {
         analysis.expectedMonthlyRentAmount === null ? null : Number(analysis.expectedMonthlyRentAmount),
       maintenanceFeeAmount:
         analysis.maintenanceFeeAmount === null ? null : Number(analysis.maintenanceFeeAmount),
+      conditionProfileSnapshot:
+        analysis.conditionProfileSnapshot === null
+          ? null
+          : (analysis.conditionProfileSnapshot as unknown as ConditionProfileSnapshotDto),
       shortageAmount: Number(analysis.shortageAmount),
       rentBurdenRate: analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate),
       summaryMessage: analysis.summaryMessage,
@@ -253,6 +260,47 @@ export class EligibilityService {
       })),
       // toISOString()은 타임존(Z)과 밀리초가 포함된 ISO 8601 UTC 문자열을 만든다.
       analyzedAt: analysis.analyzedAt.toISOString(),
+    };
+  }
+
+  /** BigInt와 Date를 JSON으로 안전하게 직렬화해 분석 이력에 보관한다. */
+  private createConditionProfileSnapshot(profile: {
+    monthlyIncomeAmount: bigint;
+    totalAssetAmount: bigint;
+    totalDebtAmount: bigint;
+    monthlyDebtPaymentAmount: bigint;
+    cashSavings: bigint;
+    housingOwnershipStatus: string;
+    isHomeless: boolean;
+    residenceRegionCode: string | null;
+    workplaceRegionCode: string | null;
+    maritalStatus: string;
+    marriageDate: Date | null;
+    hasRecentNewborn: boolean;
+    newbornBirthDate: Date | null;
+    householdHeadStatus: string;
+    isFirstTimeBuyer: boolean | null;
+    employmentStatus: string | null;
+  }): Prisma.InputJsonObject {
+    return {
+      monthlyIncomeAmount: Number(profile.monthlyIncomeAmount),
+      totalAssetAmount: Number(profile.totalAssetAmount),
+      totalDebtAmount: Number(profile.totalDebtAmount),
+      monthlyDebtPaymentAmount: Number(profile.monthlyDebtPaymentAmount),
+      cashSavings: Number(profile.cashSavings),
+      housingOwnershipStatus:
+        profile.housingOwnershipStatus as ConditionProfileSnapshotDto['housingOwnershipStatus'],
+      isHomeless: profile.isHomeless,
+      residenceRegionCode: profile.residenceRegionCode,
+      workplaceRegionCode: profile.workplaceRegionCode,
+      maritalStatus: profile.maritalStatus as ConditionProfileSnapshotDto['maritalStatus'],
+      marriageDate: profile.marriageDate?.toISOString().split('T')[0] ?? null,
+      hasRecentNewborn: profile.hasRecentNewborn,
+      newbornBirthDate: profile.newbornBirthDate?.toISOString().split('T')[0] ?? null,
+      householdHeadStatus:
+        profile.householdHeadStatus as ConditionProfileSnapshotDto['householdHeadStatus'],
+      isFirstTimeBuyer: profile.isFirstTimeBuyer,
+      employmentStatus: profile.employmentStatus,
     };
   }
 

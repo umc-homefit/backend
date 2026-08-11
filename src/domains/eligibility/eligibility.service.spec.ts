@@ -23,6 +23,24 @@ describe('EligibilityService 분석 결과 조회', () => {
       expectedDepositAmount: 10_000_000n,
       expectedMonthlyRentAmount: 350_000n,
       maintenanceFeeAmount: null,
+      conditionProfileSnapshot: {
+        monthlyIncomeAmount: 3_000_000,
+        totalAssetAmount: 50_000_000,
+        totalDebtAmount: 8_000_000,
+        monthlyDebtPaymentAmount: 400_000,
+        cashSavings: 20_000_000,
+        housingOwnershipStatus: 'HOMELESS',
+        isHomeless: true,
+        residenceRegionCode: '11110',
+        workplaceRegionCode: null,
+        maritalStatus: 'SINGLE',
+        marriageDate: null,
+        hasRecentNewborn: false,
+        newbornBirthDate: null,
+        householdHeadStatus: 'HEAD',
+        isFirstTimeBuyer: false,
+        employmentStatus: null,
+      },
       shortageAmount: 2_000_000n,
       rentBurdenRate: 28.57,
       summaryMessage: '입주 가능성이 높은 편입니다.',
@@ -35,6 +53,102 @@ describe('EligibilityService 분석 결과 조회', () => {
 
     expect(result.supplyType).toBe(MVP_SUPPLY_TYPE);
     expect(result.exclusiveAreaM2).toBe(59);
+    expect(result.conditionProfileSnapshot).toMatchObject({
+      monthlyIncomeAmount: 3_000_000,
+      totalAssetAmount: 50_000_000,
+      cashSavings: 20_000_000,
+    });
+  });
+
+  it('스냅샷 도입 전 분석 이력은 null을 반환한다', async () => {
+    findFirst.mockResolvedValue({
+      eligibilityAnalysisId: 1n,
+      noticeId: 12n,
+      unitId: 3n,
+      resultLevel: 'HIGH',
+      eligibilityScore: 82,
+      expectedDepositAmount: 10_000_000n,
+      expectedMonthlyRentAmount: 350_000n,
+      maintenanceFeeAmount: null,
+      conditionProfileSnapshot: null,
+      shortageAmount: 2_000_000n,
+      rentBurdenRate: 28.57,
+      summaryMessage: null,
+      conditionResults: [],
+      unit: { exclusiveAreaM2: null },
+      analyzedAt: new Date('2026-07-01T00:10:00.000Z'),
+    });
+
+    const result = await service.getEligibilityAnalysis(1, 1n);
+
+    expect(result.conditionProfileSnapshot).toBeNull();
+  });
+});
+
+describe('EligibilityService 분석 시점 프로필 스냅샷 저장', () => {
+  const create = jest.fn();
+  const prisma = {
+    notice: { findUnique: jest.fn().mockResolvedValue({ noticeId: 1n, conditions: [] }) },
+    noticeUnit: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({
+          unitId: 1n,
+          noticeId: 1n,
+          depositMin: 1n,
+          depositMax: null,
+          monthlyRentMin: 1n,
+          monthlyRentMax: null,
+        }),
+    },
+    userConditionProfile: {
+      findUnique: jest.fn().mockResolvedValue({
+        userConditionProfileId: 1n,
+        monthlyIncomeAmount: 3_000_000n,
+        totalAssetAmount: 50_000_000n,
+        totalDebtAmount: 8_000_000n,
+        monthlyDebtPaymentAmount: 400_000n,
+        cashSavings: 20_000_000n,
+        housingOwnershipStatus: 'HOMELESS',
+        isHomeless: true,
+        residenceRegionCode: null,
+        workplaceRegionCode: '11680',
+        maritalStatus: 'SINGLE',
+        marriageDate: null,
+        hasRecentNewborn: false,
+        newbornBirthDate: null,
+        householdHeadStatus: 'HEAD',
+        isFirstTimeBuyer: null,
+        employmentStatus: null,
+        user: { profile: { birthDate: new Date('2000-01-02T00:00:00Z') } },
+      }),
+    },
+    eligibilityAnalysis: { create },
+  } as unknown as PrismaService;
+
+  it('BigInt·Date·null을 JSON 스냅샷으로 변환해 생성 데이터에 저장한다', async () => {
+    create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        eligibilityAnalysisId: 1n,
+        resultLevel: data.resultLevel,
+        eligibilityScore: data.eligibilityScore,
+        shortageAmount: data.shortageAmount,
+        rentBurdenRate: data.rentBurdenRate,
+        summaryMessage: data.summaryMessage,
+        conditionResults: data.conditionResults.create,
+        analyzedAt: new Date('2026-08-11T00:00:00Z'),
+      }),
+    );
+    await new EligibilityService(prisma).requestEligibilityAnalysis(1, 1, 1n);
+    expect(create.mock.calls[0][0].data.conditionProfileSnapshot).toEqual(
+      expect.objectContaining({
+        monthlyIncomeAmount: 3_000_000,
+        totalDebtAmount: 8_000_000,
+        marriageDate: null,
+        workplaceRegionCode: '11680',
+        isFirstTimeBuyer: null,
+      }),
+    );
   });
 });
 
