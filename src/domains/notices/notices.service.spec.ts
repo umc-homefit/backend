@@ -124,6 +124,102 @@ describe('NoticesService 저장 공고 목록', () => {
   });
 });
 
+describe('NoticesService 공고 주택형·첨부파일 조회', () => {
+  const findNotice = jest.fn();
+  const prisma = {
+    notice: {
+      findUnique: findNotice,
+    },
+  } as unknown as PrismaService;
+  const service = new NoticesService(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('주택형을 unitId 오름차순으로 조회하고 API DTO로 변환한다', async () => {
+    findNotice.mockResolvedValue({
+      units: [
+        {
+          unitId: 10n,
+          noticeId: 7n,
+          unitName: '24A',
+          exclusiveAreaM2: 24,
+          supplyAreaM2: 36,
+          depositMin: 32000000n,
+          depositMax: 48000000n,
+          monthlyRentMin: 280000n,
+          monthlyRentMax: 410000n,
+          supplyCount: 18,
+          createdAt: new Date('2026-06-29T01:00:00.000Z'),
+          updatedAt: new Date('2026-06-29T01:00:00.000Z'),
+        },
+      ],
+    });
+
+    const result = await service.getNoticeUnits(7);
+
+    expect(findNotice).toHaveBeenCalledWith({
+      where: { noticeId: 7n },
+      select: { units: { orderBy: { unitId: 'asc' } } },
+    });
+    expect(result.units).toEqual([
+      {
+        unitId: 10,
+        unitName: '24A',
+        exclusiveAreaM2: 24,
+        supplyAreaM2: 36,
+        depositMin: 32000000,
+        depositMax: 48000000,
+        monthlyRentMin: 280000,
+        monthlyRentMax: 410000,
+        supplyCount: 18,
+      },
+    ]);
+  });
+
+  it('첨부파일을 fileId 오름차순으로 조회하고 날짜를 ISO 8601로 변환한다', async () => {
+    findNotice.mockResolvedValue({
+      files: [
+        {
+          fileId: 20n,
+          noticeId: 7n,
+          fileName: '공고문.pdf',
+          fileType: 'PDF',
+          fileUrl: 'https://example.com/files/notice.pdf',
+          registeredAt: new Date('2026-06-29T10:00:00.000Z'),
+          createdAt: new Date('2026-06-29T10:00:00.000Z'),
+        },
+      ],
+    });
+
+    const result = await service.getNoticeFiles(7);
+
+    expect(findNotice).toHaveBeenCalledWith({
+      where: { noticeId: 7n },
+      select: { files: { orderBy: { fileId: 'asc' } } },
+    });
+    expect(result.files).toEqual([
+      {
+        fileId: 20,
+        fileName: '공고문.pdf',
+        fileType: 'PDF',
+        fileUrl: 'https://example.com/files/notice.pdf',
+        registeredAt: '2026-06-29T10:00:00+09:00',
+      },
+    ]);
+  });
+
+  it.each([
+    ['주택형', () => service.getNoticeUnits(999)],
+    ['첨부파일', () => service.getNoticeFiles(999)],
+  ])('공고가 없으면 %s 조회를 COMMON404 대상으로 처리한다', async (_label, call) => {
+    findNotice.mockResolvedValue(null);
+
+    await expect(call()).rejects.toThrow('존재하지 않는 공고입니다.');
+  });
+});
+
 function createNoticeListRecord(announcementNo: string | null) {
   const createdAt = new Date('2026-07-01T00:00:00.000Z');
 

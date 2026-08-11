@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -23,7 +22,6 @@ import {
   GetNoticesQueryDto,
   NoticeDetailResultDto,
   NoticeFilesResultDto,
-  NoticeFileType,
   NoticeListResultDto,
   NoticeUnitsResultDto,
   SaveNoticeResultDto,
@@ -78,28 +76,10 @@ export class NoticesController {
   })
   @ApiParam({ name: 'noticeId', type: Number, description: '조회할 공고 ID', example: 1 })
   @ApiSuccessResponse(NoticeUnitsResultDto, { description: '공고 주택형 조회 성공' })
-  getNoticeUnits(
+  async getNoticeUnits(
     @Param('noticeId', ParseIntPipe) noticeId: number,
-  ): ApiResponse<NoticeUnitsResultDto> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('존재하지 않는 공고입니다.');
-    }
-
-    const result: NoticeUnitsResultDto = {
-      units: [
-        {
-          unitId: 10,
-          unitName: '24A',
-          exclusiveAreaM2: 24.0,
-          supplyAreaM2: 36.0,
-          depositMin: 32000000,
-          depositMax: 48000000,
-          monthlyRentMin: 280000,
-          monthlyRentMax: 410000,
-          supplyCount: 18,
-        },
-      ],
-    };
+  ): Promise<ApiResponse<NoticeUnitsResultDto>> {
+    const result = await this.noticesService.getNoticeUnits(noticeId);
 
     return createSuccessResponse(result, 'NOTICE200', '공고 주택형 조회에 성공했습니다.');
   }
@@ -111,31 +91,10 @@ export class NoticesController {
   })
   @ApiParam({ name: 'noticeId', type: Number, description: '조회할 공고 ID', example: 1 })
   @ApiSuccessResponse(NoticeFilesResultDto, { description: '공고 첨부파일 목록 조회 성공' })
-  getNoticeFiles(
+  async getNoticeFiles(
     @Param('noticeId', ParseIntPipe) noticeId: number,
-  ): ApiResponse<NoticeFilesResultDto> {
-    if (noticeId !== 1) {
-      throw new NotFoundException('존재하지 않는 공고입니다.');
-    }
-
-    const result: NoticeFilesResultDto = {
-      files: [
-        {
-          fileId: 1,
-          fileName: '2026-03호 공고문.pdf',
-          fileType: NoticeFileType.PDF,
-          fileUrl: 'https://example.com/notice.pdf',
-          registeredAt: '2026-06-29T10:00:00+09:00',
-        },
-        {
-          fileId: 2,
-          fileName: '입주자 모집 안내 책자',
-          fileType: NoticeFileType.LINK,
-          fileUrl: 'https://example.com/guide',
-          registeredAt: '2026-06-29T10:00:00+09:00',
-        },
-      ],
-    };
+  ): Promise<ApiResponse<NoticeFilesResultDto>> {
+    const result = await this.noticesService.getNoticeFiles(noticeId);
 
     return createSuccessResponse(result, 'NOTICE200', '공고 첨부파일 목록 조회에 성공했습니다.');
   }

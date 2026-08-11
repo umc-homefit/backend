@@ -291,6 +291,72 @@ describe('Notice API contract (e2e)', () => {
     });
   });
 
+  it('주택형·첨부파일 분리 조회는 인증 없이 공고 상세와 동일한 DB 데이터를 반환한다', async () => {
+    const detail = await request(app.getHttpServer())
+      .get(`/api/notices/${fixture.boundaryNoticeId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const units = await request(app.getHttpServer())
+      .get(`/api/notices/${fixture.boundaryNoticeId}/units`)
+      .expect(200);
+    const files = await request(app.getHttpServer())
+      .get(`/api/notices/${fixture.boundaryNoticeId}/files`)
+      .expect(200);
+
+    expect(units.body).toMatchObject({
+      isSuccess: true,
+      code: 'NOTICE200',
+      result: { units: detail.body.result.units },
+    });
+    expect(files.body).toMatchObject({
+      isSuccess: true,
+      code: 'NOTICE200',
+      result: { files: detail.body.result.files },
+    });
+  });
+
+  it('관계 데이터가 없는 공고도 첨부파일을 null이 아닌 빈 배열로 반환한다', async () => {
+    const response = await request(app.getHttpServer())
+      .get(`/api/notices/${fixture.largeNoticeId}/files`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      isSuccess: true,
+      code: 'NOTICE200',
+      result: { files: [] },
+    });
+  });
+
+  it.each(['units', 'files'])(
+    '존재하지 않는 공고의 %s 조회는 COMMON404를 반환한다',
+    async (resource) => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/notices/999999/${resource}`)
+        .expect(404);
+
+      expect(response.body).toMatchObject({
+        isSuccess: false,
+        code: 'COMMON404',
+        result: null,
+      });
+    },
+  );
+
+  it.each(['units', 'files'])(
+    '숫자가 아닌 공고 ID의 %s 조회는 COMMON400을 반환한다',
+    async (resource) => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/notices/invalid/${resource}`)
+        .expect(400);
+
+      expect(response.body).toMatchObject({
+        isSuccess: false,
+        code: 'COMMON400',
+        result: null,
+      });
+    },
+  );
+
   it('존재하지 않는 공고 상세는 COMMON404를 반환한다', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/notices/999999')
