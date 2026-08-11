@@ -14,6 +14,7 @@ import { ApiResponseInterceptor } from '../src/common/interceptors/api-response.
 import { PrismaService } from '../src/prisma/prisma.service';
 
 const execFileAsync = promisify(execFile);
+const SEEDED_NOTICE_COUNT = 12;
 
 describe('Android 연동용 Notice Seed (e2e)', () => {
   let app: INestApplication;
@@ -82,7 +83,7 @@ describe('Android 연동용 Notice Seed (e2e)', () => {
 
   it('두 번 실행해도 단지·공고·자식 데이터가 중복되지 않는다', async () => {
     expect(firstRun.complexes).toHaveLength(6);
-    expect(firstRun.notices).toHaveLength(7);
+    expect(firstRun.notices).toHaveLength(SEEDED_NOTICE_COUNT);
     expect(secondRun.complexes.map((item) => item.complexId)).toEqual(
       firstRun.complexes.map((item) => item.complexId),
     );
@@ -104,15 +105,15 @@ describe('Android 연동용 Notice Seed (e2e)', () => {
     ]);
 
     expect({ noticeCount, unitCount, conditionCount, fileCount }).toEqual({
-      noticeCount: 7,
-      unitCount: 7,
-      conditionCount: 7,
-      fileCount: 7,
+      noticeCount: SEEDED_NOTICE_COUNT,
+      unitCount: SEEDED_NOTICE_COUNT,
+      conditionCount: SEEDED_NOTICE_COUNT,
+      fileCount: SEEDED_NOTICE_COUNT,
     });
   });
 
   it.each([
-    ['RECRUITING', 4],
+    ['RECRUITING', 9],
     ['CLOSING_SOON', 1],
     ['SCHEDULED', 1],
     ['CLOSED', 1],
@@ -142,11 +143,22 @@ describe('Android 연동용 Notice Seed (e2e)', () => {
     const generalResponse = await getNotices()
       .query({ isAdditionalRecruitment: false, page: 0, size: 50 })
       .expect(200);
-    expect(generalResponse.body.result.notices).toHaveLength(1);
-    expect(generalResponse.body.result.notices[0]).toMatchObject({
-      title: '[TEST] 서울대입구역 BX201 일반모집 필터 확인',
-      isAdditionalRecruitment: false,
-    });
+    expect(generalResponse.body.result.notices).toHaveLength(6);
+    expect(generalResponse.body.result.notices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: '[TEST] 서울대입구역 BX201 일반모집 필터 확인',
+          isAdditionalRecruitment: false,
+        }),
+        expect.objectContaining({
+          title: '[TEST] 분석 데모 · HIGH',
+          isAdditionalRecruitment: false,
+        }),
+      ]),
+    );
+    for (const notice of generalResponse.body.result.notices) {
+      expect(notice.isAdditionalRecruitment).toBe(false);
+    }
   });
 
   it('상세 API가 주택형·자격조건·공식 안내 링크를 반환한다', async () => {
