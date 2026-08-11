@@ -24,6 +24,7 @@ describe('NotificationsService 알림 목록', () => {
       const result = await service.getNotifications(1n, 0, 20);
 
       expect(result.notifications[0].type).toBe(notificationType);
+      expect(result.notifications[0].noticeId).toBe(10);
       expect(result.pageInfo).toEqual({
         page: 0,
         size: 20,
@@ -33,6 +34,17 @@ describe('NotificationsService 알림 목록', () => {
       });
     },
   );
+
+  it('공고와 연결되지 않은 알림은 noticeId를 null로 반환한다', async () => {
+    findNotifications.mockResolvedValue({
+      items: [createNotificationRecord(NotificationType.NEW_NOTICE, null)],
+      totalElements: 1,
+    });
+
+    const result = await service.getNotifications(1n, 0, 20);
+
+    expect(result.notifications[0].noticeId).toBeNull();
+  });
 
   it('명세에 없는 알림 타입은 응답하지 않는다', async () => {
     findNotifications.mockResolvedValue({
@@ -46,11 +58,11 @@ describe('NotificationsService 알림 목록', () => {
   });
 });
 
-function createNotificationRecord(notificationType: string) {
+function createNotificationRecord(notificationType: string, noticeId: bigint | null = 10n) {
   return {
     notificationLogId: 101n,
     userId: 1n,
-    noticeId: null,
+    noticeId,
     notificationType,
     isRead: false,
     title: '알림 제목',
