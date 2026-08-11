@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { calculateNoticeStatus } from '../notices/notice-status.util';
@@ -14,6 +15,7 @@ import {
   EligibilityConditionResultStatus,
   EligibilityAnalysisResultDto,
   EligibilityConditionsResultDto,
+  ConditionProfileSnapshotDto,
   EligibilityResultLevel,
   FinancialSummaryResultDto,
   MyEligibilityAnalysesResultDto,
@@ -81,22 +83,26 @@ export class EligibilityService {
 
     // 보증금/월세 범위가 있을 때는 사용자가 준비해야 할 최대 금액을 기준으로 계산한다.
     const expectedDepositAmount = Number(unit.depositMax ?? unit.depositMin ?? BigInt(0));
-    const expectedMonthlyRentAmount = Number(
-      unit.monthlyRentMax ?? unit.monthlyRentMin ?? BigInt(0),
-    );
+    const monthlyRentAmount = unit.monthlyRentMax ?? unit.monthlyRentMin;
+    // 실제 월세 0원과 크롤링 미수집(null)을 구분한다. 미수집값을 0원으로 계산하면
+    // 월세 부담률 배점이 부당하게 반영될 수 있다.
+    const expectedMonthlyRentAmount = monthlyRentAmount === null ? null : Number(monthlyRentAmount);
     // 현재 크롤링 데이터에는 관리비 원본이 없다. 임의로 0원을 저장하지 않고
     // null(미수집)로 남긴다. 이후 크롤러가 값을 제공하면 이 부분만 연결하면 된다.
     const maintenanceFeeAmount: number | null = null;
     // 관리비가 미수집된 경우에는 실제 0원이 아니라 null로 응답하되,
     // 월세 부담률은 확인 가능한 월세만으로 계속 계산한다.
-    const monthlyHousingCost = expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0);
+    const monthlyHousingCost =
+      expectedMonthlyRentAmount === null
+        ? null
+        : expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0);
     const monthlyIncomeAmount = Number(userConditionProfile.monthlyIncomeAmount);
     const cashSavings = Number(userConditionProfile.cashSavings);
     const shortageAmount = Math.max(expectedDepositAmount - cashSavings, 0);
     const rentBurdenRate =
-      monthlyIncomeAmount > 0
+      monthlyHousingCost !== null && monthlyIncomeAmount > 0
         ? this.roundToTwoDecimals((monthlyHousingCost / monthlyIncomeAmount) * 100)
-        : 0;
+        : null;
 
     // 공고에 명시된 조건과 별개로, 현금·월세 부담률은 항상 분석 결과에 포함한다.
     const conditionResults = [
@@ -136,11 +142,13 @@ export class EligibilityService {
         resultLevel: scoreResult.resultLevel,
         eligibilityScore: scoreResult.eligibilityScore,
         expectedDepositAmount: BigInt(expectedDepositAmount),
-        expectedMonthlyRentAmount: BigInt(expectedMonthlyRentAmount),
+        expectedMonthlyRentAmount:
+          expectedMonthlyRentAmount === null ? null : BigInt(expectedMonthlyRentAmount),
         maintenanceFeeAmount: maintenanceFeeAmount === null ? null : BigInt(maintenanceFeeAmount),
         // 재정 요약은 분석 실행 당시 상태를 보여주므로, 변경 가능한 프로필 값을 함께 스냅샷으로 남긴다.
         userCashAmount: BigInt(cashSavings),
         monthlyIncomeAmount: BigInt(monthlyIncomeAmount),
+        conditionProfileSnapshot: this.createConditionProfileSnapshot(userConditionProfile),
         shortageAmount: BigInt(shortageAmount),
         rentBurdenRate,
         summaryMessage: this.createSummaryMessage(
@@ -173,7 +181,7 @@ export class EligibilityService {
       resultLevel: analysis.resultLevel as EligibilityResultLevel,
       eligibilityScore: Number(analysis.eligibilityScore),
       shortageAmount: Number(analysis.shortageAmount),
-      rentBurdenRate: Number(analysis.rentBurdenRate),
+      rentBurdenRate: analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate),
       summaryMessage: analysis.summaryMessage,
       conditionResults: analysis.conditionResults.map((conditionResult) => ({
         conditionCode: conditionResult.conditionCode as EligibilityConditionCode,
@@ -230,11 +238,16 @@ export class EligibilityService {
       resultLevel: analysis.resultLevel as EligibilityResultLevel,
       eligibilityScore: Number(analysis.eligibilityScore),
       expectedDepositAmount: Number(analysis.expectedDepositAmount),
-      expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
+      expectedMonthlyRentAmount:
+        analysis.expectedMonthlyRentAmount === null ? null : Number(analysis.expectedMonthlyRentAmount),
       maintenanceFeeAmount:
         analysis.maintenanceFeeAmount === null ? null : Number(analysis.maintenanceFeeAmount),
+      conditionProfileSnapshot:
+        analysis.conditionProfileSnapshot === null
+          ? null
+          : (analysis.conditionProfileSnapshot as unknown as ConditionProfileSnapshotDto),
       shortageAmount: Number(analysis.shortageAmount),
-      rentBurdenRate: Number(analysis.rentBurdenRate),
+      rentBurdenRate: analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate),
       summaryMessage: analysis.summaryMessage,
       // DB enum 값을 DTO enum으로 표현하고, 필요한 공개 필드만 골라 응답에 담는다.
       conditionResults: analysis.conditionResults.map((conditionResult) => ({
@@ -247,6 +260,47 @@ export class EligibilityService {
       })),
       // toISOString()은 타임존(Z)과 밀리초가 포함된 ISO 8601 UTC 문자열을 만든다.
       analyzedAt: analysis.analyzedAt.toISOString(),
+    };
+  }
+
+  /** BigInt와 Date를 JSON으로 안전하게 직렬화해 분석 이력에 보관한다. */
+  private createConditionProfileSnapshot(profile: {
+    monthlyIncomeAmount: bigint;
+    totalAssetAmount: bigint;
+    totalDebtAmount: bigint;
+    monthlyDebtPaymentAmount: bigint;
+    cashSavings: bigint;
+    housingOwnershipStatus: string;
+    isHomeless: boolean;
+    residenceRegionCode: string | null;
+    workplaceRegionCode: string | null;
+    maritalStatus: string;
+    marriageDate: Date | null;
+    hasRecentNewborn: boolean;
+    newbornBirthDate: Date | null;
+    householdHeadStatus: string;
+    isFirstTimeBuyer: boolean | null;
+    employmentStatus: string | null;
+  }): Prisma.InputJsonObject {
+    return {
+      monthlyIncomeAmount: Number(profile.monthlyIncomeAmount),
+      totalAssetAmount: Number(profile.totalAssetAmount),
+      totalDebtAmount: Number(profile.totalDebtAmount),
+      monthlyDebtPaymentAmount: Number(profile.monthlyDebtPaymentAmount),
+      cashSavings: Number(profile.cashSavings),
+      housingOwnershipStatus:
+        profile.housingOwnershipStatus as ConditionProfileSnapshotDto['housingOwnershipStatus'],
+      isHomeless: profile.isHomeless,
+      residenceRegionCode: profile.residenceRegionCode,
+      workplaceRegionCode: profile.workplaceRegionCode,
+      maritalStatus: profile.maritalStatus as ConditionProfileSnapshotDto['maritalStatus'],
+      marriageDate: profile.marriageDate?.toISOString().split('T')[0] ?? null,
+      hasRecentNewborn: profile.hasRecentNewborn,
+      newbornBirthDate: profile.newbornBirthDate?.toISOString().split('T')[0] ?? null,
+      householdHeadStatus:
+        profile.householdHeadStatus as ConditionProfileSnapshotDto['householdHeadStatus'],
+      isFirstTimeBuyer: profile.isFirstTimeBuyer,
+      employmentStatus: profile.employmentStatus,
     };
   }
 
@@ -326,14 +380,17 @@ export class EligibilityService {
     // 계산 로직 문서: 월 주거비 = 월세 + 관리비.
     const maintenanceFeeAmount =
       analysis.maintenanceFeeAmount === null ? null : Number(analysis.maintenanceFeeAmount);
-    const monthlyHousingCost = Number(analysis.expectedMonthlyRentAmount) + (maintenanceFeeAmount ?? 0);
+    const expectedMonthlyRentAmount =
+      analysis.expectedMonthlyRentAmount === null ? null : Number(analysis.expectedMonthlyRentAmount);
+    const monthlyHousingCost =
+      expectedMonthlyRentAmount === null ? null : expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0);
     const shortageAmount = Number(analysis.shortageAmount);
-    const rentBurdenRate = Number(analysis.rentBurdenRate);
+    const rentBurdenRate = analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate);
     const monthlyIncomeAmount = Number(analysis.monthlyIncomeAmount);
 
     return {
       expectedDepositAmount: Number(analysis.expectedDepositAmount),
-      expectedMonthlyRentAmount: Number(analysis.expectedMonthlyRentAmount),
+      expectedMonthlyRentAmount,
       maintenanceFeeAmount,
       userCashAmount: Number(analysis.userCashAmount),
       shortageAmount,
@@ -419,7 +476,7 @@ export class EligibilityService {
           resultLevel: analysis.resultLevel as EligibilityResultLevel,
           eligibilityScore: Number(analysis.eligibilityScore),
           shortageAmount: Number(analysis.shortageAmount),
-          rentBurdenRate: Number(analysis.rentBurdenRate),
+          rentBurdenRate: analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate),
           analyzedAt: analysis.analyzedAt.toISOString(),
         };
       }),
@@ -459,12 +516,12 @@ export class EligibilityService {
   }
 
   private buildRentBurdenCondition(
-    monthlyHousingCost: number,
+    monthlyHousingCost: number | null,
     monthlyIncomeAmount: number,
-    rentBurdenRate: number,
+    rentBurdenRate: number | null,
   ): ConditionDraft {
-    const needsCheck = monthlyIncomeAmount <= 0;
-    const isPassed = rentBurdenRate <= this.recommendedRentBurdenRate;
+    const needsCheck = monthlyHousingCost === null || monthlyIncomeAmount <= 0;
+    const isPassed = rentBurdenRate !== null && rentBurdenRate <= this.recommendedRentBurdenRate;
 
     return {
       conditionId: null,
@@ -697,7 +754,7 @@ export class EligibilityService {
     expectedDepositAmount: number;
     cashSavings: number;
     monthlyIncomeAmount: number;
-    rentBurdenRate: number;
+    rentBurdenRate: number | null;
     policyConditions: ConditionDraft[];
   }): ScoreResult {
     const cashScore =
@@ -705,6 +762,7 @@ export class EligibilityService {
         ? Math.min(params.cashSavings / params.expectedDepositAmount, 1) * 40
         : 0;
     const rentScore =
+      params.rentBurdenRate !== null &&
       params.monthlyIncomeAmount > 0 &&
       params.rentBurdenRate <= this.recommendedRentBurdenRate
         ? 40
@@ -722,6 +780,7 @@ export class EligibilityService {
     const needsCheck =
       params.expectedDepositAmount <= 0 ||
       params.monthlyIncomeAmount <= 0 ||
+      params.rentBurdenRate === null ||
       params.policyConditions.length === 0 ||
       hasPolicyNeedCheck;
     const eligibilityScore = Math.round(cashScore + rentScore + policyScore);
@@ -761,7 +820,7 @@ export class EligibilityService {
   private createSummaryMessage(
     scoreResult: ScoreResult,
     shortageAmount: number,
-    rentBurdenRate: number,
+    rentBurdenRate: number | null,
     monthlyIncomeAmount: number,
     maintenanceFeeAmount: number | null,
   ): string {
@@ -792,16 +851,17 @@ export class EligibilityService {
 
   private createFinancialSummaryMessage(
     shortageAmount: number,
-    rentBurdenRate: number,
+    rentBurdenRate: number | null,
     monthlyIncomeAmount: number,
     maintenanceFeeAmount: number | null,
   ): string {
-    if (monthlyIncomeAmount <= 0) {
+    if (monthlyIncomeAmount <= 0 || rentBurdenRate === null) {
       const cashMessage =
         shortageAmount > 0
           ? `예상 보증금 대비 보유 현금이 ${this.formatKoreanAmount(shortageAmount)} 부족합니다.`
           : '예상 보증금은 보유 현금으로 충당할 수 있습니다.';
-      return `${cashMessage} 월소득 정보가 없어 월세 부담률은 추가 확인이 필요합니다.`;
+      const reason = monthlyIncomeAmount <= 0 ? '월소득 정보가 없어' : '월세 정보가 없어';
+      return `${cashMessage} ${reason} 월세 부담률은 추가 확인이 필요합니다.`;
     }
 
     // 계산 로직 문서의 부담 구간(30% 이하 / 30~40% / 40% 초과)을 안내 문구에 반영한다.
