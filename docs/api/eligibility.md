@@ -124,14 +124,38 @@
 
 `conditionProfileSnapshot`은 아래 필드를 항상 포함하며, 값이 없는 항목만 `null`이다.
 
-| 필드                                                                                                                     | 타입                      |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
-| `monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings`                  | number                    |
-| `housingOwnershipStatus`, `maritalStatus`, `householdHeadStatus`                                                         | string                    |
-| `isHomeless`, `hasRecentNewborn`                                                                                         | boolean                   |
-| `residenceRegionCode`, `workplaceRegionCode`, `marriageDate`, `newbornBirthDate`, `isFirstTimeBuyer`, `employmentStatus` | string \| boolean \| null |
+| 필드                                                                                     | 타입           | nullable |
+| ---------------------------------------------------------------------------------------- | -------------- | -------- |
+| `monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings` | number         | N        |
+| `housingOwnershipStatus`, `maritalStatus`, `householdHeadStatus`                        | string         | N        |
+| `isHomeless`, `hasRecentNewborn`                                                        | boolean        | N        |
+| `residenceRegionCode`, `workplaceRegionCode`, `marriageDate`, `newbornBirthDate`, `employmentStatus` | string \| null | Y        |
+| `isFirstTimeBuyer`                                                                      | boolean \| null | Y      |
 
-프론트의 분석 결과 화면은 이 스냅샷을 사용하며, 현재값 API(`GET /users/me/condition-profile`)를 호출해 덮어쓰지 않는다.
+```json
+{
+  "conditionProfileSnapshot": {
+    "monthlyIncomeAmount": 3000000,
+    "totalAssetAmount": 50000000,
+    "totalDebtAmount": 8000000,
+    "monthlyDebtPaymentAmount": 400000,
+    "cashSavings": 20000000,
+    "housingOwnershipStatus": "HOMELESS",
+    "isHomeless": true,
+    "residenceRegionCode": "11110",
+    "workplaceRegionCode": null,
+    "maritalStatus": "SINGLE",
+    "marriageDate": null,
+    "hasRecentNewborn": false,
+    "newbornBirthDate": null,
+    "householdHeadStatus": "UNKNOWN",
+    "isFirstTimeBuyer": null,
+    "employmentStatus": null
+  }
+}
+```
+
+프론트의 분석 결과 화면은 이 스냅샷을 사용하며, 현재값 API(`GET /users/me/condition-profile`)를 호출해 덮어쓰지 않는다. `conditionProfileSnapshot`이 `null`이면 스냅샷 도입 전 분석 이력이므로 Android는 "분석 당시 조건 정보가 없어 현재 프로필로 복원할 수 없습니다." 안내 문구를 표시한다.
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
 
