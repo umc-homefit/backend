@@ -272,7 +272,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/units` |
-| 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+| 인증 · 우선순위 · 화면 | **필수** · `Authorization: Bearer {accessToken}` · ⭐ P1 · 공고 상세 |
 
 공고 상세 응답과 동일한 DB 주택형 데이터를 `unitId` 오름차순으로 반환하는 P1 분리 조회 API다.
 
@@ -294,6 +294,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
 ---
@@ -303,7 +304,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/files` |
-| 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+| 인증 · 우선순위 · 화면 | **필수** · `Authorization: Bearer {accessToken}` · ⭐ P1 · 공고 상세 |
 
 공고 상세 응답과 동일한 DB 첨부파일 데이터를 `fileId` 오름차순으로 반환하는 P1 분리 조회 API다.
 
@@ -326,6 +327,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
 ---

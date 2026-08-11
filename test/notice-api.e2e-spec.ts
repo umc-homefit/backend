@@ -291,16 +291,18 @@ describe('Notice API contract (e2e)', () => {
     });
   });
 
-  it('주택형·첨부파일 분리 조회는 인증 없이 공고 상세와 동일한 DB 데이터를 반환한다', async () => {
+  it('주택형·첨부파일 분리 조회는 인증 후 공고 상세와 동일한 DB 데이터를 반환한다', async () => {
     const detail = await request(app.getHttpServer())
       .get(`/api/notices/${fixture.boundaryNoticeId}`)
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     const units = await request(app.getHttpServer())
       .get(`/api/notices/${fixture.boundaryNoticeId}/units`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
     const files = await request(app.getHttpServer())
       .get(`/api/notices/${fixture.boundaryNoticeId}/files`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(units.body).toMatchObject({
@@ -315,9 +317,25 @@ describe('Notice API contract (e2e)', () => {
     });
   });
 
+  it.each(['units', 'files'])(
+    '인증되지 않은 %s 분리 조회는 AUTH401을 반환한다',
+    async (resource) => {
+      const response = await request(app.getHttpServer())
+        .get(`/api/notices/${fixture.boundaryNoticeId}/${resource}`)
+        .expect(401);
+
+      expect(response.body).toMatchObject({
+        isSuccess: false,
+        code: 'AUTH401',
+        result: null,
+      });
+    },
+  );
+
   it('관계 데이터가 없는 공고도 첨부파일을 null이 아닌 빈 배열로 반환한다', async () => {
     const response = await request(app.getHttpServer())
       .get(`/api/notices/${fixture.largeNoticeId}/files`)
+      .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
 
     expect(response.body).toMatchObject({
@@ -332,6 +350,7 @@ describe('Notice API contract (e2e)', () => {
     async (resource) => {
       const response = await request(app.getHttpServer())
         .get(`/api/notices/999999/${resource}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(404);
 
       expect(response.body).toMatchObject({
@@ -347,6 +366,7 @@ describe('Notice API contract (e2e)', () => {
     async (resource) => {
       const response = await request(app.getHttpServer())
         .get(`/api/notices/invalid/${resource}`)
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(400);
 
       expect(response.body).toMatchObject({
