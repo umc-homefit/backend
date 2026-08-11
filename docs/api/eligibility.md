@@ -36,7 +36,7 @@
 
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
-- 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`과 최종 등급은 `NEED_CHECK`으로 처리한다.
+- 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 월소득이 0원이면 `rentBurdenRate`는 계산할 수 없어 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`과 최종 등급은 `NEED_CHECK`으로 처리한다.
 - 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월세가 수집된 경우 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100` (월세·월소득 정보가 있을 때)
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
@@ -119,7 +119,8 @@
 | `supplyType`                | string         | 공급 유형. MVP는 `청년안심주택`으로 고정 |
 | `exclusiveAreaM2`           | number \| null | 선택한 주택형의 전용면적(㎡)             |
 | `expectedDepositAmount`     | number         | 예상 보증금                              |
-| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null)                 |
+| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null)                |
+| `rentBurdenRate`            | number \| null | 월세 미수집 또는 월소득 0원 시 null      |
 | `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null)        |
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
@@ -234,17 +235,17 @@
 
 ### Response (result)
 
-| 필드                        | 타입           | 설명             |
-| --------------------------- | -------------- | ---------------- |
-| `expectedDepositAmount`     | number         | 예상 보증금      |
-| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null) |
-| `maintenanceFeeAmount`      | number \| null  | 예상 관리비(현재 미수집으로 null) |
-| `userCashAmount`            | number         | 사용자 보유 현금 |
-| `shortageAmount`            | number         | 부족 자금        |
-| `monthlyIncomeAmount`       | number         | 사용자 월소득    |
-| `monthlyHousingCost`        | number \| null | 월 주거비(월세 미수집 시 null) |
-| `rentBurdenRate`            | number \| null | 월세 부담률(월세 미수집 시 null) |
-| `financialMessage`          | string \| null | 재정 분석 문구   |
+| 필드                        | 타입           | 설명                                             |
+| --------------------------- | -------------- | ------------------------------------------------ |
+| `expectedDepositAmount`     | number         | 예상 보증금                                      |
+| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null)                        |
+| `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null)                |
+| `userCashAmount`            | number         | 사용자 보유 현금                                 |
+| `shortageAmount`            | number         | 부족 자금                                        |
+| `monthlyIncomeAmount`       | number         | 사용자 월소득                                    |
+| `monthlyHousingCost`        | number \| null | 월 주거비(월세 미수집 시 null)                   |
+| `rentBurdenRate`            | number \| null | 월세 부담률(월세 미수집 또는 월소득 0원 시 null) |
+| `financialMessage`          | string \| null | 재정 분석 문구                                   |
 
 | 상태 | 코드           | 설명                                                                  |
 | ---- | -------------- | --------------------------------------------------------------------- |
@@ -258,11 +259,11 @@
 
 ## 5. 내 분석 이력 조회
 
-| 항목              | 내용                                                |
-| ----------------- | --------------------------------------------------- |
-| Method · Endpoint | `GET /users/me/eligibility-analyses`                |
+| 항목              | 내용                                                                               |
+| ----------------- | ---------------------------------------------------------------------------------- |
+| Method · Endpoint | `GET /users/me/eligibility-analyses`                                               |
 | 설명              | 로그인한 사용자의 입주 가능성 분석 이력과 카드 표시용 공고·주택형 정보를 조회한다. |
-| 인증              | **필수**                                            |
+| 인증              | **필수**                                                                           |
 
 ### Query Parameter
 

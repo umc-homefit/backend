@@ -122,4 +122,35 @@ describe('EligibilityService 분석 요청의 월세 미수집 처리', () => {
     expect(rentCondition.resultStatus).toBe('PASS');
     expect(result.rentBurdenRate).toBe(0);
   });
+
+  it('월세가 있어도 월소득이 0원이면 부담률을 계산하지 않는다', async () => {
+    conditionProfileFindUnique.mockResolvedValueOnce({
+      userConditionProfileId: 1n,
+      monthlyIncomeAmount: 0n,
+      totalAssetAmount: 20_000_000n,
+      cashSavings: 20_000_000n,
+      isHomeless: true,
+      residenceRegionCode: null,
+      householdHeadStatus: 'HEAD',
+      user: { profile: { birthDate: new Date('2000-01-01T00:00:00Z') } },
+    });
+    noticeUnitFindUnique.mockResolvedValue({
+      unitId: 1n,
+      noticeId: 1n,
+      depositMin: 10_000_000n,
+      depositMax: null,
+      monthlyRentMin: 300_000n,
+      monthlyRentMax: null,
+    });
+
+    const result = await service.requestEligibilityAnalysis(1, 1, 1n);
+    const createData = analysisCreate.mock.calls[0][0].data;
+    const rentCondition = createData.conditionResults.create.find(
+      (condition: { conditionCode: string }) => condition.conditionCode === 'RENT_BURDEN',
+    );
+
+    expect(createData.rentBurdenRate).toBeNull();
+    expect(rentCondition.resultStatus).toBe('NEED_CHECK');
+    expect(result.rentBurdenRate).toBeNull();
+  });
 });
