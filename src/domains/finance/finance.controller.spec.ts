@@ -79,6 +79,7 @@ describe('FinanceController size 파라미터 검증 (@Max(50))', () => {
       expect(response.body).toMatchObject({
         isSuccess: false,
         code: 'COMMON400',
+        message: 'size는 50 이하여야 합니다.',
         result: null,
       });
     },
