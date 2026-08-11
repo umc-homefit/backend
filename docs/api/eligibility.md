@@ -109,7 +109,7 @@
 
 ### Response (result)
 
-`POST /notices/{noticeId}/units/{unitId}/eligibility-analyses` 응답에 아래 필드를 추가해 반환한다.
+분석 상세 조회는 분석 요청(`POST /notices/{noticeId}/units/{unitId}/eligibility-analyses`) 응답 필드에 아래 필드를 추가해 반환한다. `conditionProfileSnapshot`은 **분석 상세 조회 전용** 필드다.
 
 | 필드                        | 타입           | 설명                                                       |
 | --------------------------- | -------------- | ---------------------------------------------------------- |
@@ -122,7 +122,16 @@
 | `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null)                          |
 | `conditionProfileSnapshot`  | object \| null | 분석 시점의 사용자 조건 프로필. 도입 전 분석 이력은 `null` |
 
-`conditionProfileSnapshot`에는 현재 프로필 API의 입력값(`monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings`, 주택 소유·무주택·지역·혼인·출산·세대주·생애최초·직업 상태)을 분석 시점 그대로 저장해 반환한다. 프론트의 분석 결과 화면은 이 필드를 사용하며, 현재값 API(`GET /users/me/condition-profile`)를 호출해 덮어쓰지 않는다.
+`conditionProfileSnapshot`은 아래 필드를 항상 포함하며, 값이 없는 항목만 `null`이다.
+
+| 필드                                                                                                                     | 타입                      |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| `monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings`                  | number                    |
+| `housingOwnershipStatus`, `maritalStatus`, `householdHeadStatus`                                                         | string                    |
+| `isHomeless`, `hasRecentNewborn`                                                                                         | boolean                   |
+| `residenceRegionCode`, `workplaceRegionCode`, `marriageDate`, `newbornBirthDate`, `isFirstTimeBuyer`, `employmentStatus` | string \| boolean \| null |
+
+프론트의 분석 결과 화면은 이 스냅샷을 사용하며, 현재값 API(`GET /users/me/condition-profile`)를 호출해 덮어쓰지 않는다.
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
 

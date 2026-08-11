@@ -84,3 +84,70 @@ describe('EligibilityService 분석 결과 조회', () => {
     expect(result.conditionProfileSnapshot).toBeNull();
   });
 });
+
+describe('EligibilityService 분석 시점 프로필 스냅샷 저장', () => {
+  const create = jest.fn();
+  const prisma = {
+    notice: { findUnique: jest.fn().mockResolvedValue({ noticeId: 1n, conditions: [] }) },
+    noticeUnit: {
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({
+          unitId: 1n,
+          noticeId: 1n,
+          depositMin: 1n,
+          depositMax: null,
+          monthlyRentMin: 1n,
+          monthlyRentMax: null,
+        }),
+    },
+    userConditionProfile: {
+      findUnique: jest.fn().mockResolvedValue({
+        userConditionProfileId: 1n,
+        monthlyIncomeAmount: 3_000_000n,
+        totalAssetAmount: 50_000_000n,
+        totalDebtAmount: 8_000_000n,
+        monthlyDebtPaymentAmount: 400_000n,
+        cashSavings: 20_000_000n,
+        housingOwnershipStatus: 'HOMELESS',
+        isHomeless: true,
+        residenceRegionCode: null,
+        workplaceRegionCode: '11680',
+        maritalStatus: 'SINGLE',
+        marriageDate: null,
+        hasRecentNewborn: false,
+        newbornBirthDate: null,
+        householdHeadStatus: 'HEAD',
+        isFirstTimeBuyer: null,
+        employmentStatus: null,
+        user: { profile: { birthDate: new Date('2000-01-02T00:00:00Z') } },
+      }),
+    },
+    eligibilityAnalysis: { create },
+  } as unknown as PrismaService;
+
+  it('BigInt·Date·null을 JSON 스냅샷으로 변환해 생성 데이터에 저장한다', async () => {
+    create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        eligibilityAnalysisId: 1n,
+        resultLevel: data.resultLevel,
+        eligibilityScore: data.eligibilityScore,
+        shortageAmount: data.shortageAmount,
+        rentBurdenRate: data.rentBurdenRate,
+        summaryMessage: data.summaryMessage,
+        conditionResults: data.conditionResults.create,
+        analyzedAt: new Date('2026-08-11T00:00:00Z'),
+      }),
+    );
+    await new EligibilityService(prisma).requestEligibilityAnalysis(1, 1, 1n);
+    expect(create.mock.calls[0][0].data.conditionProfileSnapshot).toEqual(
+      expect.objectContaining({
+        monthlyIncomeAmount: 3_000_000,
+        totalDebtAmount: 8_000_000,
+        marriageDate: null,
+        workplaceRegionCode: '11680',
+        isFirstTimeBuyer: null,
+      }),
+    );
+  });
+});
