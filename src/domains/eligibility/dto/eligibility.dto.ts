@@ -67,8 +67,8 @@ export class RequestEligibilityAnalysisResultDto {
   @ApiProperty({ description: '부족 자금 (원 단위)', example: 2000000 })
   shortageAmount: number;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({ description: '월세 부담률 (% 단위, 월세 미수집 시 null)', example: 28.57, nullable: true })
+  rentBurdenRate: number | null;
 
   @ApiPropertyOptional({
     description: '최종 입주 가능성 등급과 재정 상태를 함께 안내하는 종합 분석 문구',
@@ -108,8 +108,8 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;
 
-  @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
-  expectedMonthlyRentAmount: number;
+  @ApiProperty({ description: '예상 월세 (원 단위, 미수집 시 null)', example: 350000, nullable: true })
+  expectedMonthlyRentAmount: number | null;
 
   @ApiPropertyOptional({
     description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
@@ -200,8 +200,8 @@ export class EligibilityAnalysisHistoryItemDto {
   @ApiProperty({ description: '부족 자금 (원 단위)', example: 2000000 })
   shortageAmount: number;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({ description: '월세 부담률 (% 단위, 월세 미수집 시 null)', example: 28.57, nullable: true })
+  rentBurdenRate: number | null;
 
   @ApiProperty({ description: '분석 일시 (ISO 8601 UTC)', example: '2026-07-01T00:10:00.000Z' })
   analyzedAt: string;
@@ -211,8 +211,8 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;
 
-  @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
-  expectedMonthlyRentAmount: number;
+  @ApiProperty({ description: '예상 월세 (원 단위, 미수집 시 null)', example: 350000, nullable: true })
+  expectedMonthlyRentAmount: number | null;
 
   @ApiPropertyOptional({
     description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
@@ -230,11 +230,11 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '사용자 월소득 (원 단위)', example: 1400000 })
   monthlyIncomeAmount: number;
 
-  @ApiProperty({ description: '월 주거비 (원 단위, 관리비 정보가 없으면 월세 기준)', example: 400000 })
-  monthlyHousingCost: number;
+  @ApiProperty({ description: '월 주거비 (원 단위, 월세 미수집 시 null)', example: 400000, nullable: true })
+  monthlyHousingCost: number | null;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위, 관리비 정보가 없으면 월세 기준)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({ description: '월세 부담률 (% 단위, 월세 미수집 시 null)', example: 28.57, nullable: true })
+  rentBurdenRate: number | null;
 
   @ApiPropertyOptional({
     description: '재정 분석 문구',

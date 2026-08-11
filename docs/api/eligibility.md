@@ -36,8 +36,9 @@
 
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
-- 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
-- `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100`
+- 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`과 최종 등급은 `NEED_CHECK`으로 처리한다.
+- 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월세가 수집된 경우 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
+- `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100` (월세·월소득 정보가 있을 때)
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
 - 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
 - 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않는다.
@@ -118,7 +119,7 @@
 | `supplyType`                | string         | 공급 유형. MVP는 `청년안심주택`으로 고정 |
 | `exclusiveAreaM2`           | number \| null | 선택한 주택형의 전용면적(㎡)             |
 | `expectedDepositAmount`     | number         | 예상 보증금                              |
-| `expectedMonthlyRentAmount` | number         | 예상 월세                                |
+| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null)                 |
 | `maintenanceFeeAmount`      | number \| null | 예상 관리비(현재 미수집으로 null)        |
 
 `conditionResults`는 `eligibilityConditionResultId` 오름차순으로 반환한다.
@@ -236,13 +237,13 @@
 | 필드                        | 타입           | 설명             |
 | --------------------------- | -------------- | ---------------- |
 | `expectedDepositAmount`     | number         | 예상 보증금      |
-| `expectedMonthlyRentAmount` | number         | 예상 월세        |
+| `expectedMonthlyRentAmount` | number \| null | 예상 월세(미수집 시 null) |
 | `maintenanceFeeAmount`      | number \| null  | 예상 관리비(현재 미수집으로 null) |
 | `userCashAmount`            | number         | 사용자 보유 현금 |
 | `shortageAmount`            | number         | 부족 자금        |
 | `monthlyIncomeAmount`       | number         | 사용자 월소득    |
-| `monthlyHousingCost`        | number         | 월 주거비(관리비 정보 없으면 월세 기준) |
-| `rentBurdenRate`            | number         | 월세 부담률(관리비 정보 없으면 월세 기준) |
+| `monthlyHousingCost`        | number \| null | 월 주거비(월세 미수집 시 null) |
+| `rentBurdenRate`            | number \| null | 월세 부담률(월세 미수집 시 null) |
 | `financialMessage`          | string \| null | 재정 분석 문구   |
 
 | 상태 | 코드           | 설명                                                                  |
