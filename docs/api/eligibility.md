@@ -36,7 +36,7 @@
 
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
-- 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 월소득이 0원이면 `rentBurdenRate`는 계산할 수 없어 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`과 최종 등급은 `NEED_CHECK`으로 처리한다.
+- 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 월소득이 0원이면 `rentBurdenRate`는 계산할 수 없어 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`은 `NEED_CHECK`으로 처리한다. 다른 정책 조건에 `FAIL`이 없을 때만 최종 등급도 `NEED_CHECK`이며, `FAIL`이 있으면 `NOT_ELIGIBLE`이 우선한다.
 - 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월세가 수집된 경우 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100` (월세·월소득 정보가 있을 때)
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.

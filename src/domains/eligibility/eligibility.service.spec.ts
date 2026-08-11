@@ -215,6 +215,48 @@ describe('EligibilityService 분석 요청의 월세 미수집 처리', () => {
     expect(result.resultLevel).toBe('NEED_CHECK');
   });
 
+  it('월세가 미수집이어도 정책 조건 FAIL이 있으면 NOT_ELIGIBLE이 우선한다', async () => {
+    noticeFindUnique.mockResolvedValueOnce({
+      noticeId: 1n,
+      conditions: [
+        {
+          conditionId: 10n,
+          incomeLimitAmount: 1_000_000n,
+          incomeLimitText: null,
+          assetLimitAmount: null,
+          assetLimitText: null,
+          requiresHomeless: null,
+          housingOwnershipRequirement: null,
+          minAge: null,
+          maxAge: null,
+          residenceRequirement: null,
+          householdRequirement: null,
+          subscriptionRequirement: null,
+          rawConditionText: null,
+        },
+      ],
+    });
+    noticeUnitFindUnique.mockResolvedValue({
+      unitId: 1n,
+      noticeId: 1n,
+      depositMin: 10_000_000n,
+      depositMax: null,
+      monthlyRentMin: null,
+      monthlyRentMax: null,
+    });
+
+    const result = await service.requestEligibilityAnalysis(1, 1, 1n);
+    const conditions = analysisCreate.mock.calls[0][0].data.conditionResults.create;
+
+    expect(conditions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ conditionCode: 'RENT_BURDEN', resultStatus: 'NEED_CHECK' }),
+        expect.objectContaining({ conditionCode: 'INCOME', resultStatus: 'FAIL' }),
+      ]),
+    );
+    expect(result.resultLevel).toBe('NOT_ELIGIBLE');
+  });
+
   it('실제 월세 0원은 미수집과 구분해 부담률 0%로 계산한다', async () => {
     noticeUnitFindUnique.mockResolvedValue({
       unitId: 1n,
