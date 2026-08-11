@@ -1,4 +1,5 @@
 import { PrismaService } from '../../prisma/prisma.service';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import {
   EligibilityConditionCode,
   EligibilityConditionResultStatus,
@@ -93,5 +94,175 @@ describe('EligibilityService 점수 및 등급 계산', () => {
     expect(
       calculateScore({ rentBurdenRate: 0, policyStatus: EligibilityConditionResultStatus.NEED_CHECK }),
     ).toMatchObject({ resultLevel: 'NEED_CHECK' });
+  });
+});
+
+describe('EligibilityService 분석 생성·누락 데이터 처리', () => {
+  const create = jest.fn();
+  const findNotice = jest.fn();
+  const findUnit = jest.fn();
+  const findProfile = jest.fn();
+  const prisma = {
+    notice: { findUnique: findNotice },
+    noticeUnit: { findUnique: findUnit },
+    userConditionProfile: { findUnique: findProfile },
+    eligibilityAnalysis: { create },
+  } as unknown as PrismaService;
+  const service = new EligibilityService(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findNotice.mockResolvedValue({
+      noticeId: 1n,
+      conditions: [
+        {
+          conditionId: 10n,
+          incomeLimitAmount: 5_000_000n,
+          incomeLimitText: null,
+          assetLimitAmount: null,
+          assetLimitText: null,
+          requiresHomeless: null,
+          housingOwnershipRequirement: null,
+          minAge: null,
+          maxAge: null,
+          residenceRequirement: null,
+          householdRequirement: null,
+          subscriptionRequirement: null,
+          rawConditionText: null,
+        },
+      ],
+    });
+    findUnit.mockResolvedValue({
+      unitId: 2n,
+      noticeId: 1n,
+      depositMin: 10_000_000n,
+      depositMax: 10_000_000n,
+      monthlyRentMin: 200_000n,
+      monthlyRentMax: 200_000n,
+    });
+    findProfile.mockResolvedValue({
+      userConditionProfileId: 3n,
+      monthlyIncomeAmount: 3_000_000n,
+      totalAssetAmount: 50_000_000n,
+      cashSavings: 10_000_000n,
+      isHomeless: true,
+      residenceRegionCode: null,
+      householdHeadStatus: 'UNKNOWN',
+      user: { profile: { birthDate: null } },
+    });
+    create.mockImplementation(({ data }) =>
+      Promise.resolve({
+        eligibilityAnalysisId: 4n,
+        resultLevel: data.resultLevel,
+        eligibilityScore: data.eligibilityScore,
+        shortageAmount: data.shortageAmount,
+        rentBurdenRate: data.rentBurdenRate,
+        summaryMessage: data.summaryMessage,
+        conditionResults: data.conditionResults.create,
+        analyzedAt: new Date('2026-08-11T00:00:00.000Z'),
+      }),
+    );
+  });
+
+  it('분석 결과와 조건별 비교 결과를 계산해 함께 저장한다', async () => {
+    const result = await service.requestEligibilityAnalysis(1, 2, 1n);
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userConditionProfileId: 3n,
+          noticeId: 1n,
+          unitId: 2n,
+          expectedDepositAmount: 10_000_000n,
+          expectedMonthlyRentAmount: 200_000n,
+          shortageAmount: 0n,
+          conditionResults: expect.objectContaining({
+            create: expect.arrayContaining([
+              expect.objectContaining({ conditionCode: EligibilityConditionCode.CASH }),
+              expect.objectContaining({ conditionCode: EligibilityConditionCode.RENT_BURDEN }),
+              expect.objectContaining({ conditionCode: EligibilityConditionCode.INCOME }),
+            ]),
+          }),
+        }),
+      }),
+    );
+    expect(result).toMatchObject({ analysisId: 4, resultLevel: 'HIGH', eligibilityScore: 100 });
+  });
+
+  it('사용자 조건 프로필이 없으면 분석을 생성하지 않고 409으로 처리한다', async () => {
+    findProfile.mockResolvedValue(null);
+
+    await expect(service.requestEligibilityAnalysis(1, 2, 1n)).rejects.toBeInstanceOf(
+      ConflictException,
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
+});
+
+describe('EligibilityService 분석 소유권·이력 페이지네이션', () => {
+  const findFirst = jest.fn();
+  const count = jest.fn();
+  const findMany = jest.fn();
+  const transaction = jest.fn();
+  const prisma = {
+    eligibilityAnalysis: { findFirst, count, findMany },
+    $transaction: transaction,
+  } as unknown as PrismaService;
+  const service = new EligibilityService(prisma);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('다른 사용자의 분석 결과는 404로 숨기고 사용자 조건 프로필 소유자를 함께 조회한다', async () => {
+    findFirst.mockResolvedValue(null);
+
+    await expect(service.getEligibilityAnalysis(10, 2n)).rejects.toBeInstanceOf(NotFoundException);
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ userConditionProfile: { userId: 2n } }),
+      }),
+    );
+  });
+
+  it('이력 조회는 페이지 크기만큼 건너뛰고 전체 개수 기반 페이지 정보를 반환한다', async () => {
+    count.mockResolvedValue(3);
+    findMany.mockResolvedValue([
+      {
+        eligibilityAnalysisId: 3n,
+        noticeId: 1n,
+        unitId: 2n,
+        expectedDepositAmount: 10_000_000n,
+        resultLevel: 'HIGH',
+        eligibilityScore: 100,
+        shortageAmount: 0n,
+        rentBurdenRate: 20,
+        analyzedAt: new Date('2026-08-11T00:00:00.000Z'),
+        notice: {
+          title: '테스트 공고',
+          announcementNo: 'TEST-1',
+          applicationStartAt: null,
+          applicationEndAt: null,
+          isAdditionalRecruitment: false,
+        },
+        unit: { unitName: '20A', exclusiveAreaM2: 20 },
+      },
+    ]);
+    transaction.mockImplementation((queries: Promise<unknown>[]) => Promise.all(queries));
+
+    const result = await service.getMyEligibilityAnalyses(1n, 1, 2);
+
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 2, take: 2, where: { userConditionProfile: { userId: 1n } } }),
+    );
+    expect(result.pageInfo).toEqual({
+      page: 1,
+      size: 2,
+      totalElements: 3,
+      totalPages: 2,
+      hasNext: false,
+    });
+    expect(result.analyses).toHaveLength(1);
+    expect(result.analyses[0]).toMatchObject({ analysisId: 3, noticeId: 1, unitId: 2 });
   });
 });
