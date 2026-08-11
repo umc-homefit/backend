@@ -35,7 +35,11 @@
 | enum | 값 | 비고 |
 | --- | --- | --- |
 | `deviceType` | `ANDROID` / `IOS` | FCM 디바이스 OS 타입 |
-| `type` | `NEW_NOTICE` / `CLOSING_SOON` | 알림 타입. 추후 일정/금융 알림 확장 가능 |
+| `type` | `NEW_NOTICE` / `CLOSING_SOON` | MVP에서 허용하는 알림 타입 |
+
+- `NEW_NOTICE`: 새로운 공고가 등록된 경우
+- `CLOSING_SOON`: 사용자가 저장한 공고의 접수 마감이 임박한 경우
+- MVP 알림 목록에서 허용하는 `type`은 위 두 값뿐이다. 새 타입을 추가할 때는 코드, Swagger, Notion 명세를 함께 변경한다.
 
 ## API 목록
 
@@ -196,6 +200,8 @@
 ```
 
 > `content`가 DB에 없는 경우(`body`가 null) 빈 문자열(`""`)로 반환한다.
+>
+> `type`은 `NEW_NOTICE` 또는 `CLOSING_SOON` 중 하나로 반환한다.
 
 ---
 

@@ -7,6 +7,6 @@ import { PrismaModule } from '../../prisma/prisma.module'; // PrismaService 사�
 @Module({
   imports: [PrismaModule],
   controllers: [UsersController],
-  providers: [UsersService, UsersRepository], // 추가 완료
+  providers: [UsersService, UsersRepository],
 })
 export class UsersModule {}

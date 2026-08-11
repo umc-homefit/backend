@@ -51,6 +51,7 @@ export class UsersRepository {
     });
   }
 
+
   // 5. 금융 조건 프로필 조회
   async findConditionProfileByUserId(userId: bigint) {
     return await this.prisma.userConditionProfile.findUnique({

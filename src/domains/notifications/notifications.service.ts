@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 
 import {
   AlertSettingsResultDto,
   DeleteDeviceTokenResultDto,
   MarkNotificationReadResultDto,
   NotificationListResultDto,
+  NotificationType,
   RegisterDeviceTokenRequestDto,
   RegisterDeviceTokenResultDto,
   UpdateAlertSettingsRequestDto,
@@ -103,7 +104,7 @@ export class NotificationsService {
     return {
       notifications: items.map((item) => ({
         notificationId: Number(item.notificationLogId),
-        type: item.notificationType,
+        type: this.toNotificationType(item.notificationType),
         title: item.title,
         content: item.body ?? '',
         isRead: item.isRead,
@@ -117,6 +118,14 @@ export class NotificationsService {
         hasNext: (page + 1) * size < totalElements,
       },
     };
+  }
+
+  private toNotificationType(notificationType: string): NotificationType {
+    if (!Object.values(NotificationType).includes(notificationType as NotificationType)) {
+      throw new InternalServerErrorException('지원하지 않는 알림 타입이 저장되어 있습니다.');
+    }
+
+    return notificationType as NotificationType;
   }
 
   async markNotificationRead(
