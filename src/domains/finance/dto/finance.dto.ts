@@ -8,7 +8,7 @@ import {
   RequiredDocumentType,
 } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -261,11 +261,17 @@ export class GetLoanProductsQueryDto {
   @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 20, 최대 50)',
+    default: 20,
+    maximum: 50,
+    example: 20,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'size는 정수여야 합니다.' })
   @Min(1, { message: 'size는 1 이상이어야 합니다.' })
+  @Max(50, { message: 'size는 50 이하여야 합니다.' })
   size?: number = 20;
 }
 
@@ -572,11 +578,17 @@ export class GetGuidesQueryDto {
   @Min(0, { message: 'page는 0 이상이어야 합니다.' })
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기', default: 20, example: 20 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 20, 최대 50)',
+    default: 20,
+    maximum: 50,
+    example: 20,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'size는 정수여야 합니다.' })
   @Min(1, { message: 'size는 1 이상이어야 합니다.' })
+  @Max(50, { message: 'size는 50 이하여야 합니다.' })
   size?: number = 20;
 }
 
