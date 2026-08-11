@@ -446,7 +446,7 @@ model EligibilityAnalysis {
   resultLevel               EligibilityResultLevel @map("result_level")
   eligibilityScore          Decimal                @map("eligibility_score") @db.Decimal(5, 2)
   expectedDepositAmount     BigInt                 @map("expected_deposit_amount")
-  expectedMonthlyRentAmount BigInt                 @map("expected_monthly_rent_amount")
+  expectedMonthlyRentAmount BigInt?                @map("expected_monthly_rent_amount")
   maintenanceFeeAmount      BigInt?                @map("maintenance_fee_amount")
   userCashAmount            BigInt                 @map("user_cash_amount")
   monthlyIncomeAmount       BigInt                 @map("monthly_income_amount")
@@ -454,7 +454,7 @@ model EligibilityAnalysis {
   // 기존 분석 이력은 복원할 근거가 없어 nullable로 둔다.
   conditionProfileSnapshot  Json?                  @map("condition_profile_snapshot")
   shortageAmount            BigInt                 @map("shortage_amount")
-  rentBurdenRate            Decimal                @map("rent_burden_rate") @db.Decimal(5, 2)
+  rentBurdenRate            Decimal?               @map("rent_burden_rate") @db.Decimal(5, 2)
   summaryMessage            String?                @map("summary_message") @db.VarChar(500)
   analyzedAt                DateTime               @default(now()) @map("analyzed_at") @db.Timestamp(0)
 
