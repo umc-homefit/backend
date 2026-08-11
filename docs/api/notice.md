@@ -294,6 +294,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 400 | `noticeId` 형식 오류 (`COMMON400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
@@ -327,6 +328,7 @@ GET /notices?minArea=20&minDeposit=50000000
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 400 | `noticeId` 형식 오류 (`COMMON400`) |
 | 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
