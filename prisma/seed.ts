@@ -178,6 +178,61 @@ const NOTICES: NoticeSeed[] = [
     unit: createUnit('30A', 30, 42, 40_000_000n, 60_000_000n, 290_000n, 390_000n, 3),
     condition: createCondition(NoticeConditionTargetType.YOUTH, '청년'),
   },
+  {
+    key: 'analysis-demo-high',
+    complexKey: 'bx201',
+    title: '[TEST] 분석 데모 · HIGH',
+    scenario: 'RECRUITING',
+    isAdditionalRecruitment: false,
+    views: 0,
+    interestedCount: 0,
+    unit: createUnit('DEMO-HIGH', 20, 30, 10_000_000n, 10_000_000n, 200_000n, 200_000n, 1),
+    condition: createAnalysisDemoCondition(5_000_000n),
+  },
+  {
+    key: 'analysis-demo-medium',
+    complexKey: 'bx201',
+    title: '[TEST] 분석 데모 · MEDIUM',
+    scenario: 'RECRUITING',
+    isAdditionalRecruitment: false,
+    views: 0,
+    interestedCount: 0,
+    unit: createUnit('DEMO-MEDIUM', 20, 30, 50_000_000n, 50_000_000n, 450_000n, 450_000n, 1),
+    condition: createAnalysisDemoCondition(5_000_000n),
+  },
+  {
+    key: 'analysis-demo-low',
+    complexKey: 'bx201',
+    title: '[TEST] 분석 데모 · LOW',
+    scenario: 'RECRUITING',
+    isAdditionalRecruitment: false,
+    views: 0,
+    interestedCount: 0,
+    unit: createUnit('DEMO-LOW', 20, 30, 100_000_000n, 100_000_000n, 450_000n, 450_000n, 1),
+    condition: createAnalysisDemoCondition(5_000_000n),
+  },
+  {
+    key: 'analysis-demo-not-eligible',
+    complexKey: 'bx201',
+    title: '[TEST] 분석 데모 · NOT_ELIGIBLE',
+    scenario: 'RECRUITING',
+    isAdditionalRecruitment: false,
+    views: 0,
+    interestedCount: 0,
+    unit: createUnit('DEMO-NOT-ELIGIBLE', 20, 30, 10_000_000n, 10_000_000n, 200_000n, 200_000n, 1),
+    condition: createAnalysisDemoCondition(500_000n),
+  },
+  {
+    key: 'analysis-demo-need-check',
+    complexKey: 'bx201',
+    title: '[TEST] 분석 데모 · NEED_CHECK',
+    scenario: 'RECRUITING',
+    isAdditionalRecruitment: false,
+    views: 0,
+    interestedCount: 0,
+    unit: createUnit('DEMO-NEED-CHECK', 20, 30, 10_000_000n, 10_000_000n, 200_000n, 200_000n, 1),
+    condition: createAnalysisDemoCondition(5_000_000n, true),
+  },
 ];
 
 function createUnit(
@@ -221,6 +276,28 @@ function createCondition(
     subscriptionRequirement: null,
     rawConditionText:
       '[TEST DATA] Android 연동 화면 확인을 위한 가상 자격조건이며 실제 모집 자격으로 사용할 수 없습니다.',
+  };
+}
+
+/** 분석 등급 시연 전용 조건: 자동 판정 가능한 소득 조건만 두고, NEED_CHECK 시연 때만 원문 조건을 추가한다. */
+function createAnalysisDemoCondition(
+  incomeLimitAmount: bigint,
+  includeNeedCheck = false,
+): SeedCondition {
+  return {
+    targetType: NoticeConditionTargetType.COMMON,
+    minAge: null,
+    maxAge: null,
+    incomeLimitAmount,
+    incomeLimitText: `[TEST] 월소득 ${incomeLimitAmount.toLocaleString('ko-KR')}원 이하`,
+    assetLimitAmount: null,
+    assetLimitText: null,
+    requiresHomeless: null,
+    housingOwnershipRequirement: null,
+    residenceRequirement: null,
+    householdRequirement: null,
+    subscriptionRequirement: null,
+    rawConditionText: includeNeedCheck ? '[TEST] 자동 판정할 수 없는 추가 조건' : null,
   };
 }
 
@@ -475,7 +552,11 @@ const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
   { providerName: '주택도시기금', productName: '청년전용 버팀목전세자금', providerLogoUrl: null },
   { providerName: '주택도시기금', productName: '일반 버팀목전세자금', providerLogoUrl: null },
   { providerName: '주택도시기금', productName: '신혼부부전용 전세자금', providerLogoUrl: null },
-  { providerName: '주택도시기금', productName: '신생아 특례 버팀목전세자금', providerLogoUrl: null },
+  {
+    providerName: '주택도시기금',
+    productName: '신생아 특례 버팀목전세자금',
+    providerLogoUrl: null,
+  },
 ];
 
 type LogoBackfillOutcome = 'updated' | 'skipped';
@@ -566,7 +647,10 @@ function validateCliSafety(): void {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL이 설정되지 않았습니다. 대상 DB를 먼저 확인해주세요.');
   }
-  if (process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true' && process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] !== 'true') {
+  if (
+    process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true' &&
+    process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] !== 'true'
+  ) {
     throw new Error(
       `${NOTICE_SEED_OPT_IN_ENV}=true 또는 ${LOAN_PRODUCT_SEED_OPT_IN_ENV}=true 중 최소 하나는 명시해야 Seed를 실행할 수 있습니다.`,
     );
