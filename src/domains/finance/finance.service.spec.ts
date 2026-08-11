@@ -299,3 +299,157 @@ describe('FinanceService - 혼인/신생아 조건 판정', () => {
     });
   });
 });
+
+/**
+ * providerLogoUrl은 단순 패스스루 필드라 지금은 안전해 보이지만, 그래서 오히려 매핑 함수를
+ * 리팩터링하다 실수로 필드 하나가 빠져도 아무도 못 알아챌 수 있다. 목록/매칭/상세 3개 응답
+ * 모두에서 DB 값(URL 값 / null)이 그대로 나오는지 고정해둔다.
+ */
+describe('FinanceService - providerLogoUrl 응답 매핑', () => {
+  const LOGO_URL =
+    'https://i.namu.wiki/i/tDsletACkcsTWUh0TVlPHOw9WADNz3swwgAYWRgLDNlsy4eVUYCZW7uRgS9HMxYqFy4rsPLEqO4iB65nz0TNLc89TiMQo6KS3ojNgwbVVtahfbcx8mIH6S5WDpsAuh2b9Z9xkCqxJyrB6EVcHzmbbw.svg';
+
+  const baseProduct = {
+    productId: 1n,
+    productName: '로고 URL 테스트 상품',
+    providerType: 'POLICY',
+    productCategory: 'JEONSE_LOAN',
+    providerName: '주택도시기금',
+    minRate: null,
+    maxRate: null,
+    maxLimitAmount: null,
+    minAge: null,
+    maxAge: null,
+    maxIncome: null,
+    minIncome: null,
+    maxAsset: null,
+    minAsset: null,
+    requireNoHouse: null,
+    firstTimeBuyerOnly: null,
+    incomeTaxDeductible: null,
+    ltvRatio: null,
+    dtiRatio: null,
+    loanTermMinYears: null,
+    loanTermMaxYears: null,
+    preferentialRateDiscount: null,
+    firstTimeBuyerRateDiscount: null,
+    minMonthlyDeposit: null,
+    maxMonthlyDeposit: null,
+    officialUrl: null,
+    description: null,
+    requireMarried: false,
+    maxMarriageYears: null,
+    requireRecentNewborn: false,
+    newbornWithinYears: null,
+    requireHouseholdHead: false,
+  };
+
+  const conditionProfile = {
+    monthlyIncomeAmount: 3_000_000n,
+    totalAssetAmount: 10_000_000n,
+    totalDebtAmount: 0n,
+    isHomeless: true,
+    householdHeadStatus: 'HEAD',
+    maritalStatus: 'SINGLE',
+    marriageDate: null,
+    hasRecentNewborn: false,
+    newbornBirthDate: null,
+    isFirstTimeBuyer: true,
+  } as unknown as UserConditionProfile;
+
+  let service: FinanceService;
+  let repository: {
+    findLoanProducts: jest.Mock;
+    countLoanProducts: jest.Mock;
+    findLoanProductById: jest.Mock;
+    findUserConditionProfileByUserId: jest.Mock;
+    findUserProfileByUserId: jest.Mock;
+    findLoanProductsForMatch: jest.Mock;
+  };
+
+  beforeEach(() => {
+    repository = {
+      findLoanProducts: jest.fn(),
+      countLoanProducts: jest.fn(),
+      findLoanProductById: jest.fn(),
+      findUserConditionProfileByUserId: jest.fn(),
+      findUserProfileByUserId: jest.fn(),
+      findLoanProductsForMatch: jest.fn(),
+    };
+    service = new FinanceService(repository as unknown as FinanceRepository);
+  });
+
+  describe('GET /loan-products (목록)', () => {
+    it('DB의 providerLogoUrl 값이 그대로 응답에 나온다', async () => {
+      repository.findLoanProducts.mockResolvedValue([
+        { ...baseProduct, providerLogoUrl: LOGO_URL } as unknown as LoanProduct,
+      ]);
+      repository.countLoanProducts.mockResolvedValue(1);
+
+      const result = await service.getLoanProducts({ page: 0, size: 20 });
+
+      expect(result.products[0].providerLogoUrl).toBe(LOGO_URL);
+    });
+
+    it('DB의 providerLogoUrl이 null이면 null 그대로 응답에 나온다', async () => {
+      repository.findLoanProducts.mockResolvedValue([
+        { ...baseProduct, providerLogoUrl: null } as unknown as LoanProduct,
+      ]);
+      repository.countLoanProducts.mockResolvedValue(1);
+
+      const result = await service.getLoanProducts({ page: 0, size: 20 });
+
+      expect(result.products[0].providerLogoUrl).toBeNull();
+    });
+  });
+
+  describe('GET /loan-products/match (매칭)', () => {
+    it('DB의 providerLogoUrl 값이 그대로 응답에 나온다', async () => {
+      repository.findUserConditionProfileByUserId.mockResolvedValue(conditionProfile);
+      repository.findUserProfileByUserId.mockResolvedValue(null);
+      repository.findLoanProductsForMatch.mockResolvedValue([
+        { ...baseProduct, providerLogoUrl: LOGO_URL } as unknown as LoanProduct,
+      ]);
+
+      const result = await service.matchLoanProducts(1n, {});
+
+      expect(result.products[0].providerLogoUrl).toBe(LOGO_URL);
+    });
+
+    it('DB의 providerLogoUrl이 null이면 null 그대로 응답에 나온다', async () => {
+      repository.findUserConditionProfileByUserId.mockResolvedValue(conditionProfile);
+      repository.findUserProfileByUserId.mockResolvedValue(null);
+      repository.findLoanProductsForMatch.mockResolvedValue([
+        { ...baseProduct, providerLogoUrl: null } as unknown as LoanProduct,
+      ]);
+
+      const result = await service.matchLoanProducts(1n, {});
+
+      expect(result.products[0].providerLogoUrl).toBeNull();
+    });
+  });
+
+  describe('GET /loan-products/{productId} (상세)', () => {
+    it('DB의 providerLogoUrl 값이 그대로 응답에 나온다', async () => {
+      repository.findLoanProductById.mockResolvedValue({
+        ...baseProduct,
+        providerLogoUrl: LOGO_URL,
+      } as unknown as LoanProduct);
+
+      const result = await service.getLoanProductDetail(1);
+
+      expect(result.providerLogoUrl).toBe(LOGO_URL);
+    });
+
+    it('DB의 providerLogoUrl이 null이면 null 그대로 응답에 나온다', async () => {
+      repository.findLoanProductById.mockResolvedValue({
+        ...baseProduct,
+        providerLogoUrl: null,
+      } as unknown as LoanProduct);
+
+      const result = await service.getLoanProductDetail(1);
+
+      expect(result.providerLogoUrl).toBeNull();
+    });
+  });
+});

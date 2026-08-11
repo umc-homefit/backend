@@ -4,6 +4,7 @@ import { NoticeConditionTargetType, NoticeFileType, Prisma, PrismaClient } from 
 
 export const NOTICE_SEED_OPT_IN_ENV = 'HOMEFIT_NOTICE_SEED';
 export const NOTICE_SEED_PREFIX = 'homefit-test:notice-seed:v1:';
+export const LOAN_PRODUCT_SEED_OPT_IN_ENV = 'HOMEFIT_LOAN_PRODUCT_SEED';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -464,15 +465,79 @@ export async function runNoticeSeed(
   return result;
 }
 
+type LoanProductLogoBackfill = {
+  providerName: string;
+  productName: string;
+  providerLogoUrl: string | null;
+};
+
+const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
+  { providerName: '주택도시기금', productName: '청년전용 버팀목전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '일반 버팀목전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '신혼부부전용 전세자금', providerLogoUrl: null },
+  { providerName: '주택도시기금', productName: '신생아 특례 버팀목전세자금', providerLogoUrl: null },
+];
+
+async function backfillLoanProductLogo(
+  tx: Prisma.TransactionClient,
+  item: LoanProductLogoBackfill,
+  log: (message: string) => void,
+): Promise<void> {
+  // URL이 아직 없으면(null) 아예 건드리지 않는다 — 실행해도 Railway에 이미 들어있을 수 있는
+  // 기존 값을 null로 덮어쓰지 않도록, 쿼리조차 안 날리고 건너뛴다.
+  if (item.providerLogoUrl === null) {
+    log(`[loan-product-logo-backfill] 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`);
+    return;
+  }
+
+  const existing = await tx.loanProduct.findMany({
+    where: { providerName: item.providerName, productName: item.productName },
+    select: { productId: true },
+  });
+
+  if (existing.length === 0) {
+    throw new Error(
+      `백필 대상 금융상품을 찾을 수 없습니다. 신규 생성은 하지 않으므로 상품명을 먼저 확인해주세요: ${item.providerName} / ${item.productName}`,
+    );
+  }
+  if (existing.length > 1) {
+    throw new Error(
+      `백필 대상 금융상품이 중복 존재합니다. 먼저 정리해주세요: ${item.providerName} / ${item.productName}`,
+    );
+  }
+
+  await tx.loanProduct.update({
+    where: { productId: existing[0].productId },
+    data: { providerLogoUrl: item.providerLogoUrl },
+  });
+}
+
+export async function runLoanProductSeed(
+  prisma: PrismaClient,
+  log: (message: string) => void = console.log,
+): Promise<void> {
+  await prisma.$transaction(
+    async (tx) => {
+      for (const item of LOAN_PRODUCT_LOGO_BACKFILLS) {
+        await backfillLoanProductLogo(tx, item, log);
+      }
+    },
+    { maxWait: 10_000, timeout: 60_000 },
+  );
+  log(`[loan-product-logo-backfill] 완료`);
+}
+
 function validateCliSafety(): void {
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('NODE_ENV=production에서는 Notice Seed 실행을 거부합니다.');
-  }
-  if (process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true') {
-    throw new Error(`${NOTICE_SEED_OPT_IN_ENV}=true를 명시해야 Notice Seed를 실행할 수 있습니다.`);
+    throw new Error('NODE_ENV=production에서는 Seed 실행을 거부합니다.');
   }
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL이 설정되지 않았습니다. 대상 DB를 먼저 확인해주세요.');
+  }
+  if (process.env[NOTICE_SEED_OPT_IN_ENV] !== 'true' && process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] !== 'true') {
+    throw new Error(
+      `${NOTICE_SEED_OPT_IN_ENV}=true 또는 ${LOAN_PRODUCT_SEED_OPT_IN_ENV}=true 중 최소 하나는 명시해야 Seed를 실행할 수 있습니다.`,
+    );
   }
 }
 
@@ -485,11 +550,16 @@ function describeDatabaseTarget(databaseUrl: string): string {
 async function main(): Promise<void> {
   validateCliSafety();
   const databaseUrl = process.env.DATABASE_URL as string;
-  console.log(`[notice-seed] 대상 DB: ${describeDatabaseTarget(databaseUrl)}`);
+  console.log(`[seed] 대상 DB: ${describeDatabaseTarget(databaseUrl)}`);
 
   const prisma = new PrismaClient();
   try {
-    await runNoticeSeed(prisma);
+    if (process.env[NOTICE_SEED_OPT_IN_ENV] === 'true') {
+      await runNoticeSeed(prisma);
+    }
+    if (process.env[LOAN_PRODUCT_SEED_OPT_IN_ENV] === 'true') {
+      await runLoanProductSeed(prisma);
+    }
   } finally {
     await prisma.$disconnect();
   }
@@ -497,7 +567,7 @@ async function main(): Promise<void> {
 
 if (require.main === module) {
   void main().catch((error: unknown) => {
-    console.error('[notice-seed] 실패', error);
+    console.error('[seed] 실패', error);
     process.exitCode = 1;
   });
 }

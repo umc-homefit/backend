@@ -511,6 +511,7 @@ model LoanProduct {
   loanRatioPercent           Decimal?         @map("loan_ratio_percent") @db.Decimal(5, 2) // 대출비율: 전세보증금 대비 최대 대출 가능 비율(%). ltvRatio와 중복/충돌 가능성 있어 정리 필요
   maxAreaM2                  Decimal?         @map("max_area_m2") @db.Decimal(6, 2) // 임차 전용면적 상한(㎡). notice_units.exclusive_area_m2와 비교
   officialUrl                String?          @map("official_url") @db.VarChar(500) // 변경: nullable
+  providerLogoUrl            String?          @map("provider_logo_url") @db.VarChar(500) // 신규: 제공기관 로고 이미지 URL (S3 public-read). 신규 컬럼이라 기존 로우는 백필 전까지 NULL
   description                String?          @db.Text
   requireMarried             Boolean?         @map("require_married") // 신혼부부 전용 여부. loan-products/match 매칭 조건용
   maxMarriageYears           Int?             @map("max_marriage_years") // 혼인기간 조건(예: 7년 이내). requireMarried=true일 때만 의미
