@@ -1,5 +1,25 @@
 # HomeFit Backend 테스트 가이드
 
+## 타입 체크
+
+```bash
+npm run typecheck
+```
+
+`tsconfig.json` 기준으로 전체 파일을 컴파일 없이(`--noEmit`) 검사한다. `prisma generate`가 선행 실행되므로 별도 준비는 필요 없다.
+
+`npm run build`와 검사 범위가 다르니 주의한다.
+
+| | `npm run build` | `npm run typecheck` |
+| --- | --- | --- |
+| `src/**` | ✅ | ✅ |
+| `prisma/seed.ts` | ❌ | ✅ |
+| `test/**`, `*.spec.ts` | ❌ | ✅ |
+
+`build`는 `tsconfig.build.json`을 쓰는데, 여기서 `prisma`를 `exclude`한다. 제외하지 않으면 출력이 `dist/src/main.js`로 밀려 `start:prod`의 `node dist/main.js`가 깨지기 때문에 의도된 설정이다.
+
+그 결과 `prisma/seed.ts`는 빌드에도 `npm test`(`.spec.ts`만 수집)에도 잡히지 않는다. **seed를 수정했으면 `npm run typecheck`를 반드시 돌린다.**
+
 ## Notice API E2E 테스트
 
 공고 API E2E 테스트는 Jest와 Supertest로 실제 NestJS HTTP 요청을 보내고, Testcontainers가 실행한 임시 PostgreSQL에 기존 Prisma migration을 적용한다.

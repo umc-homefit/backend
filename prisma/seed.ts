@@ -559,18 +559,18 @@ const LOAN_PRODUCT_LOGO_BACKFILLS: LoanProductLogoBackfill[] = [
   },
 ];
 
+type LogoBackfillOutcome = 'updated' | 'skipped';
+
 async function backfillLoanProductLogo(
   tx: Prisma.TransactionClient,
   item: LoanProductLogoBackfill,
   log: (message: string) => void,
-): Promise<void> {
+): Promise<LogoBackfillOutcome> {
   // URL이 아직 없으면(null) 아예 건드리지 않는다 — 실행해도 Railway에 이미 들어있을 수 있는
   // 기존 값을 null로 덮어쓰지 않도록, 쿼리조차 안 날리고 건너뛴다.
   if (item.providerLogoUrl === null) {
-    log(
-      `[loan-product-logo-backfill] 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`,
-    );
-    return;
+    log(`[loan-product-logo-backfill] 건너뜀(URL 미확보): ${item.providerName} / ${item.productName}`);
+    return 'skipped';
   }
 
   const existing = await tx.loanProduct.findMany({
@@ -593,21 +593,51 @@ async function backfillLoanProductLogo(
     where: { productId: existing[0].productId },
     data: { providerLogoUrl: item.providerLogoUrl },
   });
+
+  return 'updated';
 }
 
 export async function runLoanProductSeed(
   prisma: PrismaClient,
   log: (message: string) => void = console.log,
 ): Promise<void> {
-  await prisma.$transaction(
+  // 카운트를 트랜잭션 콜백의 반환값으로 받는다. 바깥 변수를 누적시키면 트랜잭션이 재시도될 때
+  // 이전 시도의 카운트가 그대로 남아 실제 반영 건수와 어긋난다.
+  const { updated, skipped } = await prisma.$transaction(
     async (tx) => {
+      let updatedCount = 0;
+      let skippedCount = 0;
+
       for (const item of LOAN_PRODUCT_LOGO_BACKFILLS) {
-        await backfillLoanProductLogo(tx, item, log);
+        const outcome = await backfillLoanProductLogo(tx, item, log);
+
+        if (outcome === 'updated') {
+          updatedCount += 1;
+        } else {
+          skippedCount += 1;
+        }
       }
+
+      return { updated: updatedCount, skipped: skippedCount };
     },
     { maxWait: 10_000, timeout: 60_000 },
   );
-  log(`[loan-product-logo-backfill] 완료`);
+
+  const total = LOAN_PRODUCT_LOGO_BACKFILLS.length;
+
+  // 한 건도 반영되지 않았는데 "완료"만 찍으면 성공한 것처럼 읽힌다.
+  // 종료 코드는 정상(0)으로 두되(현재 URL 미확보는 예상된 상태다), 로그에서는 확실히 구분한다.
+  if (updated === 0) {
+    log(`[loan-product-logo-backfill] ⚠️ 반영 0건 / 건너뜀 ${skipped}건 (전체 ${total}건)`);
+    log(
+      '[loan-product-logo-backfill] LOAN_PRODUCT_LOGO_BACKFILLS의 providerLogoUrl이 모두 null이라 DB는 변경되지 않았습니다. URL을 먼저 채워주세요.',
+    );
+    return;
+  }
+
+  log(
+    `[loan-product-logo-backfill] 완료 — 반영 ${updated}건 / 건너뜀 ${skipped}건 (전체 ${total}건)`,
+  );
 }
 
 function validateCliSafety(): void {

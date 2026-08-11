@@ -10,7 +10,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiExcludeEndpoint,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
 import { ApiSuccessResponse } from '../../common/decorators/api-success-response.decorator';
@@ -99,6 +105,11 @@ export class FinanceController {
 
   @Post('loan-products/sync-test')
   @HttpCode(200)
+  // 운영에서는 어차피 403으로 막히는 개발용 엔드포인트라, Swagger 명세에서도 감춘다.
+  // 공개된 /api/docs-json에 "테스트 엔드포인트가 있다"는 사실 자체를 노출할 이유가 없다.
+  // 데코레이터는 DI를 쓸 수 없어 ConfigService 대신 process.env를 직접 읽는다
+  // (모듈 로드 시점에 평가되며, NODE_ENV는 앱 기동 전에 주입된다).
+  @ApiExcludeEndpoint(process.env.NODE_ENV === 'production')
   @ApiOperation({
     summary: '[테스트] 금융상품 외부 API 동기화',
     description:

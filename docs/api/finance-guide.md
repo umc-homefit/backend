@@ -69,7 +69,7 @@
 | `keyword` | string | N | 상품명/취급기관명 부분 검색 |
 | `sort` | enum | N | `RECOMMENDED` / `LATEST` / `RATE_ASC` / `LIMIT_DESC` (기본값 `RECOMMENDED`) |
 | `page` | number | N | 기본값 0 |
-| `size` | number | N | 기본값 20 |
+| `size` | number | N | 기본값 20, **최대 50** (초과 시 `COMMON400`) |
 
 ### Response (result)
 
@@ -480,7 +480,7 @@
 | `categoryId` | number | N | 가이드 카테고리 ID |
 | `announcementType` | enum | N | `COMMON` / `YOUTH_SAFE_HOUSE` / `ADDITIONAL_RECRUIT` |
 | `page` | number | N | 기본값 0 |
-| `size` | number | N | 기본값 20 |
+| `size` | number | N | 기본값 20, **최대 50** (초과 시 `COMMON400`) |
 
 ### Response (result)
 
