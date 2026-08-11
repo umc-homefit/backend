@@ -103,7 +103,7 @@ export class MatchedLoanProductDto {
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '제공기관 로고 이미지 URL',
     example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
     nullable: true,
@@ -290,7 +290,7 @@ export class LoanProductListItemDto {
   @ApiProperty({ description: '제공 기관명', example: '하나은행' })
   providerName: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '제공기관 로고 이미지 URL',
     example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
     nullable: true,
@@ -387,7 +387,7 @@ export class LoanProductDetailResultDto {
   @ApiProperty({ description: '제공 기관명', example: '주택도시기금' })
   providerName: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '제공기관 로고 이미지 URL',
     example: 'https://homefit-assets.s3.ap-northeast-2.amazonaws.com/logos/hana-bank.png',
     nullable: true,

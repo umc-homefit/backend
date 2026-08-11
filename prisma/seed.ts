@@ -465,15 +465,6 @@ export async function runNoticeSeed(
   return result;
 }
 
-/**
- * 신규 상품을 만들지 않는다 — Railway의 기존 금융상품 4건(전부 주택도시기금)은 프론트 연동
- * 테스트가 matchedCount=4/0 기준으로 이미 의존 중이라, 상품을 새로 추가하면 그 기준이 깨진다
- * (리뷰 피드백 반영). 그래서 기존 상품을 (providerName, productName)으로 찾아 providerLogoUrl만
- * 갱신하고, 못 찾으면 새로 만들지 않고 에러를 낸다.
- *
- * 금리/한도/자격조건 등 나머지 필드는 이 PR(로고 URL 응답 추가) 범위 밖이라 일부러 안 건드린다 —
- * 공식 상품설명서로 검증 후 별도 Seed PR로 분리 예정(리뷰 피드백 반영).
- */
 type LoanProductLogoBackfill = {
   providerName: string;
   productName: string;
