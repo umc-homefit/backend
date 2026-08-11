@@ -38,6 +38,7 @@
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
 - 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
 - `rentBurdenRate` = `monthlyHousingCost / monthlyIncomeAmount * 100`
+- 월세 부담률 배점은 40점이다. 부담률이 **40% 이하이면 40점**, 40% 초과면 0점으로 계산한다.
 - 자동 판정 범위는 소득·자산·무주택·나이(사용자 생년월일이 있는 경우)·보유 현금·월세 부담률이다.
 - 거주지·세대·청약·기타 원문 공고 조건은 임의 해석하지 않고 `NEED_CHECK`으로 저장한다.
 - 공고 조건 중 `NEED_CHECK`가 하나라도 있으면 정책 충족 점수를 부여하지 않는다.
