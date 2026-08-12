@@ -211,7 +211,7 @@
 | `phoneNumber` | string | N | 연락처 |
 | `profileImageUrl` | string | N | 프로필 이미지 URL |
 
-### PUT Response (result)
+### PATCH Response (result)
 
 ```json
 {
