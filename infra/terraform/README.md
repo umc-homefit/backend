@@ -41,6 +41,24 @@ enable_compute     = false
 - <https://aws.amazon.com/ec2/pricing/on-demand/>
 - <https://aws.amazon.com/rds/postgresql/pricing/>
 
+2026-08-13 AWS Price List의 서울 리전 On-Demand 단가로 계산한 초기 구성의
+월 비용 하한은 약 **USD 113/월**이다(730시간 기준).
+
+| 항목 | 단가 | 월 추정 |
+| --- | --- | ---: |
+| NAT Gateway 1개 | USD 0.059/시간 | USD 43.07 |
+| ALB 1개 | USD 0.0225/시간 | USD 16.43 |
+| EC2 `t3.small` 1대 | USD 0.026/시간 | USD 18.98 |
+| RDS `db.t4g.micro` Single-AZ | USD 0.025/시간 | USD 18.25 |
+| Public IPv4 3개 가정(ALB 2 + NAT 1) | USD 0.005/주소·시간 | USD 10.95 |
+| EC2 gp3 20GiB | USD 0.0912/GB-월 | USD 1.82 |
+| RDS gp3 20GiB | USD 0.131/GB-월 | USD 2.62 |
+| Secrets Manager 2개 가정 | USD 0.40/Secret-월 | USD 0.80 |
+
+여기에 ALB LCU(USD 0.008/LCU-시간), NAT 처리량(USD 0.059/GB), 데이터 전송,
+ECR/S3/CloudWatch 사용량, 세금이 추가된다. Free Tier, 크레딧, 환율은 반영하지
+않았으므로 apply 직전에 AWS Pricing Calculator와 결제 계정의 크레딧을 다시 확인한다.
+
 `nat_gateway_mode = "single"`은 초기 비용을 낮추지만 NAT가 있는 AZ 장애와
 AZ 간 데이터 전송에 취약하다. `per_az`는 가용성을 높이는 대신 NAT 고정 비용이
 AZ 수만큼 발생한다.
