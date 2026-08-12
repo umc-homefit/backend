@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import type { JwtSignOptions } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import type { SignOptions } from 'jsonwebtoken';
 
 import { AuthController } from './auth.controller';
 import { AuthRepository } from './auth.repository';
@@ -21,7 +21,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
         // fail-closed 원칙을 적용한다: 시크릿이 없으면 서버가 정상 응답하는 대신 기동 단계에서 즉시 실패한다.
         secret: configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN', '1h') as SignOptions['expiresIn'],
+          expiresIn: configService.get<string>('JWT_ACCESS_EXPIRES_IN', '1h') as JwtSignOptions['expiresIn'],
         },
       }),
     }),
