@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { ApiErrorResponse } from '../../common/decorators/api-error-response.decorator';
@@ -51,10 +51,12 @@ export class UsersController {
     return createSuccessResponse(result, 'USER200', '프로필 조회 성공');
   }
 
-  @Put('profile')
+  @Patch('profile')
   @ApiOperation({
     summary: '내 프로필 수정',
-    description: '닉네임, 생년월일, 연락처, 프로필 이미지를 수정한다.',
+    description:
+      '닉네임, 생년월일, 연락처, 프로필 이미지를 부분 수정한다. 요청 필드는 모두 선택이며, ' +
+      '생략된 필드는 변경되지 않는다.',
   })
   @ApiSuccessResponse(UpdateProfileResultDto, { description: '프로필 수정 완료' })
   async updateProfile(
@@ -81,7 +83,10 @@ export class UsersController {
   @Put('condition-profile')
   @ApiOperation({
     summary: '사용자 조건 프로필 수정',
-    description: '소득/자산/부채/무주택 여부 등 조건 프로필을 생성/수정한다.',
+    description:
+      '소득/자산/부채/현금/무주택 상태 등 핵심 재무 필드는 매 요청마다 전체 값을 제출해야 ' +
+      '하는 리소스 교체(upsert)이다. 다만 maritalStatus/marriageDate/지역코드는 예외적으로 ' +
+      '선택 필드이며, 생략 시 기존 값이 유지된다.',
   })
   @ApiSuccessResponse(UpdateConditionProfileResultDto, { description: '조건 프로필 수정 완료' })
   @ApiErrorResponse([

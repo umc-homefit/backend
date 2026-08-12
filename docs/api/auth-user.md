@@ -200,9 +200,9 @@
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | `GET` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 조회 |
-| `PUT` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 수정 |
+| `PATCH` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 부분 수정 (요청 필드 전부 선택) |
 
-### PUT Request Body
+### PATCH Request Body
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |

@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   Patch,
@@ -41,7 +43,13 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post('devices')
-  @ApiOperation({ summary: '디바이스 토큰 등록', description: 'FCM 푸시 발송용 디바이스 토큰을 등록/갱신한다.' })
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: '디바이스 토큰 등록',
+    description:
+      'FCM 푸시 발송용 디바이스 토큰을 등록/갱신한다. ' +
+      '이미 존재하는 토큰이면 userId를 갱신(upsert)하므로 신규·갱신 모두 200을 반환한다.',
+  })
   @ApiSuccessResponse(RegisterDeviceTokenResultDto, { description: '디바이스 토큰 등록 및 갱신 완료' })
   async registerDeviceToken(
     @CurrentUser() user: CurrentUserPayload,
@@ -74,7 +82,12 @@ export class NotificationsController {
   }
 
   @Put('alert-settings')
-  @ApiOperation({ summary: '알림 설정 수정', description: '알림 항목별 on/off 설정을 수정한다.' })
+  @ApiOperation({
+    summary: '알림 설정 수정',
+    description:
+      'push/공고/일정/금융 알림 on-off 값을 모두 포함해 알림 설정 리소스 전체를 교체한다. ' +
+      '(interestedRegion만 선택 필드)',
+  })
   @ApiSuccessResponse(UpdateAlertSettingsResultDto, { description: '알림 설정 수정 완료' })
   async updateAlertSettings(
     @CurrentUser() user: CurrentUserPayload,
@@ -98,17 +111,14 @@ export class NotificationsController {
   }
 
   @Patch('notifications/:notificationId/read')
-  @ApiOperation({ summary: '알림 읽음 처리', description: '수신된 알림을 읽음 상태로 변경한다.' })
-  @ApiParam({ name: 'notificationId', type: Number, description: '읽음 처리할 알림 ID', example: 101 })
+  @ApiOperation({ summary: '알림 읽음 처리', description: '특정 알림을 읽음 상태로 변경한다.' })
+  @ApiParam({ name: 'notificationId', type: Number, description: '읽음 처리할 알림 ID', example: 5 })
   @ApiSuccessResponse(MarkNotificationReadResultDto, { description: '알림 읽음 처리 완료' })
   async markNotificationRead(
     @CurrentUser() user: CurrentUserPayload,
     @Param('notificationId', ParseIntPipe) notificationId: number,
   ): Promise<ApiResponse<MarkNotificationReadResultDto>> {
-    const result = await this.notificationsService.markNotificationRead(
-      user.userId,
-      notificationId,
-    );
-    return createSuccessResponse(result, 'NOTI200', '알림 읽음 처리 성공');
+    const result = await this.notificationsService.markNotificationRead(user.userId, notificationId);
+    return createSuccessResponse(result, 'NOTI200', '알림 읽음 처리 완료');
   }
 }

@@ -59,6 +59,7 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `POST /users/me/devices` |
+| HTTP 상태 | `200` (신규 등록·갱신 모두 동일) |
 | 설명 | FCM 푸시 발송용 디바이스 토큰을 등록하거나 갱신한다. |
 
 ### Request Body
@@ -77,7 +78,7 @@
 }
 ```
 
-> 동일한 `userId` + `deviceToken` 조합으로 다시 호출하면 새로 생성하지 않고 기존 디바이스의 `deviceType`만 갱신한다 (멱등 동작).
+> `deviceToken`을 기준으로 upsert한다. 동일한 토큰이 이미 존재하면 새로 생성하지 않고 `userId`와 `deviceType`을 갱신한다.
 >
 > `deviceToken`은 전역 UNIQUE로 관리된다. 같은 기기(`deviceToken`)로 로그아웃 후 **다른 계정**으로 다시 로그인해서 이 API를 호출하면, 해당 디바이스 레코드의 소유자가 현재 로그인한 사용자로 자동 재할당된다 (이전 계정에는 더 이상 알림이 발송되지 않는다).
 
