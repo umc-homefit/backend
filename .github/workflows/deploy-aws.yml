@@ -1,0 +1,99 @@
+name: AWS Backend Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      refresh_instances:
+        description: Refresh the EC2 Auto Scaling Group after pushing the image
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: aws-backend-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Push ECR image and refresh ASG
+    if: vars.AWS_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: aws-production
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.AWS_ECR_REPOSITORY }}
+      ASG_NAME: ${{ vars.AWS_ASG_NAME }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure temporary AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push runtime image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          image_sha="$ECR_REGISTRY/$ECR_REPOSITORY:$GITHUB_SHA"
+          image_latest="$ECR_REGISTRY/$ECR_REPOSITORY:latest"
+          docker build --target runtime --tag "$image_sha" --tag "$image_latest" .
+          docker push "$image_sha"
+          docker push "$image_latest"
+
+      - name: Start Auto Scaling instance refresh
+        id: refresh
+        if: vars.AWS_RUNTIME_ENABLED == 'true' && (github.event_name == 'push' || inputs.refresh_instances)
+        run: |
+          refresh_id=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name "$ASG_NAME" \
+            --strategy Rolling \
+            --preferences '{"MinHealthyPercentage":50,"InstanceWarmup":180}' \
+            --query InstanceRefreshId \
+            --output text)
+          echo "refresh_id=$refresh_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for instance refresh
+        if: steps.refresh.outputs.refresh_id != ''
+        env:
+          REFRESH_ID: ${{ steps.refresh.outputs.refresh_id }}
+        run: |
+          for attempt in $(seq 1 40); do
+            status=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name "$ASG_NAME" \
+              --instance-refresh-ids "$REFRESH_ID" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance refresh status: $status"
+
+            case "$status" in
+              Successful)
+                exit 0
+                ;;
+              Failed|Cancelled|RollbackFailed)
+                exit 1
+                ;;
+            esac
+
+            sleep 15
+          done
+
+          echo "Instance refresh did not complete within 10 minutes."
+          exit 1
