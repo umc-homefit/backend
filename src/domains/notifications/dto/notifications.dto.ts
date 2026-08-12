@@ -150,6 +150,13 @@ export class NotificationItemDto {
   notificationId: number;
 
   @ApiProperty({
+    description: '관련 공고 ID (공고와 연결되지 않았거나 삭제된 경우 null)',
+    example: 1,
+    nullable: true,
+  })
+  noticeId: number | null;
+
+  @ApiProperty({
     description: '알림 타입',
     enum: NotificationType,
     example: NotificationType.NEW_NOTICE,
