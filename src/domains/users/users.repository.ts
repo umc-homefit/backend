@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { 
-  UpdateConditionProfileRequestDto, 
-  UpdateProfileRequestDto 
-} from './dto/users.dto';
+import { UpdateConditionProfileRequestDto, UpdateProfileRequestDto } from './dto/users.dto';
 
 @Injectable()
 export class UsersRepository {
@@ -17,7 +15,7 @@ export class UsersRepository {
   }
 
   // 2. 회원 상태 수정 (탈퇴 시 Soft Delete 등에 활용)
-  async updateUserStatus(userId: bigint, status: string) {
+  async updateUserStatus(userId: bigint, status: UserStatus) {
     return await this.prisma.user.update({
       where: { userId },
       data: { status },
@@ -53,6 +51,7 @@ export class UsersRepository {
     });
   }
 
+
   // 5. 금융 조건 프로필 조회
   async findConditionProfileByUserId(userId: bigint) {
     return await this.prisma.userConditionProfile.findUnique({
@@ -72,12 +71,29 @@ export class UsersRepository {
       residenceRegionCode: dto.residenceRegionCode,
       workplaceRegionCode: dto.workplaceRegionCode,
       housingOwnershipStatus: dto.housingOwnershipStatus,
+      maritalStatus: dto.maritalStatus,
+      marriageDate: this.toNullableDate(dto.marriageDate),
+      hasRecentNewborn: dto.hasRecentNewborn,
+      newbornBirthDate: this.toNullableDate(dto.newbornBirthDate),
+      householdHeadStatus: dto.householdHeadStatus,
+      isFirstTimeBuyer: dto.isFirstTimeBuyer,
+      employmentStatus: dto.employmentStatus,
     };
 
     return await this.prisma.userConditionProfile.upsert({
       where: { userId },
       update: conditionData,
-      create: { userId, ...conditionData },
+      create: {
+        userId,
+        ...conditionData,
+      },
     });
+  }
+
+  /** undefined(필드 생략 → 기존 값 유지)와 null(명시적 초기화)을 구분해 Prisma에 그대로 전달한다. */
+  private toNullableDate(value: string | null | undefined): Date | null | undefined {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    return new Date(value);
   }
 }

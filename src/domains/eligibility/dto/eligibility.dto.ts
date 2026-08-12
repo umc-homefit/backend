@@ -1,31 +1,73 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  EligibilityConditionCode,
+  EligibilityConditionResultStatus,
+  EligibilityResultLevel,
+} from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
+import { NoticeStatus } from '../../notices/dto/notices.dto';
+import {
+  HouseholdHeadStatus,
+  HousingOwnershipStatus,
+  MaritalStatus,
+} from '../../users/dto/users.dto';
 
-export enum EligibilityResultLevel {
-  HIGH = 'HIGH',
-  MEDIUM = 'MEDIUM',
-  LOW = 'LOW',
-  NOT_ELIGIBLE = 'NOT_ELIGIBLE',
-  NEED_CHECK = 'NEED_CHECK',
-}
+export { EligibilityConditionCode, EligibilityConditionResultStatus, EligibilityResultLevel };
 
-export enum EligibilityConditionCode {
-  INCOME = 'INCOME',
-  ASSET = 'ASSET',
-  CASH = 'CASH',
-  HOMELESS = 'HOMELESS',
-  RENT_BURDEN = 'RENT_BURDEN',
-  DEBT = 'DEBT',
-  REGION = 'REGION',
-}
+export const MVP_SUPPLY_TYPE = '청년안심주택' as const;
 
-export enum EligibilityConditionResultStatus {
-  PASS = 'PASS',
-  FAIL = 'FAIL',
-  NEED_CHECK = 'NEED_CHECK',
+/** 분석 실행 시점에 사용한 사용자 조건 프로필. 현재 프로필 수정과 무관하게 보존된다. */
+export class ConditionProfileSnapshotDto {
+  @ApiProperty({ description: '월 총소득', example: 3000000 })
+  monthlyIncomeAmount: number;
+
+  @ApiProperty({ description: '총 보유 자산', example: 50000000 })
+  totalAssetAmount: number;
+
+  @ApiProperty({ description: '총 부채 금액', example: 8000000 })
+  totalDebtAmount: number;
+
+  @ApiProperty({ description: '월 상환액', example: 400000 })
+  monthlyDebtPaymentAmount: number;
+
+  @ApiProperty({ description: '보유 현금', example: 20000000 })
+  cashSavings: number;
+
+  @ApiProperty({ enum: HousingOwnershipStatus, example: HousingOwnershipStatus.HOMELESS })
+  housingOwnershipStatus: HousingOwnershipStatus;
+
+  @ApiProperty({ description: '무주택 여부', example: true })
+  isHomeless: boolean;
+
+  @ApiPropertyOptional({ description: '거주 지역 코드', example: '11110', nullable: true })
+  residenceRegionCode: string | null;
+
+  @ApiPropertyOptional({ description: '직장/학교 지역 코드', example: '11680', nullable: true })
+  workplaceRegionCode: string | null;
+
+  @ApiProperty({ enum: MaritalStatus, example: MaritalStatus.SINGLE })
+  maritalStatus: MaritalStatus;
+
+  @ApiPropertyOptional({ description: '혼인일자 (YYYY-MM-DD)', nullable: true })
+  marriageDate: string | null;
+
+  @ApiProperty({ description: '최근 출산 여부', example: false })
+  hasRecentNewborn: boolean;
+
+  @ApiPropertyOptional({ description: '출산일자 (YYYY-MM-DD)', nullable: true })
+  newbornBirthDate: string | null;
+
+  @ApiProperty({ enum: HouseholdHeadStatus, example: HouseholdHeadStatus.HEAD })
+  householdHeadStatus: HouseholdHeadStatus;
+
+  @ApiPropertyOptional({ description: '생애최초 주택 구입자 여부', nullable: true })
+  isFirstTimeBuyer: boolean | null;
+
+  @ApiPropertyOptional({ description: '직업 상태', nullable: true })
+  employmentStatus: string | null;
 }
 
 export class EligibilityConditionResultDto {
@@ -81,12 +123,17 @@ export class RequestEligibilityAnalysisResultDto {
   @ApiProperty({ description: '부족 자금 (원 단위)', example: 2000000 })
   shortageAmount: number;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({
+    description: '월세 부담률 (% 단위, 월세 미수집 또는 월소득 0원 시 null)',
+    example: 28.57,
+    nullable: true,
+  })
+  rentBurdenRate: number | null;
 
   @ApiPropertyOptional({
-    description: '분석 요약 문구',
-    example: '보유 현금은 일부 부족하지만 월세 부담률이 안정적이므로 입주 가능성이 높은 편입니다.',
+    description: '최종 입주 가능성 등급과 재정 상태를 함께 안내하는 종합 분석 문구',
+    example:
+      '입주 가능성이 높은 편입니다. 예상 보증금 대비 보유 현금이 200만원 부족합니다. 월세 부담률은 28.57%로 안정적인 편입니다.',
     nullable: true,
   })
   summaryMessage: string | null;
@@ -94,7 +141,7 @@ export class RequestEligibilityAnalysisResultDto {
   @ApiProperty({ description: '조건별 비교 결과 목록', type: [EligibilityConditionResultDto] })
   conditionResults: EligibilityConditionResultDto[];
 
-  @ApiProperty({ description: '분석 일시', example: '2026-07-01T00:10:00' })
+  @ApiProperty({ description: '분석 일시 (ISO 8601 UTC)', example: '2026-07-01T00:10:00.000Z' })
   analyzedAt: string;
 }
 
@@ -105,14 +152,42 @@ export class EligibilityAnalysisResultDto extends RequestEligibilityAnalysisResu
   @ApiProperty({ description: '주택 ID', example: 3 })
   unitId: number;
 
+  @ApiProperty({
+    description: '분석 대상 공급 유형 (MVP는 청년안심주택으로 고정)',
+    example: MVP_SUPPLY_TYPE,
+  })
+  supplyType: typeof MVP_SUPPLY_TYPE;
+
+  @ApiProperty({
+    description: '선택한 주택형의 전용면적(㎡)',
+    example: 59,
+    nullable: true,
+  })
+  exclusiveAreaM2: number | null;
+
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;
 
-  @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
-  expectedMonthlyRentAmount: number;
+  @ApiProperty({
+    description: '예상 월세 (원 단위, 미수집 시 null)',
+    example: 350000,
+    nullable: true,
+  })
+  expectedMonthlyRentAmount: number | null;
 
-  @ApiProperty({ description: '예상 관리비 (원 단위)', example: 50000 })
-  maintenanceFeeAmount: number;
+  @ApiPropertyOptional({
+    description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
+    example: null,
+    nullable: true,
+  })
+  maintenanceFeeAmount: number | null;
+
+  @ApiPropertyOptional({
+    description: '분석 시점에 사용한 사용자 조건 프로필 스냅샷. 스냅샷 도입 전 분석 이력은 null',
+    type: ConditionProfileSnapshotDto,
+    nullable: true,
+  })
+  conditionProfileSnapshot: ConditionProfileSnapshotDto | null;
 }
 
 export class EligibilityConditionsResultDto {
@@ -128,11 +203,17 @@ export class GetMyEligibilityAnalysesQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기', default: 10, example: 10 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 10, 최대 50)',
+    default: 10,
+    maximum: 50,
+    example: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
@@ -149,6 +230,38 @@ export class EligibilityAnalysisHistoryItemDto {
   @ApiProperty({ description: '공고명', example: '어반허브 서울스테이션 추가모집' })
   noticeTitle: string;
 
+  @ApiPropertyOptional({ description: '공고 번호', example: '2024-강동-031', nullable: true })
+  announcementNo: string | null;
+
+  @ApiPropertyOptional({ description: '주택형명', example: '59㎡', nullable: true })
+  unitName: string | null;
+
+  @ApiPropertyOptional({ description: '전용 면적(㎡)', example: 59, nullable: true })
+  exclusiveAreaM2: number | null;
+
+  // 이력 카드는 분석 당시 선택한 주택형의 보증금을 보여줘야 하므로 공고의 현재 최소·최대값 대신 분석 스냅샷을 반환한다.
+  @ApiProperty({ description: '분석 당시 예상 보증금(원 단위)', example: 32000000 })
+  expectedDepositAmount: number;
+
+  @ApiPropertyOptional({ description: '접수 시작 일시(ISO 8601)', nullable: true })
+  applicationStartAt: string | null;
+
+  @ApiPropertyOptional({ description: '접수 종료 일시(ISO 8601)', nullable: true })
+  applicationEndAt: string | null;
+
+  @ApiProperty({
+    description: '현재 공고 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
+  noticeStatus: NoticeStatus;
+
+  @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
+  noticeStatusDisplayText: string;
+
+  @ApiProperty({ description: '추가모집 여부', example: false })
+  isAdditionalRecruitment: boolean;
+
   @ApiProperty({
     description: '입주 가능성 등급',
     enum: EligibilityResultLevel,
@@ -162,10 +275,14 @@ export class EligibilityAnalysisHistoryItemDto {
   @ApiProperty({ description: '부족 자금 (원 단위)', example: 2000000 })
   shortageAmount: number;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({
+    description: '월세 부담률 (% 단위, 월세 미수집 또는 월소득 0원 시 null)',
+    example: 28.57,
+    nullable: true,
+  })
+  rentBurdenRate: number | null;
 
-  @ApiProperty({ description: '분석 일시', example: '2026-07-01T00:10:00' })
+  @ApiProperty({ description: '분석 일시 (ISO 8601 UTC)', example: '2026-07-01T00:10:00.000Z' })
   analyzedAt: string;
 }
 
@@ -173,10 +290,18 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '예상 보증금 (원 단위)', example: 10000000 })
   expectedDepositAmount: number;
 
-  @ApiProperty({ description: '예상 월세 (원 단위)', example: 350000 })
-  expectedMonthlyRentAmount: number;
+  @ApiProperty({
+    description: '예상 월세 (원 단위, 미수집 시 null)',
+    example: 350000,
+    nullable: true,
+  })
+  expectedMonthlyRentAmount: number | null;
 
-  @ApiPropertyOptional({ description: '예상 관리비 (원 단위)', example: 50000, nullable: true })
+  @ApiPropertyOptional({
+    description: '예상 관리비 (원 단위, 현재 미수집으로 null)',
+    example: null,
+    nullable: true,
+  })
   maintenanceFeeAmount: number | null;
 
   @ApiProperty({ description: '사용자 보유 현금 (원 단위)', example: 8000000 })
@@ -188,11 +313,19 @@ export class FinancialSummaryResultDto {
   @ApiProperty({ description: '사용자 월소득 (원 단위)', example: 1400000 })
   monthlyIncomeAmount: number;
 
-  @ApiProperty({ description: '월 주거비 (원 단위)', example: 400000 })
-  monthlyHousingCost: number;
+  @ApiProperty({
+    description: '월 주거비 (원 단위, 월세 미수집 시 null)',
+    example: 400000,
+    nullable: true,
+  })
+  monthlyHousingCost: number | null;
 
-  @ApiProperty({ description: '월세 부담률 (% 단위)', example: 28.57 })
-  rentBurdenRate: number;
+  @ApiProperty({
+    description: '월세 부담률 (% 단위, 월세 미수집 또는 월소득 0원 시 null)',
+    example: 28.57,
+    nullable: true,
+  })
+  rentBurdenRate: number | null;
 
   @ApiPropertyOptional({
     description: '재정 분석 문구',

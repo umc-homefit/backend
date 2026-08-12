@@ -15,6 +15,7 @@
 - 금액은 **원 단위 정수**, 면적은 **m2 숫자**로 응답한다.
 - enum은 **대문자 문자열**을 사용하고, 화면 표시 문구는 `...DisplayText`, `dDayText` 등 별도 필드로 제공한다.
 - 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
+- 인증 필수 API는 `Authorization: Bearer {accessToken}` 헤더를 사용한다.
 
 ### 공통 응답 형식
 
@@ -24,6 +25,17 @@
   "code": "NOTICE200",
   "message": "요청에 성공했습니다.",
   "result": {}
+}
+```
+
+인증이 필요하지만 토큰이 없거나 유효하지 않은 경우 아래 형식으로 응답한다.
+
+```json
+{
+  "isSuccess": false,
+  "code": "AUTH401",
+  "message": "인증이 필요합니다. 로그인 후 다시 시도해주세요.",
+  "result": null
 }
 ```
 
@@ -49,6 +61,14 @@
 | `sort` (목록) | `LATEST`(기본) / `DEADLINE` / `POPULAR` | 1차는 `LATEST`, `DEADLINE` 우선. `POPULAR`은 저장 수 기반 P1 |
 | `fileType` | `PDF` / `IMAGE` / `LINK` / `DOC` / `OTHER` | |
 
+`status`는 DB에 저장하지 않고 `applicationStartAt`, `applicationEndAt`과 현재 시각을 비교하여 API에서 계산한다. 목록 필터와 목록·상세·저장 공고 응답은 모두 같은 계산 기준을 사용한다.
+
+- KST 기준 시작 전: `SCHEDULED` (`모집예정`)
+- 모집 기간 중 마감까지 72시간 초과: `RECRUITING` (`모집중`)
+- 모집 기간 중 마감까지 0시간 초과 72시간 이하: `CLOSING_SOON` (`마감임박`)
+- 마감 시각부터: `CLOSED` (`마감`)
+- 시작·마감 시각이 모두 없으면 기존 호환성을 위해 `RECRUITING`으로 응답한다.
+
 `isAdditionalRecruitment`는 boolean 단일값으로 사용한다.
 
 - `false`: 일반 공고
@@ -73,8 +93,10 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices` |
 | 설명 | 필터·정렬·페이징을 적용한 공고 목록 조회 |
-| 인증 | 선택 |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | 🔥 P0 · 홈/공고 목록·필터링 |
+
+`isSaved`는 Access Token으로 식별한 현재 로그인 사용자의 저장 여부를 반환한다.
 
 ### Query Parameter
 
@@ -82,16 +104,36 @@
 | --- | --- | --- | --- | --- |
 | `region` | string | N | P0 | 시/도. 예: `서울` |
 | `district` | string | N | P0 | 시/군/구. 예: `강동구` |
-| `status` | enum | N | P0 | `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` |
+| `status` | enum | N | P0 | 신청 시작·마감 시각으로 계산한 `RECRUITING` / `SCHEDULED` / `CLOSING_SOON` / `CLOSED` |
 | `isAdditionalRecruitment` | boolean | N | P0 | 추가모집 여부 |
 | `sort` | enum | N | P0 | `LATEST` 기본, `DEADLINE` |
 | `page` | number | N | P0 | 0부터 시작. 기본 0 |
-| `size` | number | N | P0 | 페이지 크기. 기본 10 |
+| `size` | number | N | P0 | 페이지 크기. 기본 10, 최대 50 |
 | `keyword` | string | N | P1 | 공고명/지역/단지명 검색어 |
 | `minDeposit` / `maxDeposit` | number | N | P1 | 보증금 범위 |
 | `minArea` / `maxArea` | number | N | P1 | 전용면적 범위 |
 
 `POPULAR` 정렬은 저장 공고 수(`interestedCount`) 기준이며 저장 기능 구현 이후 P1로 처리한다.
+
+#### 면적·보증금 필터 연동 규칙
+
+- `minArea`, `maxArea`, `minDeposit`, `maxDeposit`은 모두 선택 Query Parameter이다.
+- 전달하지 않은 `min` 또는 `max`에는 해당 하한·상한 필터를 적용하지 않는다.
+- 면적 마지막 눈금 `59㎡ 이상` 선택 시 Android는 `maxArea`를 전달하지 않는다.
+- 보증금 마지막 눈금 `1억 원 이상` 선택 시 Android는 `maxDeposit`을 전달하지 않는다.
+- 하한이 0이면 해당 `min` 파라미터를 생략할 수 있다.
+- 전체 범위 선택 시 관련 `min`, `max` 파라미터를 모두 생략한다.
+- 마지막 눈금 미만의 상한을 선택하면 해당 `max` 값을 전달하며 그 값 이하를 포함한다.
+- 하한과 상한을 함께 전달하면 `minArea <= maxArea`, `minDeposit <= maxDeposit`이어야 한다.
+- 보증금은 주택형의 선택 가능 구간(`[depositMin, depositMax]`)과 요청 구간(`[minDeposit, maxDeposit]`)이 하나라도 겹치면 포함한다.
+  - `minDeposit` 전달 시 `depositMax >= minDeposit`
+  - `maxDeposit` 전달 시 `depositMin <= maxDeposit`
+
+예를 들어 `20㎡ 이상`, `5천만 원 이상`이면 아래처럼 하한만 전달한다.
+
+```http
+GET /notices?minArea=20&minDeposit=50000000
+```
 
 ### Response (result)
 
@@ -106,6 +148,7 @@
     "notices": [
       {
         "noticeId": 1,
+        "announcementNo": "2026-03호",
         "title": "강동구 청년안심주택 2025-03호",
         "region": "서울",
         "district": "강동구",
@@ -130,12 +173,15 @@
 }
 ```
 
+`announcementNo`는 공고 번호이며 원본 공고에 값이 없으면 `null`을 반환한다.
+
 ### Status
 
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 공고 목록 조회 성공 |
-| 400 | 잘못된 Query Parameter |
+| 400 | 잘못된 Query Parameter (`status`, `sort`, `isAdditionalRecruitment`, 숫자 타입·범위 또는 최소·최대 관계 오류, `size` 최대 50 초과) (`COMMON400`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
 
 ---
@@ -146,10 +192,10 @@
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}` |
 | 설명 | 공고 상세 + 주택형 + 자격조건 + 첨부파일 + 저장여부 |
-| 인증 | 선택 (로그인 시 `isSaved` 포함) |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | 🔥 P0 · 공고 상세 |
 
-로그인하지 않은 사용자는 `isSaved`를 `false`로 반환한다. 로그인 사용자는 실제 저장 여부를 반환한다.
+`isSaved`는 Access Token으로 식별한 현재 로그인 사용자의 실제 저장 여부를 반환한다.
 
 ### Path Variable
 
@@ -215,6 +261,7 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 | 500 | 서버 내부 오류 |
 
@@ -225,9 +272,9 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/units` |
-| 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+| 인증 · 우선순위 · 화면 | **필수** · `Authorization: Bearer {accessToken}` · ⭐ P1 · 공고 상세 |
 
-공고 상세 응답에 `units`를 포함하므로 1차 구현에서는 필수 구현 범위에서 제외한다.
+공고 상세 응답과 동일한 DB 주택형 데이터를 `unitId` 오름차순으로 반환하는 P1 분리 조회 API다.
 
 ### Response (result.units[])
 
@@ -247,6 +294,8 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 400 | `noticeId` 형식 오류 (`COMMON400`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
 ---
@@ -256,9 +305,9 @@
 | 항목 | 내용 |
 | --- | --- |
 | Method · Endpoint | `GET /notices/{noticeId}/files` |
-| 인증 · 우선순위 · 화면 | 불필요 · ⭐ P1 · 공고 상세 |
+| 인증 · 우선순위 · 화면 | **필수** · `Authorization: Bearer {accessToken}` · ⭐ P1 · 공고 상세 |
 
-공고 상세 응답에 `files`를 포함하므로 1차 구현에서는 필수 구현 범위에서 제외한다.
+공고 상세 응답과 동일한 DB 첨부파일 데이터를 `fileId` 오름차순으로 반환하는 P1 분리 조회 API다.
 
 ### Response (result.files[])
 
@@ -279,6 +328,8 @@
 | 상태 | 설명 |
 | --- | --- |
 | 200 | 성공 |
+| 400 | `noticeId` 형식 오류 (`COMMON400`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 404 | 공고 없음 |
 
 ---
@@ -350,7 +401,7 @@
 | --- | --- |
 | Method · Endpoint | `GET /users/me/saved-notices` |
 | 설명 | 마이페이지 저장 공고 목록 |
-| 인증 | **필수** |
+| 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 | 우선순위 · 화면 | ⭐ P1 · 저장 공고 관리 |
 
 ### Query Parameter
@@ -359,7 +410,7 @@
 | --- | --- | --- | --- |
 | `sort` | enum | N | `LATEST`(savedAt 기준) / `POPULAR`(interestedCount 기준) |
 | `page` | number | N | 기본 0 |
-| `size` | number | N | 기본 10 |
+| `size` | number | N | 기본 10, 최대 50 |
 
 ### Response (result)
 
@@ -373,8 +424,13 @@
       {
         "savedNoticeId": 100, "noticeId": 1,
         "title": "강동구 청년안심주택 2025-03호",
+        "announcementNo": "2026-03호",
         "region": "서울", "district": "강동구",
+        "unitSummary": "전용 24㎡",
+        "depositMin": 32000000, "depositMax": 48000000,
         "status": "RECRUITING", "statusDisplayText": "모집중",
+        "isAdditionalRecruitment": true,
+        "applicationStartAt": "2026-07-01T10:00:00+09:00",
         "applicationEndAt": "2026-07-10T18:00:00+09:00",
         "dDayText": "D-3", "interestedCount": 32,
         "savedAt": "2026-06-30T10:00:00+09:00"
@@ -385,16 +441,17 @@
 }
 ```
 
+- `announcementNo`, `unitSummary`, `depositMin`, `depositMax`, `applicationStartAt`,
+  `applicationEndAt`은 원본 데이터가 없으면 `null`이다.
+- `unitSummary`는 전용면적 정보가 있는 주택형 중 가장 작은 면적을 `전용 {값}㎡`로 만든 표시용 문자열이다.
+- `depositMin`은 주택형 전체의 최소 보증금, `depositMax`는 주택형 전체의 최대 보증금이다.
+- 저장 공고 목록은 공고 단위이므로 특정 주택형의 `unitId`, `exclusiveAreaM2`,
+  `expectedDepositAmount`를 반환하지 않는다.
+- 경쟁률은 현재 MVP 응답에 포함하지 않는다.
+
 | 상태 | 설명 |
 | --- | --- |
-| 200 | 성공 |
-| 401 | 인증 필요 |
+| 200 | 저장 공고 목록 조회 성공 |
+| 400 | 잘못된 Query Parameter (`sort`, `page`, `size`) |
+| 401 | 인증 필요 또는 유효하지 않은 Access Token (`AUTH401`) |
 | 500 | 서버 내부 오류 |
-
----
-
-## 추후 논의
-
-- 추가모집을 boolean보다 세분화해야 하는지 여부
-- `POPULAR` 정렬의 정확한 기준과 집계 방식
-- 저장 공고 API의 1차 구현 포함 여부

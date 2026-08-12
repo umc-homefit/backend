@@ -8,6 +8,7 @@ import { FinanceModule } from './domains/finance/finance.module';
 import { NoticesModule } from './domains/notices/notices.module';
 import { UsersModule } from './domains/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { NotificationsModule } from './domains/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     NoticesModule,
     EligibilityModule,
     FinanceModule,
+    NotificationsModule
   ],
   controllers: [AppController],
 })

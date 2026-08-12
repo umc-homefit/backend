@@ -1,6 +1,16 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { NoticeConditionTargetType, NoticeFileType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -17,20 +27,12 @@ export enum NoticeSort {
   POPULAR = 'POPULAR',
 }
 
-export enum NoticeConditionTargetType {
-  YOUTH = 'YOUTH',
-  NEWLYWED = 'NEWLYWED',
-  COMMON = 'COMMON',
-  OTHER = 'OTHER',
+export enum SavedNoticeSort {
+  LATEST = 'LATEST',
+  POPULAR = 'POPULAR',
 }
 
-export enum NoticeFileType {
-  PDF = 'PDF',
-  IMAGE = 'IMAGE',
-  LINK = 'LINK',
-  DOC = 'DOC',
-  OTHER = 'OTHER',
-}
+export { NoticeConditionTargetType, NoticeFileType };
 
 export class GetNoticesQueryDto {
   @ApiPropertyOptional({ description: '공고명, 단지명, 지역 검색어', example: '강동' })
@@ -48,40 +50,70 @@ export class GetNoticesQueryDto {
   @IsString()
   district?: string;
 
-  @ApiPropertyOptional({ description: '공고 모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiPropertyOptional({
+    description: '신청 시작·마감 시각으로 계산한 공고 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   @IsOptional()
   @IsEnum(NoticeStatus)
   status?: NoticeStatus;
 
   @ApiPropertyOptional({ description: '추가모집 여부', example: true })
   @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) {
+      return true;
+    }
+
+    if (value === 'false' || value === false) {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   isAdditionalRecruitment?: boolean;
 
-  @ApiPropertyOptional({ description: '최소 보증금 (원 단위)', example: 30000000 })
+  @ApiPropertyOptional({
+    description: '최소 보증금 (원 단위). 미전달 시 하한을 적용하지 않는다.',
+    example: 30000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   minDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최대 보증금 (원 단위)', example: 50000000 })
+  @ApiPropertyOptional({
+    description:
+      '최대 보증금 (원 단위, 해당 값 이하 포함). 1억 원 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 50000000,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(0)
   maxDeposit?: number;
 
-  @ApiPropertyOptional({ description: '최소 전용면적 (㎡)', example: 20 })
+  @ApiPropertyOptional({
+    description: '최소 전용면적 (㎡). 미전달 시 하한을 적용하지 않는다.',
+    example: 20,
+  })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   minArea?: number;
 
-  @ApiPropertyOptional({ description: '최대 전용면적 (㎡)', example: 40 })
+  @ApiPropertyOptional({
+    description:
+      '최대 전용면적 (㎡, 해당 값 이하 포함). 59㎡ 이상처럼 상한이 없는 경우 전달하지 않는다.',
+    example: 40,
+  })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber({ allowInfinity: false, allowNaN: false })
   @Min(0)
   maxArea?: number;
 
@@ -97,17 +129,26 @@ export class GetNoticesQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기 (기본 10, 최대 50 권장)', default: 10, example: 10 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (기본 10, 최대 50)',
+    default: 10,
+    maximum: 50,
+    example: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
 export class NoticeListItemDto {
   @ApiProperty({ description: '공고 ID', example: 1 })
   noticeId: number;
+
+  @ApiPropertyOptional({ description: '공고 번호', example: '2026-03호', nullable: true })
+  announcementNo: string | null;
 
   @ApiProperty({ description: '공고 제목', example: '강동구 청년안심주택 추가모집' })
   title: string;
@@ -133,7 +174,11 @@ export class NoticeListItemDto {
   @ApiPropertyOptional({ description: '최대 월세 (원 단위)', example: 410000, nullable: true })
   monthlyRentMax: number | null;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
@@ -165,7 +210,7 @@ export class NoticeListItemDto {
   @ApiProperty({ description: '저장 수', example: 32 })
   interestedCount: number;
 
-  @ApiProperty({ description: '현재 사용자 저장 여부 (비로그인 시 false)', example: false })
+  @ApiProperty({ description: '현재 로그인 사용자의 저장 여부', example: false })
   isSaved: boolean;
 }
 
@@ -304,7 +349,11 @@ export class NoticeDetailResultDto {
   @ApiProperty({ description: '원문 공고 URL', example: 'https://example.com/notice' })
   sourceUrl: string;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
@@ -333,7 +382,7 @@ export class NoticeDetailResultDto {
   @ApiProperty({ description: '저장 수', example: 32 })
   interestedCount: number;
 
-  @ApiProperty({ description: '현재 사용자 저장 여부 (비로그인 시 false)', example: true })
+  @ApiProperty({ description: '현재 로그인 사용자의 저장 여부', example: true })
   isSaved: boolean;
 
   @ApiProperty({ description: '공고 주택형 목록', type: [NoticeUnitDto] })
@@ -385,10 +434,15 @@ export class UnsaveNoticeResultDto {
 }
 
 export class GetSavedNoticesQueryDto {
-  @ApiPropertyOptional({ description: '정렬 기준', enum: NoticeSort, example: NoticeSort.LATEST })
+  @ApiPropertyOptional({
+    description: '정렬 기준 (LATEST: 최신 저장순, POPULAR: 저장 수순)',
+    enum: SavedNoticeSort,
+    default: SavedNoticeSort.LATEST,
+    example: SavedNoticeSort.LATEST,
+  })
   @IsOptional()
-  @IsEnum(NoticeSort)
-  sort?: NoticeSort;
+  @IsEnum(SavedNoticeSort)
+  sort?: SavedNoticeSort = SavedNoticeSort.LATEST;
 
   @ApiPropertyOptional({ description: '페이지 번호 (0부터 시작)', default: 0, example: 0 })
   @IsOptional()
@@ -397,11 +451,17 @@ export class GetSavedNoticesQueryDto {
   @Min(0)
   page?: number = 0;
 
-  @ApiPropertyOptional({ description: '페이지 크기', default: 10, example: 10 })
+  @ApiPropertyOptional({
+    description: '페이지 크기 (최대 50)',
+    default: 10,
+    maximum: 50,
+    example: 10,
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(50)
   size?: number = 10;
 }
 
@@ -415,17 +475,43 @@ export class SavedNoticeItemDto {
   @ApiProperty({ description: '공고 제목', example: '강동구 청년안심주택 2025-03호' })
   title: string;
 
+  @ApiPropertyOptional({ description: '공고번호', example: '2026-03호', nullable: true })
+  announcementNo: string | null;
+
   @ApiProperty({ description: '시/도', example: '서울' })
   region: string;
 
   @ApiPropertyOptional({ description: '시/군/구', example: '강동구', nullable: true })
   district: string | null;
 
-  @ApiProperty({ description: '모집 상태', enum: NoticeStatus, example: NoticeStatus.RECRUITING })
+  @ApiPropertyOptional({ description: '대표 주택형 요약', example: '전용 24㎡', nullable: true })
+  unitSummary: string | null;
+
+  @ApiPropertyOptional({ description: '최소 보증금 (원 단위)', example: 32000000, nullable: true })
+  depositMin: number | null;
+
+  @ApiPropertyOptional({ description: '최대 보증금 (원 단위)', example: 48000000, nullable: true })
+  depositMax: number | null;
+
+  @ApiProperty({
+    description: '신청 시작·마감 시각으로 계산한 모집 상태',
+    enum: NoticeStatus,
+    example: NoticeStatus.RECRUITING,
+  })
   status: NoticeStatus;
 
   @ApiProperty({ description: '모집 상태 표시 문구', example: '모집중' })
   statusDisplayText: string;
+
+  @ApiProperty({ description: '추가모집 여부', example: true })
+  isAdditionalRecruitment: boolean;
+
+  @ApiPropertyOptional({
+    description: '접수 시작 일시 (ISO 8601)',
+    example: '2026-07-01T10:00:00+09:00',
+    nullable: true,
+  })
+  applicationStartAt: string | null;
 
   @ApiPropertyOptional({
     description: '접수 종료 일시 (ISO 8601)',

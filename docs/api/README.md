@@ -26,6 +26,7 @@
 - enum은 **대문자 문자열**을 사용한다.
 - 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
 - 목록 응답의 `result`는 `{ "<목록배열>": [...], "pageInfo": { "page", "size", "totalElements", "totalPages", "hasNext" } }` 형태를 사용한다.
+- 인증 필수 API는 `Authorization: Bearer {accessToken}` 헤더를 사용하며, 인증 실패 시 `401 / AUTH401`을 반환한다.
 
 ## 공통 응답 형식
 
