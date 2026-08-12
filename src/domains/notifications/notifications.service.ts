@@ -104,6 +104,7 @@ export class NotificationsService {
     return {
       notifications: items.map((item) => ({
         notificationId: Number(item.notificationLogId),
+        noticeId: item.noticeId === null ? null : Number(item.noticeId),
         type: this.toNotificationType(item.notificationType),
         title: item.title,
         content: item.body ?? '',

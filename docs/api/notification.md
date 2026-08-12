@@ -26,6 +26,7 @@
 | `user_device` | `fcm_token` | `deviceToken` | FCM 디바이스 토큰 (필드명 다름 주의) |
 | `user_device` | `device_type` | `deviceType` | ANDROID / IOS |
 | `notification_logs` | `notification_log_id` | `notificationId` | 알림 고유 ID |
+| `notification_logs` | `notice_id` | `noticeId` | 관련 공고 ID. 공고와 연결되지 않았거나 삭제된 경우 `null` |
 | `notification_logs` | `notification_type` | `type` | 알림 타입 |
 | `notification_logs` | `body` | `content` | 알림 본문 (필드명 다름 주의) |
 | `notification_logs` | `is_read` | `isRead` | 알림 읽음 여부. 기본값 `false` 권장 |
@@ -190,6 +191,7 @@
   "notifications": [
     {
       "notificationId": 101,
+      "noticeId": 1,
       "type": "NEW_NOTICE",
       "title": "새로운 청약 공고가 등록되었습니다.",
       "content": "강남구에 새로운 행복주택 공고가 올라왔어요.",
@@ -201,6 +203,8 @@
 ```
 
 > `content`가 DB에 없는 경우(`body`가 null) 빈 문자열(`""`)로 반환한다.
+>
+> `noticeId`는 항상 응답에 포함하며, 공고와 연결되지 않았거나 연결된 공고가 삭제된 경우 `null`이다. 프론트는 값이 있을 때만 공고 상세 화면으로 이동한다.
 >
 > `type`은 `NEW_NOTICE` 또는 `CLOSING_SOON` 중 하나로 반환한다.
 
