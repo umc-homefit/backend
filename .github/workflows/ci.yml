@@ -60,3 +60,10 @@ jobs:
 
       - name: Build Docker runtime image
         run: docker build --target runtime --tag homefit-backend:${{ github.sha }} .
+
+      - name: Verify runtime base and native modules
+        run: |
+          docker run --rm --entrypoint sh homefit-backend:${{ github.sha }} \
+            -c 'if apk info -e perl; then echo "Unexpected Perl package in runtime image"; exit 1; fi'
+          docker run --rm --entrypoint node homefit-backend:${{ github.sha }} \
+            -e "require('bcrypt'); require('@prisma/client'); console.log('Runtime native modules loaded')"
