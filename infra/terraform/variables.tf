@@ -1,0 +1,192 @@
+variable "aws_region" {
+  description = "AWS resources region."
+  type        = string
+  default     = "ap-northeast-2"
+}
+
+variable "project_name" {
+  description = "Project name used in resource names and tags."
+  type        = string
+  default     = "homefit"
+}
+
+variable "environment" {
+  description = "Deployment environment name."
+  type        = string
+  default     = "production"
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the HomeFit VPC."
+  type        = string
+  default     = "10.40.0.0/16"
+}
+
+variable "enable_nat_gateway" {
+  description = "Create paid NAT Gateway resources for private application subnets."
+  type        = bool
+  default     = false
+}
+
+variable "nat_gateway_mode" {
+  description = "single uses one NAT Gateway; per_az creates one in each AZ."
+  type        = string
+  default     = "single"
+
+  validation {
+    condition     = contains(["single", "per_az"], var.nat_gateway_mode)
+    error_message = "nat_gateway_mode must be single or per_az."
+  }
+}
+
+variable "enable_database" {
+  description = "Create the paid RDS PostgreSQL instance."
+  type        = bool
+  default     = false
+}
+
+variable "enable_compute" {
+  description = "Create the paid ALB and EC2 Auto Scaling runtime. Requires database and NAT Gateway."
+  type        = bool
+  default     = false
+}
+
+variable "app_port" {
+  description = "NestJS container port."
+  type        = number
+  default     = 3000
+}
+
+variable "health_check_path" {
+  description = "ALB and container health check path."
+  type        = string
+  default     = "/api/health"
+}
+
+variable "instance_type" {
+  description = "EC2 instance type for the API Auto Scaling Group."
+  type        = string
+  default     = "t3.small"
+}
+
+variable "root_volume_size" {
+  description = "EC2 root EBS volume size in GiB."
+  type        = number
+  default     = 20
+}
+
+variable "asg_min_size" {
+  description = "Minimum number of API EC2 instances."
+  type        = number
+  default     = 1
+}
+
+variable "asg_desired_capacity" {
+  description = "Initial desired number of API EC2 instances."
+  type        = number
+  default     = 1
+}
+
+variable "asg_max_size" {
+  description = "Maximum number of API EC2 instances."
+  type        = number
+  default     = 3
+}
+
+variable "container_image_tag" {
+  description = "ECR image tag pulled when an EC2 instance starts."
+  type        = string
+  default     = "latest"
+}
+
+variable "db_name" {
+  description = "Initial PostgreSQL database name."
+  type        = string
+  default     = "homefit"
+}
+
+variable "db_master_username" {
+  description = "RDS master username. Password is managed by RDS in Secrets Manager."
+  type        = string
+  default     = "homefit_admin"
+}
+
+variable "db_engine_version" {
+  description = "PostgreSQL major engine version."
+  type        = string
+  default     = "16"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class."
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "Initial RDS storage in GiB."
+  type        = number
+  default     = 20
+}
+
+variable "db_max_allocated_storage" {
+  description = "Maximum RDS autoscaled storage in GiB."
+  type        = number
+  default     = 100
+}
+
+variable "db_multi_az" {
+  description = "Enable paid RDS Multi-AZ standby. Keep false for the initial cost-conscious environment."
+  type        = bool
+  default     = false
+}
+
+variable "db_deletion_protection" {
+  description = "Protect the RDS instance from accidental deletion."
+  type        = bool
+  default     = true
+}
+
+variable "db_skip_final_snapshot" {
+  description = "Skip the final RDS snapshot on destroy. Keep false for production."
+  type        = bool
+  default     = false
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch Logs retention period."
+  type        = number
+  default     = 14
+}
+
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the deploy role."
+  type        = string
+  default     = "umc-homefit/backend"
+}
+
+variable "github_environment" {
+  description = "Protected GitHub Environment used by the AWS deployment workflow."
+  type        = string
+  default     = "aws-production"
+}
+
+variable "domain_name" {
+  description = "Optional API FQDN. Set together with route53_zone_id to enable ACM HTTPS."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "route53_zone_id" {
+  description = "Optional existing Route 53 hosted zone ID for domain_name."
+  type        = string
+  default     = null
+  nullable    = true
+}
+
+variable "additional_tags" {
+  description = "Additional tags merged into every supported resource."
+  type        = map(string)
+  default     = {}
+}
