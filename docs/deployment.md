@@ -31,6 +31,15 @@ npm run start:prod
 
 `prisma migrate deploy`는 이미 커밋된 migration만 적용한다. 운영 서버에서는 schema 변경을 생성하는 `prisma migrate dev`를 실행하지 않는다.
 
+## GitHub Actions CI
+
+`dev` 또는 `main`을 대상으로 하는 Pull Request와 두 브랜치의 push에서 `Backend CI`를 실행한다.
+
+- Node.js 22에서 `npm ci`, typecheck, unit test, e2e test, NestJS build를 순서대로 검증한다.
+- 별도 job에서 운영용 Docker runtime image가 정상적으로 빌드되는지 확인한다.
+- 배포용 Secret은 CI에 주입하지 않는다. AWS 배포 워크플로는 GitHub OIDC와 최소 권한 IAM Role을 구성한 뒤 별도로 추가한다.
+- 첫 CI 성공 후 브랜치 규칙에서 `Typecheck, test and build`와 `Build runtime image`를 필수 상태 검사로 지정한다.
+
 ## Docker Compose로 로컬 검증
 
 1. `.env.example`을 `.env`로 복사한다.
