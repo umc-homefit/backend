@@ -1,0 +1,144 @@
+# HomeFit AWS Terraform
+
+Railway 운영 주소를 유지하면서 HomeFit의 AWS 2차 확장 구성을 단계적으로 만드는 IaC이다.
+기본값은 NAT Gateway, RDS, ALB, EC2를 생성하지 않는다. 따라서 비용 검토 없이
+`enable_*` 값을 변경하거나 `terraform apply`하지 않는다.
+
+## 구성
+
+- 2개 AZ의 Public / Private Application / Private Database Subnet
+- Public ALB → Private EC2 Auto Scaling Group (`min=1`, `max=3`)
+- Private RDS for PostgreSQL, RDS 관리형 master password
+- ECR, Private S3, Secrets Manager, CloudWatch Logs/Alarm
+- GitHub Actions OIDC 배포 Role
+- 선택형 Route 53 + ACM HTTPS
+- S3 Gateway VPC Endpoint로 S3 트래픽의 NAT 처리 비용 절감
+
+EventBridge 기반 크롤러/스케줄러 Worker와 실제 FCM 발송은 애플리케이션 구현이
+완료된 뒤 별도 모듈로 추가한다. API 인스턴스가 여러 대일 때 인스턴스별 cron을
+실행하면 중복 수집될 수 있으므로 현재 ASG와 함께 배포하지 않는다.
+
+## 비용 안전장치
+
+기본 `terraform.tfvars.example`은 아래 유료 런타임을 모두 비활성화한다.
+
+```hcl
+enable_nat_gateway = false
+enable_database    = false
+enable_compute     = false
+```
+
+- NAT Gateway: Gateway-hour, 처리 GB, 데이터 전송 과금
+- ALB: Load Balancer-hour와 LCU 과금
+- EC2/RDS: 인스턴스·스토리지 사용량 과금
+- Public IPv4: 주소별 시간 과금
+- ECR/S3/CloudWatch/Secrets Manager: 저장량·요청·Secret 등에 따른 사용량 과금
+
+공식 요금표:
+
+- <https://aws.amazon.com/vpc/pricing/>
+- <https://aws.amazon.com/elasticloadbalancing/pricing/>
+- <https://aws.amazon.com/ec2/pricing/on-demand/>
+- <https://aws.amazon.com/rds/postgresql/pricing/>
+
+`nat_gateway_mode = "single"`은 초기 비용을 낮추지만 NAT가 있는 AZ 장애와
+AZ 간 데이터 전송에 취약하다. `per_az`는 가용성을 높이는 대신 NAT 고정 비용이
+AZ 수만큼 발생한다.
+
+## 로컬 검증
+
+PowerShell에서 다음 순서로 확인한다.
+
+```powershell
+$env:AWS_PROFILE = 'homefit'
+Copy-Item terraform.tfvars.example terraform.tfvars
+terraform init
+terraform fmt -check
+terraform validate
+terraform plan
+```
+
+`terraform.tfvars`, state, plan 파일은 커밋하지 않는다. 팀 공동 apply 전에는
+버전 관리와 잠금이 설정된 S3 backend를 별도 bootstrap하고 state를 이전한다.
+
+## 단계별 배포
+
+### 1. Foundation
+
+세 `enable_*` 값을 모두 `false`로 유지한 plan을 먼저 검토한다. 이 단계는 VPC,
+Subnet, ECR, S3, Secrets Manager Secret 컨테이너, IAM/OIDC, CloudWatch Log Group을
+정의한다. 저장량과 요청량에 따른 비용은 여전히 발생할 수 있다.
+
+apply 후 출력값 중 다음을 GitHub `aws-production` Environment 변수로 등록한다.
+
+| GitHub variable | Terraform output |
+| --- | --- |
+| `AWS_REGION` | `aws_region` |
+| `AWS_DEPLOY_ROLE_ARN` | `github_deploy_role_arn` |
+| `AWS_ECR_REPOSITORY` | `ecr_repository_name` |
+| `AWS_RUNTIME_ENABLED` | ASG 생성 전까지 `false` |
+
+Repository의 Environment 이름은 Terraform 변수 `github_environment`와 같아야 한다.
+워크플로는 장기 Access Key 대신 GitHub OIDC로 임시 자격 증명을 발급받는다.
+
+`AWS_DEPLOY_ENABLED`는 job 시작 전 평가되므로 **Repository variable**로 등록하고,
+초기 이미지 push 직전에 `true`로 변경한다. 나머지 값은 `aws-production`
+Environment variable로 둔다.
+
+### 2. 초기 Docker 이미지 push
+
+`AWS_DEPLOY_ENABLED=true`, `AWS_RUNTIME_ENABLED=false`인 상태에서
+`AWS Backend Deploy` workflow를 수동 실행한다. ECR에 commit SHA 태그와
+`latest` 태그를 push하지만 ASG refresh는 실행하지 않는다.
+
+### 3. Database
+
+팀 비용 승인 후 `enable_database=true`로 apply한다. RDS master password는 RDS가
+Secrets Manager에 생성·관리하며 Terraform 변수나 state에 평문으로 넣지 않는다.
+
+Terraform이 만든 `backend_secret_arn` Secret에는 `DATABASE_URL`을 제외한 dotenv
+형식의 운영 환경변수를 Secret value로 등록한다. Secret 파일은 저장소 밖의 임시
+경로에서 작성하고 등록 직후 삭제한다.
+
+```dotenv
+NODE_ENV=production
+PORT=3000
+JWT_ACCESS_SECRET=...
+JWT_ACCESS_EXPIRES_IN=1h
+GOOGLE_CLIENT_ID=...
+KAKAO_APP_ID=...
+```
+
+EC2 bootstrap이 RDS 관리형 Secret을 읽어 URL-encoded `DATABASE_URL`을 구성하므로
+DB password를 application Secret에 중복 저장하지 않는다.
+
+### 4. Runtime
+
+초기 이미지와 Secret을 확인한 뒤에만 아래 값으로 apply한다.
+
+```hcl
+enable_nat_gateway = true
+enable_database    = true
+enable_compute     = true
+nat_gateway_mode   = "single"
+```
+
+apply 후 `autoscaling_group_name`을 GitHub `AWS_ASG_NAME`에 넣고
+`AWS_RUNTIME_ENABLED=true`로 변경한다. 이후 main push 또는 수동 실행은 ECR push 후
+ASG Instance Refresh까지 수행한다.
+
+### 5. HTTPS와 전환
+
+기존 Route 53 hosted zone이 있을 때만 `domain_name`, `route53_zone_id`를 함께
+지정한다. Terraform이 ACM DNS 검증과 ALB HTTPS listener를 만든다. AWS 주소에서
+health, Swagger, 로그인, 공고 목록을 검증한 뒤 Android Base URL을 전환하며,
+검증 완료 전까지 Railway를 롤백 경로로 유지한다.
+
+## 운영 확인
+
+1. `GET /api/health` HTTP 200
+2. `/api/docs`와 `/api/docs-json` 정상 노출
+3. CloudWatch `/homefit/production/backend` 로그에 Secret 평문 미노출
+4. ALB Target Group healthy
+5. 로그인/JWT 발급, 공고 목록, 대표 분석 API smoke test
+6. 배포 실패 시 새 Instance Refresh 중단 후 Railway Base URL 유지

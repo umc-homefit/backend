@@ -1,0 +1,32 @@
+aws_region  = "ap-northeast-2"
+project_name = "homefit"
+environment  = "production"
+
+# Phase 1: fixed-hourly-cost resources disabled.
+enable_nat_gateway = false
+enable_database    = false
+enable_compute     = false
+
+# Phase 2a: create RDS first, then populate the application secret.
+# enable_database = true
+
+# Phase 2b: create NAT Gateway, ALB, and EC2 ASG only after an image and secrets exist.
+# enable_nat_gateway = true
+# enable_compute     = true
+# nat_gateway_mode   = "single" # lower cost; use per_az only after an HA/cost decision
+
+asg_min_size         = 1
+asg_desired_capacity = 1
+asg_max_size         = 3
+
+db_multi_az            = false
+db_deletion_protection = true
+db_skip_final_snapshot = false
+
+# Enable Route 53 + ACM HTTPS only when the team has an existing hosted zone.
+# domain_name    = "api.example.com"
+# route53_zone_id = "Z0123456789EXAMPLE"
+
+additional_tags = {
+  Owner = "HomeFit-Backend"
+}
