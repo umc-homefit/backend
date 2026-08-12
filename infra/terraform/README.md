@@ -65,19 +65,39 @@ AZ 수만큼 발생한다.
 
 ## 로컬 검증
 
-PowerShell에서 다음 순서로 확인한다.
+state 버킷은 Terraform 본체와 생명주기를 분리한다. 동일 configuration에서 버킷과
+그 안의 state를 함께 관리하면 초기화와 삭제 시 순환 문제가 생길 수 있기 때문이다.
+최초 한 번 PowerShell 부트스트랩 스크립트로 버킷을 만들고 보안 설정을 적용한다.
 
 ```powershell
 $env:AWS_PROFILE = 'homefit'
+$stateBucket = .\scripts\bootstrap-state.ps1
+terraform init -reconfigure -backend-config="bucket=$stateBucket"
+```
+
+버킷 이름은 AWS 계정 ID를 조합해 전역에서 고유하게 만들며, 스크립트는 여러 번
+실행해도 같은 버킷에 아래 설정을 다시 맞춘다.
+
+- 서울 리전(`ap-northeast-2`)
+- S3 Object Ownership `BucketOwnerEnforced`
+- 모든 public access 차단
+- object versioning 활성화
+- AES-256 기본 암호화
+- HTTPS가 아닌 요청 거부
+- Terraform native S3 lockfile 사용
+
+원격 backend 초기화 후 다음 순서로 확인한다.
+
+```powershell
 Copy-Item terraform.tfvars.example terraform.tfvars
-terraform init
 terraform fmt -check
 terraform validate
 terraform plan
 ```
 
-`terraform.tfvars`, state, plan 파일은 커밋하지 않는다. 팀 공동 apply 전에는
-버전 관리와 잠금이 설정된 S3 backend를 별도 bootstrap하고 state를 이전한다.
+`terraform.tfvars`, state, plan 파일은 커밋하지 않는다. backend의 bucket 이름도
+코드에 고정하지 않고 `terraform init -backend-config`로 전달한다. 팀원과 CI는 같은
+bucket과 key를 사용하며, `use_lockfile = true`가 동시 apply를 막는다.
 
 ## 단계별 배포
 
