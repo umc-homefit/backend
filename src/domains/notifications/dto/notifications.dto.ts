@@ -3,7 +3,7 @@ import { DeviceType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsIn,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -29,7 +29,7 @@ export class RegisterDeviceTokenRequestDto {
   deviceToken: string;
 
   @ApiProperty({ description: '기기 OS 타입', enum: DeviceType, example: DeviceType.ANDROID })
-  @IsIn(Object.values(DeviceType))
+  @IsEnum(DeviceType, { message: 'deviceType은 ANDROID 또는 IOS 중 하나여야 합니다.' })
   deviceType: DeviceType;
 }
 

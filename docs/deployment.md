@@ -11,9 +11,11 @@
 | `API_HOST_PORT`          | Compose 호스트 API 포트 | 로컬 Compose 전용, 기본값 `3000`      |
 | `DATABASE_URL`           | PostgreSQL 연결 문자열  | 운영 DB의 SSL 요구사항 확인           |
 | `JWT_ACCESS_SECRET`      | Access Token 서명 키    | 충분히 긴 무작위 값, 저장소 커밋 금지 |
-| `JWT_REFRESH_SECRET`     | Refresh Token 서명 키   | Access Secret과 다른 값 사용          |
 | `JWT_ACCESS_EXPIRES_IN`  | Access Token 만료       | 기본값 `1h`                           |
-| `JWT_REFRESH_EXPIRES_IN` | Refresh Token 만료      | 기본값 `14d`                          |
+
+> 인증 구조는 의도적으로 access-only stateless이다(로그아웃은 클라이언트 토큰 삭제만으로
+> 처리하며 서버 측 무효화 대상이 없다). Refresh Token은 구현되어 있지 않으므로
+> `JWT_REFRESH_SECRET` 등 관련 환경변수는 필요하지 않다.
 
 공공 API, FCM, Redis 관련 값은 해당 기능을 배포할 때 추가한다. 실제 비밀값은 `.env`, GitHub Secrets 또는 배포 플랫폼의 Secret 기능으로만 관리한다.
 
@@ -32,7 +34,7 @@ npm run start:prod
 ## Docker Compose로 로컬 검증
 
 1. `.env.example`을 `.env`로 복사한다.
-2. 최소한 `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`을 로컬 테스트 값으로 채운다.
+2. 최소한 `POSTGRES_PASSWORD`, `JWT_ACCESS_SECRET`을 로컬 테스트 값으로 채운다.
 3. API와 PostgreSQL을 실행한다.
 
 ```bash

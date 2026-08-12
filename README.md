@@ -31,7 +31,7 @@
 - Language/Runtime: TypeScript + Node.js
 - Database: PostgreSQL
 - ORM: Prisma
-- Auth: JWT Access Token + Refresh Token
+- Auth: JWT Access Token
 - Validation: class-validator / class-transformer
 - API Docs: Swagger + Notion API 명세 + `docs/api` 미러 문서
 - Queue: BullMQ (Redis) - MVP 크롤링/알림 작업 큐 적용 예정
