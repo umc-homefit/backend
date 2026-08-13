@@ -239,7 +239,9 @@ export class EligibilityService {
       eligibilityScore: Number(analysis.eligibilityScore),
       expectedDepositAmount: Number(analysis.expectedDepositAmount),
       expectedMonthlyRentAmount:
-        analysis.expectedMonthlyRentAmount === null ? null : Number(analysis.expectedMonthlyRentAmount),
+        analysis.expectedMonthlyRentAmount === null
+          ? null
+          : Number(analysis.expectedMonthlyRentAmount),
       maintenanceFeeAmount:
         analysis.maintenanceFeeAmount === null ? null : Number(analysis.maintenanceFeeAmount),
       conditionProfileSnapshot:
@@ -381,11 +383,16 @@ export class EligibilityService {
     const maintenanceFeeAmount =
       analysis.maintenanceFeeAmount === null ? null : Number(analysis.maintenanceFeeAmount);
     const expectedMonthlyRentAmount =
-      analysis.expectedMonthlyRentAmount === null ? null : Number(analysis.expectedMonthlyRentAmount);
+      analysis.expectedMonthlyRentAmount === null
+        ? null
+        : Number(analysis.expectedMonthlyRentAmount);
     const monthlyHousingCost =
-      expectedMonthlyRentAmount === null ? null : expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0);
+      expectedMonthlyRentAmount === null
+        ? null
+        : expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0);
     const shortageAmount = Number(analysis.shortageAmount);
-    const rentBurdenRate = analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate);
+    const rentBurdenRate =
+      analysis.rentBurdenRate === null ? null : Number(analysis.rentBurdenRate);
     const monthlyIncomeAmount = Number(analysis.monthlyIncomeAmount);
 
     return {
@@ -520,7 +527,9 @@ export class EligibilityService {
     monthlyIncomeAmount: number,
     rentBurdenRate: number | null,
   ): ConditionDraft {
-    const needsCheck = monthlyHousingCost === null || monthlyIncomeAmount <= 0;
+    const isMonthlyHousingCostMissing = monthlyHousingCost === null;
+    const isMonthlyIncomeMissing = monthlyIncomeAmount <= 0;
+    const needsCheck = isMonthlyHousingCostMissing || isMonthlyIncomeMissing;
     const isPassed = rentBurdenRate !== null && rentBurdenRate <= this.recommendedRentBurdenRate;
 
     return {
@@ -534,11 +543,13 @@ export class EligibilityService {
         : isPassed
           ? EligibilityConditionResultStatus.PASS
           : EligibilityConditionResultStatus.FAIL,
-      failReason: needsCheck
-        ? '월소득 정보가 없어 월세 부담률 확인이 필요합니다.'
-        : isPassed
-          ? null
-          : `월 주거비 ${this.formatKoreanAmount(monthlyHousingCost)}가 권장 기준을 초과합니다.`,
+      failReason: isMonthlyHousingCostMissing
+        ? '월세 정보가 없어 월세 부담률 확인이 필요합니다.'
+        : isMonthlyIncomeMissing
+          ? '월소득 정보가 없어 월세 부담률 확인이 필요합니다.'
+          : isPassed
+            ? null
+            : `월 주거비 ${this.formatKoreanAmount(monthlyHousingCost)}가 권장 기준을 초과합니다.`,
     };
   }
 
@@ -783,7 +794,15 @@ export class EligibilityService {
       params.rentBurdenRate === null ||
       params.policyConditions.length === 0 ||
       hasPolicyNeedCheck;
-    const eligibilityScore = Math.round(cashScore + rentScore + policyScore);
+    // 보증금을 현금으로 충당하지 못하면 실제 입주 준비 가능성을 과대평가하지 않도록
+    // 점수를 LOW 구간(50점 미만)으로 제한한다. 대출 등 보완 수단이 있을 수 있으므로
+    // 정책 자격 미충족(NOT_ELIGIBLE)과는 구분한다.
+    const hasCashShortage =
+      params.expectedDepositAmount > 0 && params.cashSavings < params.expectedDepositAmount;
+    const eligibilityScore = Math.min(
+      Math.round(cashScore + rentScore + policyScore),
+      hasCashShortage ? 49 : 100,
+    );
 
     return {
       eligibilityScore,

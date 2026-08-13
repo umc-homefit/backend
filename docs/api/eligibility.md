@@ -35,6 +35,7 @@
 1차 MVP에서는 복잡한 정책 판정 전체 자동화보다 최소 계산 버전을 우선한다.
 
 - `shortageAmount` = `expectedDepositAmount - userCashAmount`, 음수면 0 처리 권장
+- 보유 현금이 예상 보증금보다 적으면, 대출 등 보완 가능성은 남기되 입주 준비 가능성을 과대평가하지 않도록 최종 점수는 49점 이하(`LOW`)로 제한한다.
 - `monthlyHousingCost` = `expectedMonthlyRentAmount + (maintenanceFeeAmount ?? 0)`
 - 월세가 미수집이면 `expectedMonthlyRentAmount`, `monthlyHousingCost`, `rentBurdenRate`는 `null`이다. 월소득이 0원이면 `rentBurdenRate`는 계산할 수 없어 `null`이다. 실제 월세 0원과 구분하며, 이 경우 `RENT_BURDEN`은 `NEED_CHECK`으로 처리한다. 다른 정책 조건에 `FAIL`이 없을 때만 최종 등급도 `NEED_CHECK`이며, `FAIL`이 있으면 `NOT_ELIGIBLE`이 우선한다.
 - 현재 크롤링 데이터에 관리비 원본이 없어 `maintenanceFeeAmount`는 `null`로 반환하고, 월세가 수집된 경우 월 주거비와 월세 부담률은 월세 기준으로 계산한다.
@@ -127,13 +128,13 @@
 
 `conditionProfileSnapshot`은 아래 필드를 항상 포함하며, 값이 없는 항목만 `null`이다.
 
-| 필드                                                                                     | 타입           | nullable |
-| ---------------------------------------------------------------------------------------- | -------------- | -------- |
-| `monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings` | number         | N        |
-| `housingOwnershipStatus`, `maritalStatus`, `householdHeadStatus`                        | string         | N        |
-| `isHomeless`, `hasRecentNewborn`                                                        | boolean        | N        |
-| `residenceRegionCode`, `workplaceRegionCode`, `marriageDate`, `newbornBirthDate`, `employmentStatus` | string \| null | Y        |
-| `isFirstTimeBuyer`                                                                      | boolean \| null | Y      |
+| 필드                                                                                                    | 타입            | nullable |
+| ------------------------------------------------------------------------------------------------------- | --------------- | -------- |
+| `monthlyIncomeAmount`, `totalAssetAmount`, `totalDebtAmount`, `monthlyDebtPaymentAmount`, `cashSavings` | number          | N        |
+| `housingOwnershipStatus`, `maritalStatus`, `householdHeadStatus`                                        | string          | N        |
+| `isHomeless`, `hasRecentNewborn`                                                                        | boolean         | N        |
+| `residenceRegionCode`, `workplaceRegionCode`, `marriageDate`, `newbornBirthDate`, `employmentStatus`    | string \| null  | Y        |
+| `isFirstTimeBuyer`                                                                                      | boolean \| null | Y        |
 
 ```json
 {
