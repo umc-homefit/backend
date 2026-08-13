@@ -70,12 +70,20 @@
 ```json
 {
   "analysisId": 1,
-  "resultLevel": "HIGH",
-  "eligibilityScore": 82,
+  "resultLevel": "LOW",
+  "eligibilityScore": 49,
   "shortageAmount": 2000000,
   "rentBurdenRate": 28.57,
-  "summaryMessage": "입주 가능성이 높은 편입니다. 예상 보증금 대비 보유 현금이 200만원 부족합니다. 월세 부담률은 28.57%로 안정적인 편입니다.",
+  "summaryMessage": "입주 가능성이 낮은 편입니다. 예상 보증금 대비 보유 현금이 200만원 부족합니다. 월세 부담률은 28.57%로 안정적인 편입니다.",
   "conditionResults": [
+    {
+      "conditionCode": "CASH",
+      "conditionName": "보유 현금",
+      "requiredValue": "보증금 1000만원 이상",
+      "userValue": "보유 현금 800만원",
+      "resultStatus": "FAIL",
+      "failReason": "예상 보증금 대비 보유 현금이 200만원 부족합니다."
+    },
     {
       "conditionCode": "INCOME",
       "conditionName": "소득 조건",
@@ -329,8 +337,8 @@
       "noticeStatus": "RECRUITING",
       "noticeStatusDisplayText": "모집중",
       "isAdditionalRecruitment": false,
-      "resultLevel": "HIGH",
-      "eligibilityScore": 82,
+      "resultLevel": "LOW",
+      "eligibilityScore": 49,
       "shortageAmount": 2000000,
       "rentBurdenRate": 28.57,
       "analyzedAt": "2026-07-01T00:10:00.000Z"
