@@ -7,6 +7,9 @@ resource "aws_db_instance" "main" {
   engine_version = var.db_engine_version
   instance_class = var.db_instance_class
 
+  allow_major_version_upgrade = var.db_allow_major_version_upgrade
+  apply_immediately           = var.db_apply_immediately
+
   db_name  = var.db_name
   username = var.db_master_username
 
