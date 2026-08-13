@@ -78,7 +78,7 @@ resource "aws_autoscaling_group" "api" {
   min_size            = var.asg_min_size
   desired_capacity    = var.asg_desired_capacity
   max_size            = var.asg_max_size
-  vpc_zone_identifier = [for subnet in aws_subnet.app : subnet.id]
+  vpc_zone_identifier = local.compute_subnet_ids
 
   health_check_type         = "ELB"
   health_check_grace_period = 300
@@ -116,8 +116,10 @@ resource "aws_autoscaling_group" "api" {
     ignore_changes = [desired_capacity]
 
     precondition {
-      condition     = var.enable_database && var.enable_nat_gateway
-      error_message = "enable_compute requires both enable_database and enable_nat_gateway."
+      condition = var.enable_database && (
+        var.application_subnet_tier == "public" || local.nat_gateway_enabled
+      )
+      error_message = "enable_compute requires enable_database. Private compute also requires enable_nat_gateway."
     }
 
     precondition {

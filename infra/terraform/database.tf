@@ -22,7 +22,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = var.db_multi_az
 
-  backup_retention_period = 7
+  backup_retention_period = var.db_backup_retention_days
   backup_window           = "18:00-19:00"
   maintenance_window      = "sun:19:00-sun:20:00"
 
