@@ -7,13 +7,20 @@ enable_nat_gateway = false
 enable_database    = false
 enable_compute     = false
 
+# Initial runtime: public EC2 receives public IPv4 for outbound access.
+# The application security group still accepts inbound traffic only from ALB.
+application_subnet_tier = "public"
+
 # Phase 2a: create RDS first, then populate the application secret.
 # enable_database = true
 
-# Phase 2b: create NAT Gateway, ALB, and EC2 ASG only after an image and secrets exist.
-# enable_nat_gateway = true
+# Phase 2b: create ALB and public EC2 ASG only after an image and secrets exist.
 # enable_compute     = true
-# nat_gateway_mode   = "single" # lower cost; use per_az only after an HA/cost decision
+
+# Future private-compute option (paid NAT Gateway required):
+# application_subnet_tier = "private"
+# enable_nat_gateway      = true
+# nat_gateway_mode        = "single" # use per_az only after an HA/cost decision
 
 asg_min_size         = 1
 asg_desired_capacity = 1
