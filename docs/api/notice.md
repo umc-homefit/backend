@@ -338,7 +338,7 @@ GET /notices?minArea=20&minDeposit=50000000
 
 | 항목 | 내용 |
 | --- | --- |
-| Method · Endpoint | `POST /notices/{noticeId}/save` |
+| Method · Endpoint | `POST /users/me/saved-notices/{noticeId}` |
 | 설명 | 공고 저장(찜). 저장 수 기준 인기순에 반영 |
 | 인증 | **필수** |
 | 우선순위 · 화면 | ⭐ P1 · 공고 목록·상세 |
@@ -372,7 +372,7 @@ GET /notices?minArea=20&minDeposit=50000000
 
 | 항목 | 내용 |
 | --- | --- |
-| Method · Endpoint | `DELETE /notices/{noticeId}/save` |
+| Method · Endpoint | `DELETE /users/me/saved-notices/{noticeId}` |
 | 인증 | **필수** |
 | 우선순위 · 화면 | ⭐ P1 · 공고 목록·상세·저장 목록 |
 
