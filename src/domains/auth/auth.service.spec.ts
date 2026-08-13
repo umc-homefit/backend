@@ -166,7 +166,7 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
       meta: { target: ['email'] },
     });
 
-    it('P2002 발생 후 재조회 시 유저가 있으면 해당 유저로 토큰을 발급한다 (동시 요청 중 하나가 먼저 성공)', async () => {
+    it('P2002 발생 후 재조회 시 유저가 있으면 해당 유저로 토큰을 발급하고 isNewUser는 false다 (동시 요청 중 하나가 먼저 성공)', async () => {
       // 최초 findUserByEmail: null (중복 체크 통과)
       // P2002 catch 후 재조회: 이미 생성된 유저 반환
       authRepository.findUserByEmail
@@ -177,6 +177,8 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
       const result = await service.signup(signupDto);
 
       expect(result.userId).toBe(Number(mockUser.userId));
+      // 실제로 생성하지 않은 요청이므로 isNewUser는 false여야 한다
+      expect(result.isNewUser).toBe(false);
       expect(authRepository.createEmailUser).toHaveBeenCalledTimes(1);
       expect(authRepository.findUserByEmail).toHaveBeenCalledTimes(2);
     });

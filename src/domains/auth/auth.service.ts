@@ -35,6 +35,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
 
     let user;
+    let isNewUser = false;
     try {
       // User + 기본 프로필(랜덤 닉네임)을 nested create로 한 번에 원자적으로 생성한다.
       user = await this.authRepository.createEmailUser(
@@ -42,29 +43,21 @@ export class AuthService {
         hashedPassword,
         generateRandomNickname(),
       );
+      isNewUser = true;
     } catch (error) {
       // findUserByEmail → createEmailUser 사이에 동시 요청이 오면 P2002가 발생할 수 있다.
-      // socialAuth의 createSocialUser와 동일하게, 재조회해서 이미 생성된 유저가 있으면
-      // 동시 요청 중 하나가 먼저 성공한 것이므로 그 유저로 토큰을 발급한다.
-      // 재조회해도 없다면 다른 이메일 제약 충돌이므로 409로 응답한다.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        const created = await this.authRepository.findUserByEmail(dto.email);
-        if (created) {
-          user = created;
-        } else {
-          throw new ConflictException({
-            code: 'AUTH409',
-            message: '이미 존재하는 이메일 주소입니다.',
-          });
-        }
-      } else {
-        throw error;
-      }
+      // socialAuth의 createSocialUser와 동일하게 handleP2002 헬퍼로 재조회한다.
+      // 재조회 성공: 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저로 로그인(isNewUser=false)
+      // 재조회 실패: 다른 이메일 제약 충돌 → AUTH409
+      user = await this.handleP2002(
+        error,
+        () => this.authRepository.findUserByEmail(dto.email),
+      );
     }
 
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
-      isNewUser: true,
+      isNewUser,
       userId: Number(user.userId),
     };
   }
@@ -130,30 +123,14 @@ export class AuthService {
         );
         isNewUser = true;
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-          // DB가 email과 (provider, providerId) 중 어떤 UNIQUE 제약을 먼저 보고했는지는
-          // 신뢰하지 않는다. 동시에 같은 소셜 계정으로 두 요청이 들어오면, 어느 쪽 제약이
-          // 먼저 걸리는지는 타이밍에 따라 달라질 수 있어 결과가 들쭉날쭉해질 수 있기 때문이다.
-          //
-          // 대신 항상 먼저 "나(provider+providerId) 자신이 이미 생성됐는지"부터 확인한다.
-          // 이미 있다면 동시 요청 중 하나가 먼저 성공한 것뿐이므로 그 유저로 정상 로그인
-          // 처리한다. 없다면 그제서야 "다른 유저가 이 이메일을 쓰고 있다"는 뜻이므로 409.
-          const existing = await this.authRepository.findUserByProvider(
-            provider,
-            verified.providerId,
-          );
-
-          if (existing) {
-            user = existing;
-          } else {
-            throw new ConflictException({
-              code: 'AUTH409',
-              message: '이미 존재하는 이메일 주소입니다.',
-            });
-          }
-        } else {
-          throw error;
-        }
+        // DB가 email과 (provider, providerId) 중 어떤 UNIQUE 제약을 먼저 보고했는지는
+        // 신뢰하지 않는다. handleP2002 헬퍼로 재조회해서:
+        // - 이미 있다면 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저로 로그인(isNewUser=false)
+        // - 없다면 다른 유저가 이 이메일을 쓰고 있다는 뜻 → AUTH409
+        user = await this.handleP2002(
+          error,
+          () => this.authRepository.findUserByProvider(provider, verified.providerId),
+        );
       }
     }
 
@@ -176,6 +153,23 @@ export class AuthService {
 
   async logout(userId: bigint): Promise<void> {
     void userId;
+  }
+
+  // P2002(UNIQUE 제약 위반) 발생 시 재조회해서 처리하는 공통 헬퍼.
+  // signup(createEmailUser)과 socialAuth(createSocialUser) 양쪽에서 동일하게 사용한다.
+  // - lookup()이 유저를 반환하면: 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저 반환
+  // - lookup()이 null을 반환하면: 다른 제약 충돌 → AUTH409
+  // - P2002가 아닌 오류면: 그대로 throw
+  private async handleP2002<T>(error: unknown, lookup: () => Promise<T | null>): Promise<T> {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const found = await lookup();
+      if (found) return found;
+      throw new ConflictException({
+        code: 'AUTH409',
+        message: '이미 존재하는 이메일 주소입니다.',
+      });
+    }
+    throw error;
   }
 
   private issueAccessToken(userId: bigint, email: string | null): string {
