@@ -25,7 +25,6 @@ import { ApiResponse, createSuccessResponse } from '../../common/types/api-respo
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   FinanceTermItemDto,
-  GetFinanceTermsQueryDto,
   GetGuidesQueryDto,
   GetLoanProductsQueryDto,
   GuideCategoryItemDto,
@@ -166,23 +165,21 @@ export class FinanceController {
     return createSuccessResponse(result, 'FINANCE200', '필요 서류 조회에 성공했습니다.');
   }
 
-  @Get('finance-terms')
+  @Get('finance-terms/:term')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: '금융 용어 상세 조회',
     description: '지정한 금융 용어 하나의 상세 설명을 조회한다.',
   })
+  @ApiParam({ name: 'term', type: String, description: '조회할 용어명 (정확히 일치)', example: 'DSR' })
   @ApiSuccessResponse(FinanceTermItemDto, { description: '금융 용어 상세 조회 성공' })
   @ApiErrorResponse([
-    { status: 400, code: 'COMMON400', message: 'term은 비어있을 수 없습니다.' },
     { status: 401, code: 'AUTH401', message: '인증이 필요합니다. 로그인 후 다시 시도해주세요.' },
     { status: 404, code: 'FINANCE404', message: '존재하지 않는 용어입니다.' },
   ])
-  async getFinanceTerms(
-    @Query() query: GetFinanceTermsQueryDto,
-  ): Promise<ApiResponse<FinanceTermItemDto>> {
-    const result = await this.financeService.getFinanceTerm(query.term);
+  async getFinanceTerm(@Param('term') term: string): Promise<ApiResponse<FinanceTermItemDto>> {
+    const result = await this.financeService.getFinanceTerm(term.trim());
 
     return createSuccessResponse(result, 'FINANCE200', '금융 용어 상세 조회에 성공했습니다.');
   }

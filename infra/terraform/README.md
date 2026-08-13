@@ -9,7 +9,7 @@ Railway 운영 주소를 유지하면서 HomeFit의 AWS 2차 확장 구성을 �
 - 2개 AZ의 Public / Private Application / Private Database Subnet
 - Public ALB → Public EC2 Auto Scaling Group (`min=1`, `max=3`)
 - EC2는 공인 IPv4로 외부 통신하되 API 인바운드는 ALB 보안 그룹에서만 허용
-- Private RDS for PostgreSQL Single-AZ, RDS 관리형 master password
+- Private RDS for PostgreSQL 18.4 Single-AZ, RDS 관리형 master password
 - ECR, Private S3, Secrets Manager, CloudWatch Logs/Alarm
 - GitHub Actions OIDC 배포 Role
 - 선택형 Route 53 + ACM HTTPS
@@ -148,6 +148,20 @@ Environment variable로 둔다.
 Secrets Manager에 생성·관리하며 Terraform 변수나 state에 평문으로 넣지 않는다.
 신규 AWS Free Plan에서는 `db_backup_retention_days=1`을 유지한다.
 
+Railway 전체 데이터를 이관하기 전에는 source와 target의 PostgreSQL 메이저 버전을
+반드시 맞춘다. HomeFit은 Railway PostgreSQL 18과 호환되도록 RDS 엔진을 `18.4`로
+고정한다. 기존 RDS의 메이저 업그레이드는 plan에서 인스턴스 교체나 삭제가 없음을
+확인한 뒤 아래 두 값을 해당 apply에서만 명시적으로 활성화한다.
+
+```hcl
+db_allow_major_version_upgrade = true
+db_apply_immediately            = true
+```
+
+`db_apply_immediately=true`는 유지보수 시간까지 기다리지 않는 대신 재부팅과 일시적인
+서비스 중단을 유발할 수 있다. 업그레이드 중에는 Railway를 롤백 경로로 유지하고,
+완료 후 두 변수는 다시 `false`로 관리한다.
+
 Terraform이 만든 `backend_secret_arn` Secret에는 `DATABASE_URL`을 제외한 dotenv
 형식의 운영 환경변수를 Secret value로 등록한다. Secret 파일은 저장소 밖의 임시
 경로에서 작성하고 등록 직후 삭제한다.
@@ -169,17 +183,45 @@ DB password를 application Secret에 중복 저장하지 않는다.
 초기 이미지와 Secret을 확인한 뒤에만 아래 값으로 apply한다.
 
 ```hcl
-application_subnet_tier = "public"
-enable_nat_gateway      = false
-enable_database         = true
-enable_compute          = true
-db_multi_az             = false
+application_subnet_tier  = "public"
+enable_nat_gateway       = false
+enable_database          = true
+enable_compute           = true
+db_multi_az              = false
 db_backup_retention_days = 1
+db_engine_version        = "18.4"
 ```
 
 apply 후 `autoscaling_group_name`을 GitHub `AWS_ASG_NAME`에 넣고
 `AWS_RUNTIME_ENABLED=true`로 변경한다. 이후 main push 또는 수동 실행은 ECR push 후
 ASG Instance Refresh까지 수행한다.
+
+### Railway 전체 데이터 일회성 이관
+
+RDS 18.4 업그레이드와 Prisma migration 적용을 확인한 뒤 Windows PowerShell에서
+아래 스크립트를 실행한다.
+
+```powershell
+.\scripts\migrate-railway-to-rds.ps1
+```
+
+필수 조건은 AWS CLI `homefit` profile, Docker Desktop, Session Manager plugin,
+온라인 상태의 HomeFit EC2 인스턴스이다. 스크립트는 Railway
+`DATABASE_PUBLIC_URL`을 SecureString으로 입력받으며 URL과 DB password를 파일이나
+저장소에 기록하지 않는다.
+
+스크립트는 다음 조건을 모두 확인한 뒤 사용자가 `MIGRATE`를 입력한 경우에만
+복사를 시작한다.
+
+1. Railway와 RDS가 모두 PostgreSQL 18인지 확인
+2. 양쪽 Prisma migration 이력이 동일한지 확인
+3. 대상 RDS의 주요 애플리케이션 테이블이 비어 있는지 확인
+4. Railway data-only dump를 RDS에 단일 transaction으로 복원
+5. 복원 전후 주요 테이블 row count가 동일한지 확인
+
+오류가 발생하면 임시 dump와 DB 접속 환경변수를 정리한다. RDS에 일부 데이터가
+남지 않도록 restore는 `--single-transaction`으로 실행한다. 이관과 smoke test가
+완료될 때까지 Railway 원본 DB를 삭제하거나 수정하지 않는다.
 
 ### 5. HTTPS와 전환
 
