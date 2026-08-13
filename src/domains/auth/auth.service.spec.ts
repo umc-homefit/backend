@@ -11,6 +11,7 @@ import { SocialTokenVerifierService } from './services/social-token-verifier.ser
 describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 생성)', () => {
   let service: AuthService;
   let authRepository: jest.Mocked<AuthRepository>;
+  let jwtService: jest.Mocked<JwtService>;
   let socialTokenVerifier: jest.Mocked<SocialTokenVerifierService>;
 
   const mockUser = {
@@ -44,6 +45,7 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
 
     service = module.get(AuthService);
     authRepository = module.get(AuthRepository);
+    jwtService = module.get(JwtService);
     socialTokenVerifier = module.get(SocialTokenVerifierService);
   });
 
@@ -179,9 +181,8 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
       // 재조회(2번째 findUserByEmail)가 호출되지 않아야 한다
       expect(authRepository.findUserByEmail).toHaveBeenCalledTimes(1);
       expect(authRepository.createEmailUser).toHaveBeenCalledTimes(1);
+      expect(jwtService.sign).not.toHaveBeenCalled();
     });
-
-
 
     it('P2002가 아닌 다른 DB 오류는 그대로 던진다', async () => {
       authRepository.findUserByEmail.mockResolvedValue(null);
