@@ -7,12 +7,13 @@ Railway 운영 주소를 유지하면서 HomeFit의 AWS 2차 확장 구성을 �
 ## 구성
 
 - 2개 AZ의 Public / Private Application / Private Database Subnet
-- Public ALB → Private EC2 Auto Scaling Group (`min=1`, `max=3`)
-- Private RDS for PostgreSQL, RDS 관리형 master password
+- Public ALB → Public EC2 Auto Scaling Group (`min=1`, `max=3`)
+- EC2는 공인 IPv4로 외부 통신하되 API 인바운드는 ALB 보안 그룹에서만 허용
+- Private RDS for PostgreSQL Single-AZ, RDS 관리형 master password
 - ECR, Private S3, Secrets Manager, CloudWatch Logs/Alarm
 - GitHub Actions OIDC 배포 Role
 - 선택형 Route 53 + ACM HTTPS
-- S3 Gateway VPC Endpoint로 S3 트래픽의 NAT 처리 비용 절감
+- S3 Gateway VPC Endpoint로 S3 트래픽을 AWS 네트워크 안에서 처리
 
 EventBridge 기반 크롤러/스케줄러 Worker와 실제 FCM 발송은 애플리케이션 구현이
 완료된 뒤 별도 모듈로 추가한다. API 인스턴스가 여러 대일 때 인스턴스별 cron을
@@ -42,26 +43,32 @@ enable_compute     = false
 - <https://aws.amazon.com/rds/postgresql/pricing/>
 
 2026-08-13 AWS Price List의 서울 리전 On-Demand 단가로 계산한 초기 구성의
-월 비용 하한은 약 **USD 113/월**이다(730시간 기준).
+월 비용 하한은 약 **USD 70/월**이다(730시간 기준).
 
 | 항목 | 단가 | 월 추정 |
 | --- | --- | ---: |
-| NAT Gateway 1개 | USD 0.059/시간 | USD 43.07 |
 | ALB 1개 | USD 0.0225/시간 | USD 16.43 |
 | EC2 `t3.small` 1대 | USD 0.026/시간 | USD 18.98 |
 | RDS `db.t4g.micro` Single-AZ | USD 0.025/시간 | USD 18.25 |
-| Public IPv4 3개 가정(ALB 2 + NAT 1) | USD 0.005/주소·시간 | USD 10.95 |
+| Public IPv4 3개 가정(ALB 2 + EC2 1) | USD 0.005/주소·시간 | USD 10.95 |
 | EC2 gp3 20GiB | USD 0.0912/GB-월 | USD 1.82 |
 | RDS gp3 20GiB | USD 0.131/GB-월 | USD 2.62 |
 | Secrets Manager 2개 가정 | USD 0.40/Secret-월 | USD 0.80 |
 
-여기에 ALB LCU(USD 0.008/LCU-시간), NAT 처리량(USD 0.059/GB), 데이터 전송,
-ECR/S3/CloudWatch 사용량, 세금이 추가된다. Free Tier, 크레딧, 환율은 반영하지
+여기에 ALB LCU(USD 0.008/LCU-시간), 데이터 전송, ECR/S3/CloudWatch 사용량,
+세금이 추가된다. Free Tier, 크레딧, 환율은 반영하지
 않았으므로 apply 직전에 AWS Pricing Calculator와 결제 계정의 크레딧을 다시 확인한다.
 
-`nat_gateway_mode = "single"`은 초기 비용을 낮추지만 NAT가 있는 AZ 장애와
-AZ 간 데이터 전송에 취약하다. `per_az`는 가용성을 높이는 대신 NAT 고정 비용이
-AZ 수만큼 발생한다.
+초기 런타임은 `application_subnet_tier = "public"`으로 두고 NAT Gateway를 생성하지
+않는다. EC2에 공인 IPv4가 붙지만 SSH와 API 포트를 인터넷에 직접 열지 않으며,
+API 요청은 ALB를 통해서만 들어온다. 추후 Private EC2가 필요하면
+`application_subnet_tier = "private"`와 `enable_nat_gateway = true`를 함께 적용하고,
+고정 비용과 AZ별 가용성을 다시 검토한다.
+
+RDS는 비용을 고려해 Single-AZ로 시작한다. 7일 자동 백업, 삭제 방지, 최종 스냅샷과
+CloudWatch CPU·메모리·스토리지·연결 수·CPU 크레딧 알람으로 운영 위험을 보완한다.
+기본 알람은 콘솔에서만 확인되며, SNS 알림이 필요하면
+`cloudwatch_alarm_action_arns`에 Topic ARN을 전달한다.
 
 ## 로컬 검증
 
@@ -155,10 +162,11 @@ DB password를 application Secret에 중복 저장하지 않는다.
 초기 이미지와 Secret을 확인한 뒤에만 아래 값으로 apply한다.
 
 ```hcl
-enable_nat_gateway = true
-enable_database    = true
-enable_compute     = true
-nat_gateway_mode   = "single"
+application_subnet_tier = "public"
+enable_nat_gateway      = false
+enable_database         = true
+enable_compute          = true
+db_multi_az             = false
 ```
 
 apply 후 `autoscaling_group_name`을 GitHub `AWS_ASG_NAME`에 넣고
