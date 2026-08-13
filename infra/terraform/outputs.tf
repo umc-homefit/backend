@@ -8,6 +8,11 @@ output "vpc_id" {
   value       = aws_vpc.main.id
 }
 
+output "application_subnet_tier" {
+  description = "Subnet tier selected for the API Auto Scaling Group."
+  value       = var.application_subnet_tier
+}
+
 output "ecr_repository_name" {
   description = "GitHub Actions AWS_ECR_REPOSITORY variable value."
   value       = aws_ecr_repository.backend.name

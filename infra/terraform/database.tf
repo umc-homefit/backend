@@ -7,6 +7,9 @@ resource "aws_db_instance" "main" {
   engine_version = var.db_engine_version
   instance_class = var.db_instance_class
 
+  allow_major_version_upgrade = var.db_allow_major_version_upgrade
+  apply_immediately           = var.db_apply_immediately
+
   db_name  = var.db_name
   username = var.db_master_username
 
@@ -22,7 +25,7 @@ resource "aws_db_instance" "main" {
   publicly_accessible    = false
   multi_az               = var.db_multi_az
 
-  backup_retention_period = 7
+  backup_retention_period = var.db_backup_retention_days
   backup_window           = "18:00-19:00"
   maintenance_window      = "sun:19:00-sun:20:00"
 

@@ -11,6 +11,7 @@ import { SocialTokenVerifierService } from './services/social-token-verifier.ser
 describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 생성)', () => {
   let service: AuthService;
   let authRepository: jest.Mocked<AuthRepository>;
+  let jwtService: jest.Mocked<JwtService>;
   let socialTokenVerifier: jest.Mocked<SocialTokenVerifierService>;
 
   const mockUser = {
@@ -44,6 +45,7 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
 
     service = module.get(AuthService);
     authRepository = module.get(AuthRepository);
+    jwtService = module.get(JwtService);
     socialTokenVerifier = module.get(SocialTokenVerifierService);
   });
 
@@ -154,6 +156,39 @@ describe('AuthService - 신규 가입 흐름 (User + 기본 프로필 원자적 
       // 기존 유저를 찾았으니, User/프로필 생성 로직(nested create) 자체가 아예 실행되면 안 된다.
       expect(authRepository.createSocialUser).not.toHaveBeenCalled();
       expect(authRepository.findUserByEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('이메일 signup P2002 레이스 컨디션', () => {
+    const signupDto = { email: 'race@example.com', password: 'Home2026#' };
+
+    const prismaP2002 = new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+      code: 'P2002',
+      clientVersion: '6.0.0',
+      meta: { target: ['email'] },
+    });
+
+    it('P2002 발생 시 재조회 없이 AUTH409를 반환한다 (비밀번호 검증 없는 토큰 발급 방지)', async () => {
+      // 이메일 signup은 socialAuth와 달리 P2002 시 재조회하지 않는다.
+      // 비밀번호 검증 없이 기존 유저로 토큰을 발급하면 보안 취약점이 되기 때문이다.
+      authRepository.findUserByEmail.mockResolvedValueOnce(null);
+      authRepository.createEmailUser.mockRejectedValue(prismaP2002);
+
+      await expect(service.signup(signupDto)).rejects.toMatchObject({
+        response: { code: 'AUTH409' },
+      });
+
+      // 재조회(2번째 findUserByEmail)가 호출되지 않아야 한다
+      expect(authRepository.findUserByEmail).toHaveBeenCalledTimes(1);
+      expect(authRepository.createEmailUser).toHaveBeenCalledTimes(1);
+      expect(jwtService.sign).not.toHaveBeenCalled();
+    });
+
+    it('P2002가 아닌 다른 DB 오류는 그대로 던진다', async () => {
+      authRepository.findUserByEmail.mockResolvedValue(null);
+      authRepository.createEmailUser.mockRejectedValue(new Error('DB connection lost'));
+
+      await expect(service.signup(signupDto)).rejects.toThrow('DB connection lost');
     });
   });
 });

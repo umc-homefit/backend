@@ -22,7 +22,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   availability_zone       = each.key
   cidr_block              = each.value.public_cidr
-  map_public_ip_on_launch = false
+  map_public_ip_on_launch = var.application_subnet_tier == "public"
 
   tags = {
     Name = "${local.name_prefix}-public-${each.key}"
@@ -115,7 +115,7 @@ resource "aws_route_table" "app" {
 }
 
 resource "aws_route" "app_internet" {
-  for_each = var.enable_nat_gateway ? local.subnet_map : {}
+  for_each = local.nat_gateway_enabled ? local.subnet_map : {}
 
   route_table_id         = aws_route_table.app[each.key].id
   destination_cidr_block = "0.0.0.0/0"
@@ -146,12 +146,15 @@ resource "aws_route_table_association" "db" {
   route_table_id = aws_route_table.db[each.key].id
 }
 
-# S3 image/file traffic avoids NAT Gateway hourly data-processing charges.
+# S3 image/file traffic stays on the AWS network in either compute subnet tier.
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids   = [for route_table in aws_route_table.app : route_table.id]
+  route_table_ids = concat(
+    [aws_route_table.public.id],
+    [for route_table in aws_route_table.app : route_table.id],
+  )
 
   tags = {
     Name = "${local.name_prefix}-s3-endpoint"

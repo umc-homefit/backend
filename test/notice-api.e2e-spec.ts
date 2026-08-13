@@ -443,13 +443,13 @@ describe('Notice API contract (e2e)', () => {
 
   function saveBoundaryNotice() {
     return request(app.getHttpServer())
-      .post(`/api/notices/${fixture.boundaryNoticeId}/save`)
+      .post(`/api/users/me/saved-notices/${fixture.boundaryNoticeId}`)
       .set('Authorization', `Bearer ${accessToken}`);
   }
 
   function unsaveBoundaryNotice() {
     return request(app.getHttpServer())
-      .delete(`/api/notices/${fixture.boundaryNoticeId}/save`)
+      .delete(`/api/users/me/saved-notices/${fixture.boundaryNoticeId}`)
       .set('Authorization', `Bearer ${accessToken}`);
   }
 });

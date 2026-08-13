@@ -80,11 +80,12 @@ API의 호스트 포트는 `.env`의 `API_HOST_PORT`로 변경한다. 컨테이�
 - Terraform 설계와 단계별 적용 절차는 [`infra/terraform/README.md`](../infra/terraform/README.md)를 따른다.
 - NAT Gateway, ALB, EC2, RDS는 생성 즉시 지속 과금될 수 있으므로 plan과 비용 범위를 승인한 뒤 apply한다.
 - GitHub Actions는 장기 Access Key 대신 OIDC로 AWS deploy role을 assume한다.
-- 초기 구성은 EC2 ASG `min=1`, `desired=1`, `max=3`, 단일 NAT Gateway, RDS Single-AZ로 시작하고 Multi-AZ/NAT per-AZ 전환은 비용·가용성 합의 후 진행한다.
+- 초기 구성은 Public EC2 ASG `min=1`, `desired=1`, `max=3`, NAT Gateway 미사용, Private RDS Single-AZ로 시작한다. 신규 AWS Free Plan의 RDS 자동 백업 보존기간은 1일로 두고 Paid Plan 전환 후 7일 이상으로 확대한다. EC2 인바운드는 ALB 보안 그룹에서만 허용하고, Private EC2 또는 RDS Multi-AZ 전환은 비용·가용성 합의 후 진행한다.
 - EC2 단일 서버 MVP라면 Docker Compose를 실행하되, DB 포트 `5432`를 인터넷에 공개하지 않는다.
 - RDS를 사용한다면 Compose의 `db` 대신 RDS의 `DATABASE_URL`을 API 컨테이너에 주입한다.
 - 외부 공개는 ALB 또는 Nginx를 통해 HTTPS `443`으로 제공한다.
 - ECR, ECS, ALB 같은 AWS 확장 구성은 제출 이후 별도 이슈로 진행한다.
+- `ThrottlerModule`은 storage를 별도 지정하지 않아 인스턴스 메모리 기반으로 동작한다. `desired=1` 단일 인스턴스에서는 "60초당 100회"가 정확하지만, ASG가 2대 이상으로 확장되면 인스턴스별로 카운터가 분리되어 제한이 사실상 느슨해진다(인스턴스 수 × 100회). 다중 인스턴스로 전환하기 전에 Redis 기반 shared storage 또는 WAF rate-based rule로 교체해야 한다.
 
 ## 배포 후 확인
 
