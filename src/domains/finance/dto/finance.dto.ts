@@ -7,8 +7,8 @@ import {
   ProductCategory,
   RequiredDocumentType,
 } from '@prisma/client';
-import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Max, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 import { PageInfoDto } from '../../../common/dto/page-info.dto';
 
@@ -490,14 +490,6 @@ export class LoanProductDetailResultDto {
     nullable: true,
   })
   description: string | null;
-}
-
-export class GetFinanceTermsQueryDto {
-  @ApiProperty({ description: '정확히 일치하는 용어명 (필수, 부분검색 아님)', example: 'DSR' })
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsNotEmpty({ message: 'term은 비어있을 수 없습니다.' })
-  @IsString({ message: 'term은 문자열이어야 합니다.' })
-  term: string;
 }
 
 export class FinanceTermItemDto {
