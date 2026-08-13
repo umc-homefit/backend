@@ -51,3 +51,6 @@ Thumbs.db
 coverage/
 .cache/
 .turbo/
+
+# AI 평가 결과 (내부 참고용, 비공개)
+HomeFit_AI_최종과제_평가_결과.md
