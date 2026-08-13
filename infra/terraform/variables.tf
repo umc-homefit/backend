@@ -152,6 +152,17 @@ variable "db_multi_az" {
   default     = false
 }
 
+variable "db_backup_retention_days" {
+  description = "Automated RDS backup retention in days. The initial AWS Free Plan permits one day; increase after upgrading the account plan."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.db_backup_retention_days >= 1 && var.db_backup_retention_days <= 35
+    error_message = "db_backup_retention_days must be between 1 and 35 so automated backups remain enabled."
+  }
+}
+
 variable "db_deletion_protection" {
   description = "Protect the RDS instance from accidental deletion."
   type        = bool

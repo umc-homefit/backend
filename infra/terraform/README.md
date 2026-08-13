@@ -65,10 +65,16 @@ API 요청은 ALB를 통해서만 들어온다. 추후 Private EC2가 필요하�
 `application_subnet_tier = "private"`와 `enable_nat_gateway = true`를 함께 적용하고,
 고정 비용과 AZ별 가용성을 다시 검토한다.
 
-RDS는 비용을 고려해 Single-AZ로 시작한다. 7일 자동 백업, 삭제 방지, 최종 스냅샷과
+RDS는 비용을 고려해 Single-AZ로 시작한다. AWS Free Plan 제한에 맞춘 1일 자동 백업,
+삭제 방지, 최종 스냅샷과
 CloudWatch CPU·메모리·스토리지·연결 수·CPU 크레딧 알람으로 운영 위험을 보완한다.
 기본 알람은 콘솔에서만 확인되며, SNS 알림이 필요하면
 `cloudwatch_alarm_action_arns`에 Topic ARN을 전달한다.
+
+일반 RDS DB 인스턴스는 0~35일을 지원하지만 0은 자동 백업을 끄므로 HomeFit은
+1~35일만 허용한다. 신규 AWS Free Plan 계정은 생성 시 더 작은 한도가 적용될 수
+있으므로 초기값은
+`db_backup_retention_days = 1`로 두고, Paid Plan 전환 후 7일 이상으로 확대한다.
 
 ## 로컬 검증
 
@@ -140,6 +146,7 @@ Environment variable로 둔다.
 
 팀 비용 승인 후 `enable_database=true`로 apply한다. RDS master password는 RDS가
 Secrets Manager에 생성·관리하며 Terraform 변수나 state에 평문으로 넣지 않는다.
+신규 AWS Free Plan에서는 `db_backup_retention_days=1`을 유지한다.
 
 Terraform이 만든 `backend_secret_arn` Secret에는 `DATABASE_URL`을 제외한 dotenv
 형식의 운영 환경변수를 Secret value로 등록한다. Secret 파일은 저장소 밖의 임시
@@ -167,6 +174,7 @@ enable_nat_gateway      = false
 enable_database         = true
 enable_compute          = true
 db_multi_az             = false
+db_backup_retention_days = 1
 ```
 
 apply 후 `autoscaling_group_name`을 GitHub `AWS_ASG_NAME`에 넣고
