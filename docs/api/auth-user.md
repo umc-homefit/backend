@@ -63,7 +63,7 @@
 | 201 | 회원가입 성공 |
 | 400 | 이메일 형식이 올바르지 않음 |
 | 400 | 비밀번호 조건(8자 이상, 공백 없이 영문·숫자·특수문자 각 1개 이상) 미충족 |
-| 409 | 이미 존재하는 이메일 |
+| 409 | 이미 존재하는 이메일 (`AUTH409`) — 동시 요청 레이스 컨디션 포함 |
 
 > **Memo**: 회원가입 성공 시 응답 구조(`AuthResultDto`)는 그대로지만, 내부적으로 `UserProfile`이 함께 생성되고 `nickname`에 랜덤 값(형용사+팀원이름+숫자 조합, 예: `우아한주드3817`)이 자동으로 채워진다. 즉 가입 직후 `GET /users/me/profile`을 호출하면 이제 `nickname`이 `null`이 아니라 항상 값이 있는 상태로 조회된다. User와 프로필은 하나의 원자적 쓰기(Prisma nested create)로 생성되어, 실패 시 계정만 남는 반쪽 상태는 발생하지 않는다.
 
@@ -200,9 +200,9 @@
 | Method | Endpoint | 설명 |
 | --- | --- | --- |
 | `GET` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 조회 |
-| `PATCH` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 부분 수정 (요청 필드 전부 선택) |
+| `PUT` | `/users/me/profile` | 닉네임, 생년월일, 연락처, 프로필 이미지 수정 |
 
-### PATCH Request Body
+### PUT Request Body
 
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
@@ -211,7 +211,7 @@
 | `phoneNumber` | string | N | 연락처 |
 | `profileImageUrl` | string | N | 프로필 이미지 URL |
 
-### PATCH Response (result)
+### PUT Response (result)
 
 ```json
 {
