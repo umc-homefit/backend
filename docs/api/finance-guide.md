@@ -44,7 +44,7 @@
 | P1 | `GET` | `/loan-products/match` | 사용자 조건/공고 기준 금융상품 매칭 |
 | P1 | `GET` | `/loan-products/{productId}` | 금융상품 상세 조회 |
 | P1 | `GET` | `/loan-products/{productId}/documents` | 금융상품 필요서류 조회 |
-| P1 | `GET` | `/finance-terms` | 금융 용어 상세 조회 (단건, `term` 필수) |
+| P1 | `GET` | `/finance-terms/{term}` | 금융 용어 상세 조회 (단건) |
 | P1 | `GET` | `/notices/{noticeId}/documents` | 공고 필요서류 조회 |
 | P1 | `GET` | `/guide-categories` | 가이드 카테고리 목록 조회 |
 | P1 | `GET` | `/guides` | 청약 가이드 목록 조회 |
@@ -390,11 +390,11 @@
 
 | 항목 | 내용 |
 | --- | --- |
-| Method · Endpoint | `GET /finance-terms` |
+| Method · Endpoint | `GET /finance-terms/{term}` |
 | 설명 | 지정한 금융 용어 하나의 상세 설명을 조회한다. |
 | 인증 | **필수** · `Authorization: Bearer {accessToken}` |
 
-### Query Parameter
+### Path Parameter
 
 | 이름 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
