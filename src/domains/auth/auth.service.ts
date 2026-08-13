@@ -127,9 +127,8 @@ export class AuthService {
         // 신뢰하지 않는다. handleP2002 헬퍼로 재조회해서:
         // - 이미 있다면 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저로 로그인(isNewUser=false)
         // - 없다면 다른 유저가 이 이메일을 쓰고 있다는 뜻 → AUTH409
-        user = await this.handleP2002(
-          error,
-          () => this.authRepository.findUserByProvider(provider, verified.providerId),
+        user = await this.handleP2002(error, () =>
+          this.authRepository.findUserByProvider(provider, verified.providerId),
         );
       }
     }
@@ -155,8 +154,8 @@ export class AuthService {
     void userId;
   }
 
-  // P2002(UNIQUE 제약 위반) 발생 시 재조회해서 처리하는 공통 헬퍼.
-  // signup(createEmailUser)과 socialAuth(createSocialUser) 양쪽에서 동일하게 사용한다.
+  // 소셜 신규 가입 중 P2002(UNIQUE 제약 위반)가 발생하면 provider 기준으로 재조회한다.
+  // 이메일 signup은 비밀번호 검증 없는 토큰 발급을 막기 위해 이 헬퍼를 사용하지 않는다.
   // - lookup()이 유저를 반환하면: 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저 반환
   // - lookup()이 null을 반환하면: 다른 제약 충돌 → AUTH409
   // - P2002가 아닌 오류면: 그대로 throw
