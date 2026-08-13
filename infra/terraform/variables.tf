@@ -23,7 +23,7 @@ variable "vpc_cidr" {
 }
 
 variable "enable_nat_gateway" {
-  description = "Create paid NAT Gateway resources for private application subnets."
+  description = "Create paid NAT Gateway resources when application_subnet_tier is private. Ignored for public compute."
   type        = bool
   default     = false
 }
@@ -39,6 +39,17 @@ variable "nat_gateway_mode" {
   }
 }
 
+variable "application_subnet_tier" {
+  description = "Subnet tier for the API ASG. public avoids NAT Gateway cost; private requires enable_nat_gateway=true."
+  type        = string
+  default     = "public"
+
+  validation {
+    condition     = contains(["public", "private"], var.application_subnet_tier)
+    error_message = "application_subnet_tier must be public or private."
+  }
+}
+
 variable "enable_database" {
   description = "Create the paid RDS PostgreSQL instance."
   type        = bool
@@ -46,7 +57,7 @@ variable "enable_database" {
 }
 
 variable "enable_compute" {
-  description = "Create the paid ALB and EC2 Auto Scaling runtime. Requires database and NAT Gateway."
+  description = "Create the paid ALB and EC2 Auto Scaling runtime. Requires database; private compute also requires NAT Gateway."
   type        = bool
   default     = false
 }
@@ -141,6 +152,17 @@ variable "db_multi_az" {
   default     = false
 }
 
+variable "db_backup_retention_days" {
+  description = "Automated RDS backup retention in days. The initial AWS Free Plan permits one day; increase after upgrading the account plan."
+  type        = number
+  default     = 1
+
+  validation {
+    condition     = var.db_backup_retention_days >= 1 && var.db_backup_retention_days <= 35
+    error_message = "db_backup_retention_days must be between 1 and 35 so automated backups remain enabled."
+  }
+}
+
 variable "db_deletion_protection" {
   description = "Protect the RDS instance from accidental deletion."
   type        = bool
@@ -157,6 +179,67 @@ variable "log_retention_days" {
   description = "CloudWatch Logs retention period."
   type        = number
   default     = 14
+}
+
+variable "cloudwatch_alarm_action_arns" {
+  description = "Optional SNS topic ARNs notified when a CloudWatch alarm enters ALARM state."
+  type        = list(string)
+  default     = []
+}
+
+variable "db_cpu_alarm_threshold" {
+  description = "RDS CPUUtilization percentage that triggers an alarm."
+  type        = number
+  default     = 80
+
+  validation {
+    condition     = var.db_cpu_alarm_threshold > 0 && var.db_cpu_alarm_threshold <= 100
+    error_message = "db_cpu_alarm_threshold must be greater than 0 and at most 100."
+  }
+}
+
+variable "db_freeable_memory_alarm_bytes" {
+  description = "RDS FreeableMemory threshold in bytes."
+  type        = number
+  default     = 134217728
+
+  validation {
+    condition     = var.db_freeable_memory_alarm_bytes > 0
+    error_message = "db_freeable_memory_alarm_bytes must be greater than 0."
+  }
+}
+
+variable "db_free_storage_alarm_bytes" {
+  description = "RDS FreeStorageSpace threshold in bytes."
+  type        = number
+  default     = 5368709120
+
+  validation {
+    condition     = var.db_free_storage_alarm_bytes > 0
+    error_message = "db_free_storage_alarm_bytes must be greater than 0."
+  }
+}
+
+variable "db_connection_alarm_threshold" {
+  description = "RDS DatabaseConnections count that triggers an alarm."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = var.db_connection_alarm_threshold > 0
+    error_message = "db_connection_alarm_threshold must be greater than 0."
+  }
+}
+
+variable "db_cpu_credit_alarm_threshold" {
+  description = "RDS CPUCreditBalance threshold for burstable DB instance classes."
+  type        = number
+  default     = 20
+
+  validation {
+    condition     = var.db_cpu_credit_alarm_threshold >= 0
+    error_message = "db_cpu_credit_alarm_threshold must be at least 0."
+  }
 }
 
 variable "github_repository" {
