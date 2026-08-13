@@ -123,9 +123,21 @@ variable "db_master_username" {
 }
 
 variable "db_engine_version" {
-  description = "PostgreSQL major engine version."
+  description = "Exact PostgreSQL engine version used by RDS. Keep aligned with the Railway source major version before migration."
   type        = string
-  default     = "16"
+  default     = "18.4"
+}
+
+variable "db_allow_major_version_upgrade" {
+  description = "Explicitly allow an RDS major engine upgrade. Enable only for a reviewed upgrade plan."
+  type        = bool
+  default     = false
+}
+
+variable "db_apply_immediately" {
+  description = "Apply RDS modifications immediately instead of waiting for the maintenance window. May cause downtime."
+  type        = bool
+  default     = false
 }
 
 variable "db_instance_class" {
