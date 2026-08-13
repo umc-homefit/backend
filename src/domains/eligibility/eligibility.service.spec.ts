@@ -95,16 +95,14 @@ describe('EligibilityService 분석 시점 프로필 스냅샷 저장', () => {
   const prisma = {
     notice: { findUnique: jest.fn().mockResolvedValue({ noticeId: 1n, conditions: [] }) },
     noticeUnit: {
-      findUnique: jest
-        .fn()
-        .mockResolvedValue({
-          unitId: 1n,
-          noticeId: 1n,
-          depositMin: 1n,
-          depositMax: null,
-          monthlyRentMin: 1n,
-          monthlyRentMax: null,
-        }),
+      findUnique: jest.fn().mockResolvedValue({
+        unitId: 1n,
+        noticeId: 1n,
+        depositMin: 1n,
+        depositMax: null,
+        monthlyRentMin: 1n,
+        monthlyRentMax: null,
+      }),
     },
     userConditionProfile: {
       findUnique: jest.fn().mockResolvedValue({
@@ -216,6 +214,7 @@ describe('EligibilityService 분석 요청의 월세 미수집 처리', () => {
     expect(createData.expectedMonthlyRentAmount).toBeNull();
     expect(createData.rentBurdenRate).toBeNull();
     expect(rentCondition.resultStatus).toBe('NEED_CHECK');
+    expect(rentCondition.failReason).toBe('월세 정보가 없어 월세 부담률 확인이 필요합니다.');
     expect(result.rentBurdenRate).toBeNull();
     expect(result.resultLevel).toBe('NEED_CHECK');
   });
@@ -312,6 +311,7 @@ describe('EligibilityService 분석 요청의 월세 미수집 처리', () => {
 
     expect(createData.rentBurdenRate).toBeNull();
     expect(rentCondition.resultStatus).toBe('NEED_CHECK');
+    expect(rentCondition.failReason).toBe('월소득 정보가 없어 월세 부담률 확인이 필요합니다.');
     expect(result.rentBurdenRate).toBeNull();
   });
 });
@@ -321,6 +321,7 @@ describe('EligibilityService 점수 및 등급 계산', () => {
   const calculateScore = (params: {
     rentBurdenRate: number;
     policyStatus: EligibilityConditionResultStatus;
+    cashSavings?: number;
   }) =>
     (
       service as unknown as {
@@ -337,7 +338,7 @@ describe('EligibilityService 점수 및 등급 계산', () => {
       }
     ).calculateScore({
       expectedDepositAmount: 10_000_000,
-      cashSavings: 10_000_000,
+      cashSavings: params.cashSavings ?? 10_000_000,
       monthlyIncomeAmount: 1_000_000,
       rentBurdenRate: params.rentBurdenRate,
       policyConditions: [
@@ -349,23 +350,42 @@ describe('EligibilityService 점수 및 등급 계산', () => {
     });
 
   it('월세 부담률 40%는 월세 배점 40점을 받아 HIGH가 된다', () => {
-    expect(calculateScore({ rentBurdenRate: 40, policyStatus: EligibilityConditionResultStatus.PASS }))
-      .toMatchObject({ eligibilityScore: 100, resultLevel: 'HIGH' });
+    expect(
+      calculateScore({ rentBurdenRate: 40, policyStatus: EligibilityConditionResultStatus.PASS }),
+    ).toMatchObject({ eligibilityScore: 100, resultLevel: 'HIGH' });
   });
 
   it('월세 부담률이 40%를 초과하면 월세 배점을 받지 않는다', () => {
-    expect(calculateScore({ rentBurdenRate: 40.01, policyStatus: EligibilityConditionResultStatus.PASS }))
-      .toMatchObject({ eligibilityScore: 60, resultLevel: 'MEDIUM' });
+    expect(
+      calculateScore({
+        rentBurdenRate: 40.01,
+        policyStatus: EligibilityConditionResultStatus.PASS,
+      }),
+    ).toMatchObject({ eligibilityScore: 60, resultLevel: 'MEDIUM' });
+  });
+
+  it('보증금보다 보유 현금이 적으면 점수를 LOW 구간으로 제한한다', () => {
+    expect(
+      calculateScore({
+        rentBurdenRate: 0,
+        policyStatus: EligibilityConditionResultStatus.PASS,
+        cashSavings: 0,
+      }),
+    ).toMatchObject({ eligibilityScore: 49, resultLevel: 'LOW' });
   });
 
   it('필수 정책 조건 FAIL은 점수와 무관하게 NOT_ELIGIBLE이 우선한다', () => {
-    expect(calculateScore({ rentBurdenRate: 0, policyStatus: EligibilityConditionResultStatus.FAIL }))
-      .toMatchObject({ resultLevel: 'NOT_ELIGIBLE' });
+    expect(
+      calculateScore({ rentBurdenRate: 0, policyStatus: EligibilityConditionResultStatus.FAIL }),
+    ).toMatchObject({ resultLevel: 'NOT_ELIGIBLE' });
   });
 
   it('자동 판정할 수 없는 정책 조건은 NEED_CHECK으로 처리한다', () => {
     expect(
-      calculateScore({ rentBurdenRate: 0, policyStatus: EligibilityConditionResultStatus.NEED_CHECK }),
+      calculateScore({
+        rentBurdenRate: 0,
+        policyStatus: EligibilityConditionResultStatus.NEED_CHECK,
+      }),
     ).toMatchObject({ resultLevel: 'NEED_CHECK' });
   });
 });
@@ -526,7 +546,11 @@ describe('EligibilityService 분석 소유권·이력 페이지네이션', () =>
     const result = await service.getMyEligibilityAnalyses(1n, 1, 2);
 
     expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 2, take: 2, where: { userConditionProfile: { userId: 1n } } }),
+      expect.objectContaining({
+        skip: 2,
+        take: 2,
+        where: { userConditionProfile: { userId: 1n } },
+      }),
     );
     expect(result.pageInfo).toEqual({
       page: 1,

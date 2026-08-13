@@ -27,6 +27,7 @@
 - 목록 페이징은 offset 방식이며 `page`/`size`를 사용한다. `page`는 0부터 시작한다.
 - 목록 응답의 `result`는 `{ "<목록배열>": [...], "pageInfo": { "page", "size", "totalElements", "totalPages", "hasNext" } }` 형태를 사용한다.
 - 인증 필수 API는 `Authorization: Bearer {accessToken}` 헤더를 사용하며, 인증 실패 시 `401 / AUTH401`을 반환한다.
+- 동일 IP가 동일 엔드포인트에 60초 내 100회를 초과해 요청하면 `429 / COMMON429`를 반환한다(IP·엔드포인트 조합 기준으로 집계되며, 전체 API 합산 횟수가 아니다).
 
 ## 공통 응답 형식
 

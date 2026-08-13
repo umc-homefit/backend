@@ -9,6 +9,11 @@ import { setupSwagger } from './config/swagger.config';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // AWS ALB/Railway 리버스 프록시 뒤에서 도는 구조라, 신뢰할 hop을 1개로 제한해
+  // X-Forwarded-For의 실제 클라이언트 IP를 req.ip로 사용하도록 한다.
+  // 이게 없으면 ThrottlerGuard가 프록시 IP 하나로 모든 사용자를 묶어서 카운트한다.
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
   app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
