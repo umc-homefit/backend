@@ -35,7 +35,6 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);
 
     let user;
-    let isNewUser = false;
     try {
       // User + 기본 프로필(랜덤 닉네임)을 nested create로 한 번에 원자적으로 생성한다.
       user = await this.authRepository.createEmailUser(
@@ -43,21 +42,22 @@ export class AuthService {
         hashedPassword,
         generateRandomNickname(),
       );
-      isNewUser = true;
     } catch (error) {
       // findUserByEmail → createEmailUser 사이에 동시 요청이 오면 P2002가 발생할 수 있다.
-      // socialAuth의 createSocialUser와 동일하게 handleP2002 헬퍼로 재조회한다.
-      // 재조회 성공: 동시 요청 중 하나가 먼저 성공한 것 → 해당 유저로 로그인(isNewUser=false)
-      // 재조회 실패: 다른 이메일 제약 충돌 → AUTH409
-      user = await this.handleP2002(
-        error,
-        () => this.authRepository.findUserByEmail(dto.email),
-      );
+      // 이메일 signup은 비밀번호 검증 없이 기존 유저로 토큰을 발급하면 보안 취약점이 되므로,
+      // socialAuth와 달리 P2002를 재조회 없이 항상 AUTH409로 반환한다.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new ConflictException({
+          code: 'AUTH409',
+          message: '이미 존재하는 이메일 주소입니다.',
+        });
+      }
+      throw error;
     }
 
     return {
       accessToken: this.issueAccessToken(user.userId, user.email),
-      isNewUser,
+      isNewUser: true,
       userId: Number(user.userId),
     };
   }
