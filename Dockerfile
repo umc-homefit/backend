@@ -19,6 +19,13 @@ COPY nest-cli.json tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
 
+# devDependencies를 제거한 운영용 node_modules를 별도로 준비한다.
+# build를 기준으로 prune해야 prisma generate로 생성된 Prisma Client(.prisma/client)가 유지된다.
+# prisma CLI는 pre-deploy 단계의 `prisma migrate deploy` 실행을 위해 dependencies로 옮겨져 있어 prune 후에도 남는다.
+FROM build AS prod-dependencies
+
+RUN npm prune --omit=dev
+
 FROM node:22-alpine3.24 AS runtime
 
 ENV NODE_ENV=production
@@ -27,8 +34,7 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 
 COPY --from=build --chown=node:node /app/package.json /app/package-lock.json ./
-# 동일 이미지로 prisma migrate deploy를 실행할 수 있도록 Prisma CLI를 포함한 의존성을 복사한다.
-COPY --from=build --chown=node:node /app/node_modules ./node_modules
+COPY --from=prod-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
 COPY --from=build --chown=node:node /app/prisma ./prisma
 
