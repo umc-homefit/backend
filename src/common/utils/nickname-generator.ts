@@ -10,17 +10,17 @@ const ANIMALS = [
 ];
 
 /**
- * "우아한주드3817" 같은 형태의 랜덤 닉네임을 생성한다.
- * 형용사 + 팀원 이름 + 4자리 랜덤 숫자(0000~9999) 조합.
+ * "우아한주드38" 같은 형태의 랜덤 닉네임을 생성한다.
+ * 형용사 + 팀원 이름 + 2자리 랜덤 숫자(00~99) 조합.
  * 완전한 유일성을 보장하진 않으므로(같은 조합이 우연히 나올 수 있음),
  * DB의 nickname UNIQUE 제약이 있다면 충돌 시 재시도 로직이 필요할 수 있다.
  */
 export const generateRandomNickname = (): string => {
   const adjective = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
   const animal = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
-  const number = Math.floor(Math.random() * 10000)
+  const number = Math.floor(Math.random() * 100)
     .toString()
-    .padStart(4, '0');
+    .padStart(2, '0');
 
   return `${adjective}${animal}${number}`;
 };
